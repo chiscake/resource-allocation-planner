@@ -2,73 +2,40 @@
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
 	import { completeOnboarding, isTauri } from '$lib/platform';
+	import { t } from '$lib/i18n';
 	import { onMount } from 'svelte';
+
+	let step = $state(0);
+	const steps = [
+		'Планировщик распределения ресурсов — планы выпуска и what-if.',
+		'Без входа: один локальный сценарий на устройстве.',
+		'С аккаунтом: история, org, шаринг, сравнение.',
+		'Регистрация отключена — вход по выданным учётным данным.'
+	];
 
 	onMount(() => {
 		if (!browser) return;
-		if (!isTauri()) {
-			void goto('/', { replaceState: true });
-		}
+		if (!isTauri()) void goto('/', { replaceState: true });
 	});
 
-	function continueToApp() {
-		completeOnboarding();
-		void goto('/');
+	function next() {
+		if (step < steps.length - 1) step += 1;
+		else {
+			completeOnboarding();
+			void goto('/app');
+		}
 	}
 </script>
 
-<svelte:head>
-	<title>Онбординг — Планировщик распределения ресурсов</title>
-</svelte:head>
-
-<main class="shell">
-	<p class="hero">Desktop версия</p>
-	<button type="button" class="next" onclick={continueToApp}>Продолжить</button>
+<main class="mx-auto flex min-h-screen max-w-lg flex-col justify-center gap-6 p-8">
+	<p class="text-4xl font-medium tracking-tight">{t('desktopEdition')}</p>
+	<p class="text-text-muted">{steps[step]}</p>
+	<p class="font-mono text-xs text-text-soft">{step + 1}/{steps.length}</p>
+	<button
+		type="button"
+		class="rounded-[8px] border border-border bg-bg px-5 py-3 text-base font-medium hover:bg-surface"
+		onclick={next}
+	>
+		{step < steps.length - 1 ? 'Далее' : t('continue')}
+	</button>
 </main>
-
-<style>
-	:global(html),
-	:global(body) {
-		margin: 0;
-		min-height: 100%;
-		background: #f3f3f3;
-		font-family:
-			system-ui,
-			-apple-system,
-			Segoe UI,
-			Roboto,
-			sans-serif;
-	}
-
-	.shell {
-		min-height: 100vh;
-		display: grid;
-		place-items: center;
-		place-content: center;
-		gap: 2rem;
-		padding: 2rem;
-		box-sizing: border-box;
-	}
-
-	.hero {
-		margin: 0;
-		font-size: clamp(2.5rem, 8vw, 5rem);
-		font-weight: 700;
-		letter-spacing: -0.03em;
-		text-align: center;
-		color: #111;
-	}
-
-	.next {
-		font: inherit;
-		font-size: 1.125rem;
-		padding: 0.75rem 1.5rem;
-		border: 1px solid #222;
-		background: #fff;
-		cursor: pointer;
-	}
-
-	.next:hover {
-		background: #eee;
-	}
-</style>

@@ -89,6 +89,7 @@ Prefer scripts from `package.json` when present. Typical:
 | Need                                     | Read                 |
 | ---------------------------------------- | -------------------- |
 | Tables, RLS intent, orgs, sharing, trash | `docs/data-model.md` |
+| Post-MVP / deferred backlog              | `docs/TODO-later.md` |
 | Visual design / theme tokens (Cartesia)  | `docs/DESIGN.md`     |
 | Decisions / MVP scope                    | `.tmp/START.md`      |
 | Assignment / course requirements         | `docs/course/`       |

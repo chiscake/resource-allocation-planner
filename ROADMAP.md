@@ -50,6 +50,7 @@ resource-allocation-planner/
 ├── tests/                       # or src/**/*.test.ts — pick one in scaffold
 ├── docs/
 │   ├── AGENT_NAV.md
+│   ├── TODO-later.md            # post-MVP backlog (single list)
 │   ├── data-model.md
 │   └── course/
 │       ├── assignment.md
@@ -96,6 +97,7 @@ Refine `docs/AGENT_NAV.md` when folders actually appear.
 
 - Home lists; favorites; sensitivity screen; compare table (N ids, UI=2).
 - Org attach + checkbox public; hide/show; org_owner hide-only; dual trash; notify on org delete.
+- Notifications inbox: **poll every 60s** (Realtime → `docs/TODO-later.md`).
 - Share link + grant + fork (root+children); unshare rules; audit_events (no jsonb); UI warning on org links.
 - First-run wizard; Register disabled.
 - Admin UI: users + system templates.
@@ -113,19 +115,9 @@ Refine `docs/AGENT_NAV.md` when folders actually appear.
 
 ---
 
-## Out of scope (until asked) — O1.3 draft
+## Out of scope / post-MVP
 
-Derived from START “later” list; refine anytime:
-
-- Course report / PDF / presentation authoring by agents
-- Public self-signup / OAuth / 2FA
-- User-driven public repo + moderation (`mod`)
-- `org_mod` ACL; billing/quotas
-- Heavy async compute worker (`accepted` job) beyond contract stub
-- SSE/WebSocket what-if streaming
-- `source_id`, `batch_id`, live template↔node links
-- schema_version bump / backward-compat layers
-- Full DESIGN.md / Cartesia application to every screen (spec lives in `docs/DESIGN.md`; apply incrementally on UI work)
+Canon backlog: **[`docs/TODO-later.md`](docs/TODO-later.md)** (O1.3 + all deferred items). Edit that file, not a second list here.
 
 ---
 
@@ -147,6 +139,7 @@ Derived from START “later” list; refine anytime:
 | ----------------------------- | ----------------------------------------------- |
 | `.tmp/START.md`               | Decision log                                    |
 | `docs/data-model.md`          | Schema canon                                    |
+| `docs/TODO-later.md`          | Post-MVP backlog                                |
 | `docs/course/assignment.md`   | Task 13                                         |
 | `docs/course/requirements.md` | Course deliverables                             |
 | `Labs/ИБМЗКИ/lab1`            | Admin Edge Function pattern (read-only example) |

@@ -6,13 +6,13 @@
 
 ## Термины ролей (закреплено)
 
-| Термин | Где | Смысл |
-| --- | --- | --- |
-| **`admin`** | уровень **приложения** | Системные шаблоны, пользователи платформы и т.п. |
+| Термин          | Где                     | Смысл                                                                  |
+| --------------- | ----------------------- | ---------------------------------------------------------------------- |
+| **`admin`**     | уровень **приложения**  | Системные шаблоны, пользователи платформы и т.п.                       |
 | **`org_owner`** | уровень **организации** | Привилегии org (корзина org, hide чужих публичных задач, audit org, …) |
-| **`member`** | организация | Обычный участник |
-| **`mod`** | later | Модератор user/public repo |
-| **`org_mod`** | later | Модератор внутри org |
+| **`member`**    | организация             | Обычный участник                                                       |
+| **`mod`**       | later                   | Модератор user/public repo                                             |
+| **`org_mod`**   | later                   | Модератор внутри org                                                   |
 
 В MVP в `organization_members.role`: **`org_owner` \| `member`**. Отдельной org-роли `admin` нет (`org_owner` закрывает этот контур).  
 App-`admin` ≠ `org_owner`.
@@ -31,10 +31,10 @@ App-`admin` ≠ `org_owner`.
 
 ### `what_if` ↔ `mutation`
 
-1. Template: `what_if`.  
-2. Create корня → `model.what_if_defaults` = копия.  
-3. UI sensitivity читает defaults, юзер правит %.  
-4. Child: `mutation` + `model` после apply.  
+1. Template: `what_if`.
+2. Create корня → `model.what_if_defaults` = копия.
+3. UI sensitivity читает defaults, юзер правит %.
+4. Child: `mutation` + `model` после apply.
 5. Re-run: replace children (soft-delete старых).
 
 ### AGENTS / `schema_version`
@@ -51,19 +51,19 @@ App-`admin` ≠ `org_owner`.
 
 ### `organizations` / `organization_members`
 
-| `organization_members.role` | MVP |
-| --- | --- |
-| `org_owner` | Да |
-| `member` | Да |
-| `org_mod` | Later |
+| `organization_members.role` | MVP   |
+| --------------------------- | ----- |
+| `org_owner`                 | Да    |
+| `member`                    | Да    |
+| `org_mod`                   | Later |
 
 ### Привязка и видимость (`org_id` + `org_visibility`)
 
-| `org_id` | `org_visibility` | Смысл |
-| --- | --- | --- |
-| `NULL` | `NULL` | Чисто личная задача |
-| set | `private` | В контексте org, **видит только `owner_id` узла** (и не org_owner чужие private) |
-| set | `org` | Публично **внутри** организации (все members) |
+| `org_id` | `org_visibility` | Смысл                                                                            |
+| -------- | ---------------- | -------------------------------------------------------------------------------- |
+| `NULL`   | `NULL`           | Чисто личная задача                                                              |
+| set      | `private`        | В контексте org, **видит только `owner_id` узла** (и не org_owner чужие private) |
+| set      | `org`            | Публично **внутри** организации (все members)                                    |
 
 **UI списки:** личные · мои org-`private` · org-`org` (общая лента).
 
@@ -87,10 +87,10 @@ Children **наследуют** `org_id` + `org_visibility` родителя; п
 
 ### Корзины (раздельные)
 
-| Корзина | Содержимое |
-| --- | --- |
+| Корзина        | Содержимое                                                                                                            |
+| -------------- | --------------------------------------------------------------------------------------------------------------------- |
 | **User trash** | Soft-deleted узлы, где `owner_id = me` (в т.ч. удалённые org_owner’ом — с **меткой** «удалено организацией» / аналог) |
-| **Org trash** | Soft-deleted узлы этой org, видимые **`org_owner`** |
+| **Org trash**  | Soft-deleted узлы этой org, видимые **`org_owner`**                                                                   |
 
 Восстановление пользователем — по п. выше (после restore от org-delete → всегда `private`).  
 Детали restore из org trash самим `org_owner` — только если понадобится позже; канон restore владельцем задачи описан.
@@ -133,10 +133,10 @@ App-`admin` правит системные. `owner_id` / `org_id` для user/o
 
 ## Sharing
 
-| Ресурс | Unshare |
-| --- | --- |
-| Личный (`org_id` null) | Дубль + soft-delete старого корня |
-| Org | Только revoke link / remove grants — **узел не удалять** |
+| Ресурс                 | Unshare                                                  |
+| ---------------------- | -------------------------------------------------------- |
+| Личный (`org_id` null) | Дубль + soft-delete старого корня                        |
+| Org                    | Только revoke link / remove grants — **узел не удалять** |
 
 Share-link на org-корнях **разрешён** + **UI warning**.
 
@@ -150,18 +150,18 @@ Fork: корень+дети; при org у источника — модалка
 
 Фиксированные колонки, **без `payload jsonb`**, чтобы не раздувать БД.
 
-| Поле | Смысл |
-| --- | --- |
-| `id` | uuid |
-| `created_at` | timestamptz |
-| `actor_id` | uuid |
-| `org_id` | uuid null — для org-scoped событий |
-| `action` | text/enum (см. ниже) |
-| `entity_type` | text (`solve_nodes`, `share_links`, …) |
-| `entity_id` | uuid |
-| `target_user_id` | uuid null (владельц узла / получатель grant) |
-| `visibility_from` / `visibility_to` | text null (`private`/`org`/…) |
-| … | при необходимости ещё 1–2 узких колонки, не jsonb |
+| Поле                                | Смысл                                             |
+| ----------------------------------- | ------------------------------------------------- |
+| `id`                                | uuid                                              |
+| `created_at`                        | timestamptz                                       |
+| `actor_id`                          | uuid                                              |
+| `org_id`                            | uuid null — для org-scoped событий                |
+| `action`                            | text/enum (см. ниже)                              |
+| `entity_type`                       | text (`solve_nodes`, `share_links`, …)            |
+| `entity_id`                         | uuid                                              |
+| `target_user_id`                    | uuid null (владельц узла / получатель grant)      |
+| `visibility_from` / `visibility_to` | text null (`private`/`org`/…)                     |
+| …                                   | при необходимости ещё 1–2 узких колонки, не jsonb |
 
 **MVP actions (основные):** create/delete решений; visibility/attach; share link/grant create/revoke.  
 Фильтры на UI — у app-`admin` и `org_owner` later/потом.
@@ -173,11 +173,18 @@ App-`admin` — по политике платформы (шире), отдел�
 
 ## `notifications`
 
-| type (MVP+) | Когда |
-| --- | --- |
-| `share_incoming` | grant |
-| `org_owner_deleted_node` | org_owner soft-delete чужого сценария |
-| `org_invite` | later |
+| type (MVP+)              | Когда                                        |
+| ------------------------ | -------------------------------------------- |
+| `share_incoming`         | grant                                        |
+| `org_owner_deleted_node` | org_owner soft-delete чужого сценария        |
+| `org_invite`             | later (см. [`TODO-later.md`](TODO-later.md)) |
+
+**Доставка в UI (закреплено):**
+
+| Фаза      | Механизм                                                                                              |
+| --------- | ----------------------------------------------------------------------------------------------------- |
+| **MVP**   | **Poll** таблицы `notifications` раз в **60 с** (допустимо дополнительно: при навигации / focus окна) |
+| **Later** | Supabase **Realtime** — см. [`TODO-later.md`](TODO-later.md)                                          |
 
 ---
 
@@ -195,7 +202,4 @@ localStorage / SQLite; upload при логине; `solve` + `run_mutations`; л
 
 ## Later / не MVP
 
-- `mod` / `org_mod`; user-driven public repo + модерация.
-- Живая связь template; `source_id`; `batch_id`; share sensitivity-child.
-- Compat-миграции schema_version; jsonb в audit.
-- Полный write-ACL сверх зафиксированного hide/delete.
+Канон-список отложенного: **[`TODO-later.md`](TODO-later.md)** (не дублировать сюда длинный backlog).
