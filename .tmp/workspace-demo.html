@@ -1,0 +1,1475 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Планировщик распределения ресурсов</title>
+    <style>
+      :root {
+        --bg: #ffffff;
+        --bg-soft: #fafafa;
+        --surface: #f5f5f5;
+        --text: #0a0a0a;
+        --muted: #525252;
+        --faint: #a3a3a3;
+        --border: #e5e5e5;
+        --brand: #2563eb;
+        --brand-hover: #1d4fd7;
+        --brand-faint: #eff6ff;
+        --ok: #15803d;
+        --warn: #a16207;
+        --warn-bg: #fffbeb;
+        --warn-border: #fde68a;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: system-ui, Segoe UI, Roboto, sans-serif;
+        color: var(--text);
+        background: var(--bg);
+        min-height: 100vh;
+      }
+
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+
+      .app {
+        display: grid;
+        grid-template-rows: auto auto 1fr;
+        min-height: 100vh;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.75rem 1.25rem;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .brand {
+        font-weight: 650;
+        letter-spacing: -0.02em;
+      }
+
+      .brand span {
+        color: var(--muted);
+        font-weight: 500;
+        font-size: 0.85rem;
+        margin-left: 0.35rem;
+      }
+
+      .topbar-actions {
+        margin-left: auto;
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+      }
+
+      .pill {
+        font-size: 0.75rem;
+        padding: 0.2rem 0.55rem;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        color: var(--muted);
+        background: var(--bg-soft);
+      }
+
+      .pill.ok {
+        color: var(--ok);
+        border-color: #bbf7d0;
+        background: #f0fdf4;
+      }
+
+      .pill.crit {
+        color: #1e40af;
+        border-color: #bfdbfe;
+        background: var(--brand-faint);
+      }
+
+      .pill.soft {
+        color: var(--faint);
+        background: var(--surface);
+      }
+
+      .banner {
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+        padding: 0.55rem 1.25rem;
+        background: var(--brand-faint);
+        border-bottom: 1px solid #dbeafe;
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+
+      .banner.stale {
+        background: var(--warn-bg);
+        border-color: var(--warn-border);
+        color: var(--warn);
+      }
+
+      .banner strong {
+        color: var(--text);
+      }
+
+      .shell {
+        display: grid;
+        grid-template-columns: 220px 1fr;
+        min-height: 0;
+      }
+
+      nav.side {
+        border-right: 1px solid var(--border);
+        background: var(--bg-soft);
+        padding: 1rem 0.75rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+      }
+
+      nav.side .nav-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--faint);
+        padding: 0.5rem 0.65rem 0.25rem;
+      }
+
+      .nav-btn {
+        text-align: left;
+        border: 0;
+        background: transparent;
+        padding: 0.55rem 0.65rem;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+
+      .nav-btn:hover {
+        background: var(--surface);
+      }
+
+      .nav-btn.active {
+        background: var(--brand-faint);
+        color: var(--brand);
+        font-weight: 600;
+      }
+
+      main {
+        padding: 1.25rem;
+        overflow: auto;
+      }
+
+      .view {
+        display: none;
+        max-width: 1200px;
+      }
+
+      .view.active {
+        display: block;
+      }
+
+      h1 {
+        font-size: 1.45rem;
+        margin: 0 0 0.35rem;
+        letter-spacing: -0.02em;
+      }
+
+      h2 {
+        font-size: 1.05rem;
+        margin: 1.1rem 0 0.5rem;
+      }
+
+      .sub {
+        color: var(--muted);
+        margin: 0 0 1rem;
+        font-size: 0.95rem;
+      }
+
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+        align-items: flex-end;
+      }
+
+      .btn {
+        border: 1px solid var(--border);
+        background: var(--bg);
+        padding: 0.45rem 0.85rem;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+
+      .btn:hover {
+        background: var(--surface);
+      }
+
+      .btn.primary {
+        background: var(--brand);
+        border-color: var(--brand);
+        color: #fff;
+      }
+
+      .btn.primary:hover {
+        background: var(--brand-hover);
+      }
+
+      .btn.ghost {
+        border-color: transparent;
+        color: var(--brand);
+      }
+
+      .seg {
+        display: inline-flex;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow: hidden;
+        margin-bottom: 1rem;
+        background: var(--bg);
+      }
+
+      .seg button {
+        border: 0;
+        background: transparent;
+        padding: 0.5rem 1rem;
+        cursor: pointer;
+        color: var(--muted);
+        border-right: 1px solid var(--border);
+      }
+
+      .seg button:last-child {
+        border-right: 0;
+      }
+
+      .seg button.active {
+        background: var(--brand-faint);
+        color: var(--brand);
+        font-weight: 600;
+      }
+
+      .seg.small button {
+        padding: 0.35rem 0.75rem;
+        font-size: 0.9rem;
+      }
+
+      .panel {
+        display: none;
+      }
+
+      .panel.active {
+        display: block;
+      }
+
+      .grid-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 0.75rem;
+      }
+
+      .card {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 0.9rem 1rem;
+      }
+
+      .card h3 {
+        margin: 0 0 0.35rem;
+        font-size: 0.95rem;
+      }
+
+      .card p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+
+      .card .meta {
+        margin-top: 0.65rem;
+        font-size: 0.75rem;
+        color: var(--faint);
+      }
+
+      .card-actions {
+        margin-top: 0.75rem;
+        display: flex;
+        gap: 0.35rem;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.88rem;
+      }
+
+      th,
+      td {
+        border: 1px solid var(--border);
+        padding: 0.45rem 0.5rem;
+        text-align: right;
+        vertical-align: middle;
+      }
+
+      th:first-child,
+      td:first-child,
+      td.left,
+      th.left {
+        text-align: left;
+      }
+
+      th {
+        background: var(--surface);
+        font-weight: 600;
+      }
+
+      table.editable td {
+        padding: 0.25rem;
+      }
+
+      table.editable input[type='number'],
+      table.editable input[type='text'] {
+        width: 100%;
+        min-width: 3rem;
+        border: 1px solid transparent;
+        border-radius: 6px;
+        padding: 0.3rem 0.35rem;
+        text-align: right;
+        background: var(--bg);
+      }
+
+      table.editable input:hover,
+      table.editable input:focus {
+        border-color: var(--border);
+        outline: none;
+      }
+
+      table.editable input:focus {
+        border-color: var(--brand);
+        background: var(--brand-faint);
+      }
+
+      table.editable .row-label {
+        text-align: left;
+        padding: 0.45rem 0.55rem;
+        white-space: nowrap;
+      }
+
+      .split {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        margin-bottom: 0;
+      }
+
+      .field label {
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+
+      .field input,
+      .field select {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 0.45rem 0.55rem;
+      }
+
+      .muted {
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+
+      .stat-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
+      }
+
+      .stat {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 0.75rem;
+        background: var(--bg-soft);
+      }
+
+      .stat .k {
+        font-size: 0.75rem;
+        color: var(--muted);
+      }
+
+      .stat .v {
+        font-size: 1.25rem;
+        font-weight: 650;
+        margin-top: 0.15rem;
+      }
+
+      .empty-state {
+        border: 1px dashed var(--border);
+        border-radius: 10px;
+        padding: 1.5rem 1rem;
+        text-align: center;
+        color: var(--muted);
+        background: var(--bg-soft);
+      }
+
+      .empty-state strong {
+        display: block;
+        color: var(--text);
+        margin-bottom: 0.35rem;
+      }
+
+      .delta-cell {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        justify-content: flex-end;
+      }
+
+      .delta-bar {
+        width: 56px;
+        height: 6px;
+        border-radius: 999px;
+        background: var(--surface);
+        overflow: hidden;
+        flex-shrink: 0;
+      }
+
+      .delta-bar > i {
+        display: block;
+        height: 100%;
+        background: var(--brand);
+        border-radius: 999px;
+      }
+
+      .delta-bar.neg > i {
+        background: #94a3b8;
+        margin-left: auto;
+      }
+
+      .table-wrap {
+        overflow: auto;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+      }
+
+      .table-wrap table {
+        margin: 0;
+      }
+
+      .table-wrap th,
+      .table-wrap td {
+        border-left: 0;
+        border-right: 0;
+      }
+
+      .whatif-row[hidden] {
+        display: none;
+      }
+
+      .login-box {
+        max-width: 360px;
+        margin: 2rem auto;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.25rem;
+      }
+
+      /* Drawer */
+      .drawer-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(10, 10, 10, 0.28);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s;
+        z-index: 40;
+      }
+
+      .drawer-backdrop.open {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .drawer {
+        position: fixed;
+        top: 0;
+        right: 0;
+        width: min(520px, 92vw);
+        height: 100vh;
+        background: var(--bg);
+        border-left: 1px solid var(--border);
+        box-shadow: -8px 0 24px rgba(0, 0, 0, 0.06);
+        transform: translateX(100%);
+        transition: transform 0.22s ease;
+        z-index: 50;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .drawer.open {
+        transform: translateX(0);
+      }
+
+      .drawer-head {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1rem 1.1rem;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .drawer-head h2 {
+        margin: 0;
+        flex: 1;
+        font-size: 1.1rem;
+      }
+
+      .drawer-body {
+        padding: 1rem 1.1rem;
+        overflow: auto;
+        flex: 1;
+      }
+
+      .compare-cols {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+      }
+
+      @media (max-width: 860px) {
+        .shell {
+          grid-template-columns: 1fr;
+        }
+
+        nav.side {
+          flex-direction: row;
+          flex-wrap: wrap;
+          border-right: 0;
+          border-bottom: 1px solid var(--border);
+        }
+
+        .split,
+        .compare-cols {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 1099px) {
+        .drawer-hint {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          Планировщик распределения ресурсов
+          <span>demo</span>
+        </div>
+        <div class="topbar-actions">
+          <span class="pill ok" id="net-pill">online</span>
+          <span class="pill" id="user-pill">гость · 1 слот</span>
+          <button type="button" class="btn" data-go="login">Войти</button>
+        </div>
+      </header>
+
+      <div class="banner" id="guest-banner">
+        <strong>Гостевой режим.</strong>
+        Доступен один локальный слот. Войдите, чтобы синхронизировать историю.
+        <button type="button" class="btn primary" data-go="login" style="margin-left: auto">Войти</button>
+      </div>
+
+      <div class="shell">
+        <nav class="side" aria-label="Основная навигация">
+          <div class="nav-label">Работа</div>
+          <button type="button" class="nav-btn active" data-go="home">Главная</button>
+          <button type="button" class="nav-btn" data-go="workspace">Рабочая область</button>
+          <div class="nav-label">Библиотека</div>
+          <button type="button" class="nav-btn" data-go="templates">Шаблоны</button>
+          <button type="button" class="nav-btn" data-go="scenarios">Сценарии</button>
+          <div class="nav-label">Прочее</div>
+          <button type="button" class="nav-btn" data-go="login">Вход</button>
+          <button type="button" class="nav-btn" data-go="placeholders">GA / 4D</button>
+        </nav>
+
+        <main>
+          <section class="view active" id="view-home">
+            <h1>Главная</h1>
+            <p class="sub">Создать · избранные · недавние · шаблоны</p>
+            <div class="row">
+              <button type="button" class="btn primary" data-go="workspace">Новый сценарий из задачи 13</button>
+              <button type="button" class="btn" data-go="workspace">Пустой LP (blank)</button>
+              <button type="button" class="btn" data-go="templates">Все шаблоны</button>
+            </div>
+            <h2>Избранные</h2>
+            <div class="grid-cards">
+              <article class="card">
+                <h3>Задача 13 · база</h3>
+                <p>Z* = 150 · критично: труд, обор.</p>
+                <div class="card-actions">
+                  <button type="button" class="btn primary" data-go="workspace" data-ws-tab="solve">Открыть</button>
+                  <button type="button" class="btn" data-open-compare>В сравнение</button>
+                </div>
+              </article>
+              <article class="card">
+                <h3>Blank · черновик</h3>
+                <p>ещё не решено</p>
+                <div class="card-actions">
+                  <button type="button" class="btn primary" data-go="workspace">Открыть</button>
+                </div>
+              </article>
+            </div>
+            <h2>Недавние</h2>
+            <div class="grid-cards">
+              <article class="card">
+                <h3>What-if · труд +10%</h3>
+                <p>Z* = 160.7</p>
+                <div class="card-actions">
+                  <button type="button" class="btn" data-go="workspace" data-ws-tab="sensitivity">К анализу</button>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section class="view" id="view-workspace">
+            <h1>Рабочая область</h1>
+            <p class="sub">Шаблон: задача 13 · вкладки внутри страницы · сравнение — вкладка или drawer</p>
+
+            <div class="row">
+              <button type="button" class="btn primary" id="btn-fake-solve">Решить</button>
+              <button type="button" class="btn" id="btn-open-compare">Сравнить</button>
+              <button type="button" class="btn" id="btn-save-demo">Сохранить</button>
+              <label class="muted" style="display: flex; align-items: center; gap: 0.35rem; margin-left: 0.25rem">
+                <input type="checkbox" id="chk-round" />
+                Округлить результат
+              </label>
+              <span class="pill soft drawer-hint" style="margin-left: auto">≥1100px: сравнение → drawer</span>
+            </div>
+
+            <div class="seg" id="ws-tabs" role="tablist">
+              <button type="button" class="active" data-ws-tab="solve" role="tab">Решение</button>
+              <button type="button" data-ws-tab="sensitivity" role="tab">Чувствительность</button>
+              <button type="button" data-ws-tab="compare" role="tab">Сравнение</button>
+            </div>
+
+            <!-- РЕШЕНИЕ -->
+            <div class="panel active" id="panel-solve" role="tabpanel">
+              <div class="split">
+                <div>
+                  <h2>Параметры</h2>
+                  <div class="field" style="margin-bottom: 0.65rem">
+                    <label>Название сценария</label>
+                    <input type="text" id="scenario-name" value="Задача 13 · база" />
+                  </div>
+                  <table class="editable" id="model-table">
+                    <thead>
+                      <tr>
+                        <th class="left">Ресурс</th>
+                        <th>П1</th>
+                        <th>П2</th>
+                        <th>П3</th>
+                        <th>П4</th>
+                        <th>Запас</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td class="row-label">Труд</td>
+                        <td><input type="number" value="7" /></td>
+                        <td><input type="number" value="2" /></td>
+                        <td><input type="number" value="2" /></td>
+                        <td><input type="number" value="6" /></td>
+                        <td><input type="number" value="80" /></td>
+                      </tr>
+                      <tr>
+                        <td class="row-label">Сырьё</td>
+                        <td><input type="number" value="5" /></td>
+                        <td><input type="number" value="8" /></td>
+                        <td><input type="number" value="4" /></td>
+                        <td><input type="number" value="3" /></td>
+                        <td><input type="number" value="480" /></td>
+                      </tr>
+                      <tr>
+                        <td class="row-label">Обор.</td>
+                        <td><input type="number" value="2" /></td>
+                        <td><input type="number" value="4" /></td>
+                        <td><input type="number" value="1" /></td>
+                        <td><input type="number" value="8" /></td>
+                        <td><input type="number" value="130" /></td>
+                      </tr>
+                      <tr>
+                        <td class="row-label">Цена</td>
+                        <td><input type="number" value="3" /></td>
+                        <td><input type="number" value="4" /></td>
+                        <td><input type="number" value="3" /></td>
+                        <td><input type="number" value="1" /></td>
+                        <td class="row-label" style="color: var(--faint)">—</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div>
+                  <h2>Результат</h2>
+                  <div id="result-empty" class="empty-state">
+                    <strong id="result-empty-title">Расчёт ещё не выполнен</strong>
+                    <span id="result-empty-hint">Нажмите «Решить», чтобы получить план, Z и теневые цены.</span>
+                  </div>
+                  <div id="result-filled" hidden>
+                    <div class="stat-row">
+                      <div class="stat">
+                        <div class="k">Z max</div>
+                        <div class="v" id="stat-z">150</div>
+                      </div>
+                      <div class="stat">
+                        <div class="k">Статус</div>
+                        <div class="v" style="font-size: 1rem" id="stat-status">optimal</div>
+                      </div>
+                    </div>
+                    <table>
+                      <thead>
+                        <tr>
+                          <th class="left">Продукт</th>
+                          <th>x*</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td class="left">Осциллограф</td>
+                          <td>0</td>
+                        </tr>
+                        <tr>
+                          <td class="left">Частотомер</td>
+                          <td>30</td>
+                        </tr>
+                        <tr>
+                          <td class="left">Генератор</td>
+                          <td>10</td>
+                        </tr>
+                        <tr>
+                          <td class="left">Вольтметр</td>
+                          <td>0</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    <h2>Теневые цены / критичность</h2>
+                    <table>
+                      <thead>
+                        <tr>
+                          <th class="left">Ресурс</th>
+                          <th>Dual</th>
+                          <th class="left">Роль</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td class="left">Труд</td>
+                          <td>1.33</td>
+                          <td class="left"><span class="pill crit">критичный</span></td>
+                        </tr>
+                        <tr>
+                          <td class="left">Сырьё</td>
+                          <td>0</td>
+                          <td class="left"><span class="pill soft">некритичный</span></td>
+                        </tr>
+                        <tr>
+                          <td class="left">Оборудование</td>
+                          <td>0.33</td>
+                          <td class="left"><span class="pill crit">критичный</span></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    <p class="muted" id="save-msg" hidden style="margin-top: 0.75rem"></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ЧУВСТВИТЕЛЬНОСТЬ -->
+            <div class="panel" id="panel-sensitivity" role="tabpanel">
+              <div class="row">
+                <div class="field">
+                  <label>Пресет</label>
+                  <select id="whatif-preset">
+                    <option>Задача 13 · а/б/в</option>
+                    <option>Только запасы</option>
+                    <option>Только цены</option>
+                  </select>
+                </div>
+                <div class="field" style="width: 96px">
+                  <label>Δ запасов %</label>
+                  <input type="number" id="pct-b" value="10" />
+                </div>
+                <div class="field" style="width: 96px">
+                  <label>Δ цен %</label>
+                  <input type="number" id="pct-c" value="15" />
+                </div>
+                <div class="field" style="width: 110px">
+                  <label>Модерн. %</label>
+                  <input type="number" id="pct-mod" value="10" />
+                </div>
+                <button type="button" class="btn primary" id="btn-whatif">Прогнать</button>
+              </div>
+
+              <div class="banner stale" id="whatif-stale" hidden>
+                <strong>Таблицы устарели.</strong>
+                Параметры what-if изменились — нажмите «Прогнать».
+              </div>
+
+              <div id="whatif-empty" class="empty-state" hidden>
+                <strong>Нет данных чувствительности</strong>
+                Сначала получите базовое решение, затем нажмите «Прогнать».
+              </div>
+
+              <div id="whatif-body">
+                <div class="seg small" id="whatif-filter" role="tablist" aria-label="Фильтр пункта">
+                  <button type="button" class="active" data-filter="all">Все</button>
+                  <button type="button" data-filter="a">а) запасы</button>
+                  <button type="button" data-filter="b">б) модерн.</button>
+                  <button type="button" data-filter="c">в) цены</button>
+                </div>
+
+                <div class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th class="left">Пункт</th>
+                        <th class="left">Мутация</th>
+                        <th class="left">Параметр</th>
+                        <th>Δ</th>
+                        <th class="left">План</th>
+                        <th>Z</th>
+                        <th>ΔZ</th>
+                        <th>Dual</th>
+                        <th class="left">Роль</th>
+                      </tr>
+                    </thead>
+                    <tbody id="whatif-tbody">
+                      <!-- a -->
+                      <tr class="whatif-row" data-part="a">
+                        <td class="left">а</td>
+                        <td class="left">Запас +%</td>
+                        <td class="left">Труд <span class="pill crit">крит.</span></td>
+                        <td>+10%</td>
+                        <td class="left">0 / 28.7 / 15.3 / 0</td>
+                        <td>160.7</td>
+                        <td>
+                          <div class="delta-cell">
+                            +10.7
+                            <span class="delta-bar"><i style="width: 80%"></i></span>
+                          </div>
+                        </td>
+                        <td>1.33</td>
+                        <td class="left"><span class="pill crit">крит.</span></td>
+                      </tr>
+                      <tr class="whatif-row" data-part="a">
+                        <td class="left">а</td>
+                        <td class="left">Запас −%</td>
+                        <td class="left">Труд <span class="pill crit">крит.</span></td>
+                        <td>−10%</td>
+                        <td class="left">0 / 31.3 / 4.7 / 0</td>
+                        <td>139.3</td>
+                        <td>
+                          <div class="delta-cell">
+                            −10.7
+                            <span class="delta-bar neg"><i style="width: 80%"></i></span>
+                          </div>
+                        </td>
+                        <td>1.33</td>
+                        <td class="left"><span class="pill crit">крит.</span></td>
+                      </tr>
+                      <tr class="whatif-row" data-part="a">
+                        <td class="left">а</td>
+                        <td class="left">Запас +%</td>
+                        <td class="left">Сырьё <span class="pill soft">некрит.</span></td>
+                        <td>+10%</td>
+                        <td class="left">0 / 30 / 10 / 0</td>
+                        <td>150</td>
+                        <td>
+                          <div class="delta-cell">
+                            0
+                            <span class="delta-bar"><i style="width: 2%"></i></span>
+                          </div>
+                        </td>
+                        <td>0</td>
+                        <td class="left"><span class="pill soft">некрит.</span></td>
+                      </tr>
+                      <tr class="whatif-row" data-part="a">
+                        <td class="left">а</td>
+                        <td class="left">Запас −%</td>
+                        <td class="left">Сырьё <span class="pill soft">некрит.</span></td>
+                        <td>−10%</td>
+                        <td class="left">0 / 30 / 10 / 0</td>
+                        <td>150</td>
+                        <td>
+                          <div class="delta-cell">
+                            0
+                            <span class="delta-bar"><i style="width: 2%"></i></span>
+                          </div>
+                        </td>
+                        <td>0</td>
+                        <td class="left"><span class="pill soft">некрит.</span></td>
+                      </tr>
+                      <tr class="whatif-row" data-part="a">
+                        <td class="left">а</td>
+                        <td class="left">Запас +%</td>
+                        <td class="left">Обор. <span class="pill crit">крит.</span></td>
+                        <td>+10%</td>
+                        <td class="left">0 / 34.3 / 5.7 / 0</td>
+                        <td>154.3</td>
+                        <td>
+                          <div class="delta-cell">
+                            +4.3
+                            <span class="delta-bar"><i style="width: 32%"></i></span>
+                          </div>
+                        </td>
+                        <td>0.33</td>
+                        <td class="left"><span class="pill crit">крит.</span></td>
+                      </tr>
+                      <tr class="whatif-row" data-part="a">
+                        <td class="left">а</td>
+                        <td class="left">Запас −%</td>
+                        <td class="left">Обор. <span class="pill crit">крит.</span></td>
+                        <td>−10%</td>
+                        <td class="left">0 / 25.7 / 14.3 / 0</td>
+                        <td>145.7</td>
+                        <td>
+                          <div class="delta-cell">
+                            −4.3
+                            <span class="delta-bar neg"><i style="width: 32%"></i></span>
+                          </div>
+                        </td>
+                        <td>0.33</td>
+                        <td class="left"><span class="pill crit">крит.</span></td>
+                      </tr>
+                      <!-- b -->
+                      <tr class="whatif-row" data-part="b">
+                        <td class="left">б</td>
+                        <td class="left">Нормы ×0.9</td>
+                        <td class="left">Труд <span class="pill crit">крит.</span></td>
+                        <td>−10%</td>
+                        <td class="left">0 / 28.5 / 15.9 / 0</td>
+                        <td>161.1</td>
+                        <td>
+                          <div class="delta-cell">
+                            +11.1
+                            <span class="delta-bar"><i style="width: 85%"></i></span>
+                          </div>
+                        </td>
+                        <td>—</td>
+                        <td class="left"><span class="pill crit">крит.</span></td>
+                      </tr>
+                      <tr class="whatif-row" data-part="b">
+                        <td class="left">б</td>
+                        <td class="left">Нормы ×0.9</td>
+                        <td class="left">Сырьё <span class="pill soft">некрит.</span></td>
+                        <td>−10%</td>
+                        <td class="left">0 / 30 / 10 / 0</td>
+                        <td>150</td>
+                        <td>
+                          <div class="delta-cell">
+                            0
+                            <span class="delta-bar"><i style="width: 2%"></i></span>
+                          </div>
+                        </td>
+                        <td>—</td>
+                        <td class="left"><span class="pill soft">некрит.</span></td>
+                      </tr>
+                      <tr class="whatif-row" data-part="b">
+                        <td class="left">б</td>
+                        <td class="left">Нормы ×0.9</td>
+                        <td class="left">Обор. <span class="pill crit">крит.</span></td>
+                        <td>−10%</td>
+                        <td class="left">0 / 33.3 / 6.7 / 0</td>
+                        <td>153.3</td>
+                        <td>
+                          <div class="delta-cell">
+                            +3.3
+                            <span class="delta-bar"><i style="width: 25%"></i></span>
+                          </div>
+                        </td>
+                        <td>—</td>
+                        <td class="left"><span class="pill crit">крит.</span></td>
+                      </tr>
+                      <!-- c -->
+                      <tr class="whatif-row" data-part="c">
+                        <td class="left">в</td>
+                        <td class="left">Цена +%</td>
+                        <td class="left">Осциллограф</td>
+                        <td>+15%</td>
+                        <td class="left">0 / 30 / 10 / 0</td>
+                        <td>150</td>
+                        <td>
+                          <div class="delta-cell">
+                            0
+                            <span class="delta-bar"><i style="width: 2%"></i></span>
+                          </div>
+                        </td>
+                        <td>—</td>
+                        <td class="left">—</td>
+                      </tr>
+                      <tr class="whatif-row" data-part="c">
+                        <td class="left">в</td>
+                        <td class="left">Цена −%</td>
+                        <td class="left">Осциллограф</td>
+                        <td>−15%</td>
+                        <td class="left">0 / 30 / 10 / 0</td>
+                        <td>150</td>
+                        <td>
+                          <div class="delta-cell">
+                            0
+                            <span class="delta-bar"><i style="width: 2%"></i></span>
+                          </div>
+                        </td>
+                        <td>—</td>
+                        <td class="left">—</td>
+                      </tr>
+                      <tr class="whatif-row" data-part="c">
+                        <td class="left">в</td>
+                        <td class="left">Цена +%</td>
+                        <td class="left">Частотомер</td>
+                        <td>+15%</td>
+                        <td class="left">0 / 30 / 10 / 0</td>
+                        <td>172.5</td>
+                        <td>
+                          <div class="delta-cell">
+                            +22.5
+                            <span class="delta-bar"><i style="width: 100%"></i></span>
+                          </div>
+                        </td>
+                        <td>—</td>
+                        <td class="left">—</td>
+                      </tr>
+                      <tr class="whatif-row" data-part="c">
+                        <td class="left">в</td>
+                        <td class="left">Цена −%</td>
+                        <td class="left">Частотомер</td>
+                        <td>−15%</td>
+                        <td class="left">0 / 0 / 40 / 0</td>
+                        <td>120</td>
+                        <td>
+                          <div class="delta-cell">
+                            −30
+                            <span class="delta-bar neg"><i style="width: 100%"></i></span>
+                          </div>
+                        </td>
+                        <td>—</td>
+                        <td class="left">—</td>
+                      </tr>
+                      <tr class="whatif-row" data-part="c">
+                        <td class="left">в</td>
+                        <td class="left">Цена +%</td>
+                        <td class="left">Генератор</td>
+                        <td>+15%</td>
+                        <td class="left">0 / 30 / 10 / 0</td>
+                        <td>154.5</td>
+                        <td>
+                          <div class="delta-cell">
+                            +4.5
+                            <span class="delta-bar"><i style="width: 34%"></i></span>
+                          </div>
+                        </td>
+                        <td>—</td>
+                        <td class="left">—</td>
+                      </tr>
+                      <tr class="whatif-row" data-part="c">
+                        <td class="left">в</td>
+                        <td class="left">Цена −%</td>
+                        <td class="left">Генератор</td>
+                        <td>−15%</td>
+                        <td class="left">0 / 32.5 / 0 / 0</td>
+                        <td>130</td>
+                        <td>
+                          <div class="delta-cell">
+                            −20
+                            <span class="delta-bar neg"><i style="width: 75%"></i></span>
+                          </div>
+                        </td>
+                        <td>—</td>
+                        <td class="left">—</td>
+                      </tr>
+                      <tr class="whatif-row" data-part="c">
+                        <td class="left">в</td>
+                        <td class="left">Цена +%</td>
+                        <td class="left">Вольтметр</td>
+                        <td>+15%</td>
+                        <td class="left">0 / 30 / 10 / 0</td>
+                        <td>150</td>
+                        <td>
+                          <div class="delta-cell">
+                            0
+                            <span class="delta-bar"><i style="width: 2%"></i></span>
+                          </div>
+                        </td>
+                        <td>—</td>
+                        <td class="left">—</td>
+                      </tr>
+                      <tr class="whatif-row" data-part="c">
+                        <td class="left">в</td>
+                        <td class="left">Цена −%</td>
+                        <td class="left">Вольтметр</td>
+                        <td>−15%</td>
+                        <td class="left">0 / 30 / 10 / 0</td>
+                        <td>150</td>
+                        <td>
+                          <div class="delta-cell">
+                            0
+                            <span class="delta-bar"><i style="width: 2%"></i></span>
+                          </div>
+                        </td>
+                        <td>—</td>
+                        <td class="left">—</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p class="muted" id="whatif-msg" hidden style="margin-top: 0.75rem">Прогон записан (demo).</p>
+              </div>
+            </div>
+
+            <!-- СРАВНЕНИЕ (вкладка) -->
+            <div class="panel" id="panel-compare" role="tabpanel">
+              <p class="sub">Вкладка на узком экране · на широком чаще удобнее drawer («Сравнить»)</p>
+              <div class="compare-cols" id="compare-inline"></div>
+            </div>
+          </section>
+
+          <section class="view" id="view-templates">
+            <h1>Шаблоны</h1>
+            <p class="sub">Стандартные + свои</p>
+            <div class="row">
+              <button type="button" class="btn primary" id="btn-new-tpl">Новый шаблон</button>
+            </div>
+            <div class="grid-cards">
+              <article class="card">
+                <h3>Задача 13</h3>
+                <p>4 продукта · 3 ресурса · what-if</p>
+                <div class="card-actions">
+                  <button type="button" class="btn primary" data-go="workspace">Создать сценарий</button>
+                </div>
+              </article>
+              <article class="card">
+                <h3>Blank LP</h3>
+                <p>Пустая матрица</p>
+                <div class="card-actions">
+                  <button type="button" class="btn primary" data-go="workspace">Создать сценарий</button>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section class="view" id="view-scenarios">
+            <h1>Сценарии</h1>
+            <table>
+              <thead>
+                <tr>
+                  <th class="left">Имя</th>
+                  <th>Z</th>
+                  <th class="left">Источник</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="left">Задача 13 · база</td>
+                  <td>150</td>
+                  <td class="left">cloud</td>
+                  <td>
+                    <button type="button" class="btn ghost" data-go="workspace">Открыть</button>
+                    <button type="button" class="btn ghost" data-open-compare>Сравнить</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section class="view" id="view-login">
+            <div class="login-box">
+              <h1>Вход</h1>
+              <p class="sub">email / password</p>
+              <div class="field" style="margin-bottom: 0.65rem">
+                <label>Email</label>
+                <input type="email" value="demo@example.com" />
+              </div>
+              <div class="field" style="margin-bottom: 0.65rem">
+                <label>Пароль</label>
+                <input type="password" value="••••••••" />
+              </div>
+              <div class="row">
+                <button type="button" class="btn primary" id="btn-login">Войти (demo)</button>
+                <button type="button" class="btn" id="btn-logout">Выйти</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="view" id="view-placeholders">
+            <h1>Эволюционный метод / 4D</h1>
+            <p class="sub">Placeholder</p>
+            <div class="grid-cards">
+              <article class="card">
+                <h3>ГА</h3>
+                <p>Слот UI</p>
+              </article>
+              <article class="card">
+                <h3>2D–4D</h3>
+                <p>.tmp/LP4DVisualizer.jsx</p>
+              </article>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <div class="drawer-backdrop" id="drawer-backdrop" hidden></div>
+    <aside class="drawer" id="compare-drawer" aria-hidden="true">
+      <div class="drawer-head">
+        <h2>Сравнение</h2>
+        <button type="button" class="btn" id="btn-close-drawer">Закрыть</button>
+      </div>
+      <div class="drawer-body">
+        <div class="compare-cols" id="compare-drawer-cols"></div>
+      </div>
+    </aside>
+
+    <script type="module">
+      const views = [...document.querySelectorAll('.view')];
+      const navBtns = [...document.querySelectorAll('.nav-btn')];
+      const guestBanner = document.getElementById('guest-banner');
+      const userPill = document.getElementById('user-pill');
+      const resultEmpty = document.getElementById('result-empty');
+      const resultFilled = document.getElementById('result-filled');
+      const whatifStale = document.getElementById('whatif-stale');
+      const whatifEmpty = document.getElementById('whatif-empty');
+      const whatifBody = document.getElementById('whatif-body');
+      const drawer = document.getElementById('compare-drawer');
+      const backdrop = document.getElementById('drawer-backdrop');
+
+      let loggedIn = false;
+      let solved = false;
+      let whatifRun = true;
+
+      const compareHtml = `
+        <div class="card">
+          <h3>A · Задача 13 база</h3>
+          <p>Z* = 150</p>
+          <div class="meta">крит.: труд, оборудование</div>
+          <table style="margin-top:0.75rem">
+            <tbody>
+              <tr><td class="left">x2 Частотомер</td><td>30</td></tr>
+              <tr><td class="left">x3 Генератор</td><td>10</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card">
+          <h3>B · Труд +10%</h3>
+          <p>Z* = 160.7 · ΔZ = +10.7</p>
+          <div class="meta">тот же dual труда</div>
+          <table style="margin-top:0.75rem">
+            <tbody>
+              <tr><td class="left">x2 Частотомер</td><td>28.7</td></tr>
+              <tr><td class="left">x3 Генератор</td><td>15.3</td></tr>
+            </tbody>
+          </table>
+        </div>`;
+
+      document.getElementById('compare-inline').innerHTML = compareHtml;
+      document.getElementById('compare-drawer-cols').innerHTML = compareHtml;
+
+      function go(name) {
+        const map = { compare: 'workspace', sensitivity: 'workspace' };
+        const target = map[name] || name;
+        views.forEach((v) => v.classList.toggle('active', v.id === `view-${target}`));
+        navBtns.forEach((b) => b.classList.toggle('active', b.dataset.go === target));
+        history.replaceState(null, '', `#${target}`);
+        if (name === 'compare') setWsTab('compare');
+        if (name === 'sensitivity') setWsTab('sensitivity');
+      }
+
+      function setWsTab(tab) {
+        document.querySelectorAll('#ws-tabs [data-ws-tab]').forEach((b) => {
+          b.classList.toggle('active', b.dataset.wsTab === tab);
+        });
+        document.querySelectorAll('#panel-solve, #panel-sensitivity, #panel-compare').forEach((p) => {
+          p.classList.toggle('active', p.id === `panel-${tab}`);
+        });
+      }
+
+      function preferDrawer() {
+        return window.matchMedia('(min-width: 1100px)').matches;
+      }
+
+      function openDrawer() {
+        backdrop.hidden = false;
+        requestAnimationFrame(() => {
+          backdrop.classList.add('open');
+          drawer.classList.add('open');
+          drawer.setAttribute('aria-hidden', 'false');
+        });
+      }
+
+      function closeDrawer() {
+        backdrop.classList.remove('open');
+        drawer.classList.remove('open');
+        drawer.setAttribute('aria-hidden', 'true');
+        setTimeout(() => {
+          backdrop.hidden = true;
+        }, 220);
+      }
+
+      function openCompare() {
+        go('workspace');
+        if (preferDrawer()) {
+          setWsTab('solve');
+          openDrawer();
+        } else {
+          closeDrawer();
+          setWsTab('compare');
+        }
+      }
+
+      function markWhatifStale() {
+        if (!whatifRun) return;
+        whatifStale.hidden = false;
+      }
+
+      function syncWhatifVisibility() {
+        const showEmpty = !solved;
+        whatifEmpty.hidden = !showEmpty;
+        whatifBody.hidden = showEmpty;
+        if (showEmpty) whatifStale.hidden = true;
+      }
+
+      document.querySelectorAll('[data-go]').forEach((el) => {
+        el.addEventListener('click', () => {
+          go(el.dataset.go);
+          if (el.dataset.wsTab) setWsTab(el.dataset.wsTab);
+        });
+      });
+
+      document.querySelectorAll('[data-open-compare], #btn-open-compare').forEach((el) => {
+        el.addEventListener('click', openCompare);
+      });
+
+      document.getElementById('btn-close-drawer')?.addEventListener('click', closeDrawer);
+      backdrop?.addEventListener('click', closeDrawer);
+
+      document.querySelectorAll('#ws-tabs [data-ws-tab]').forEach((btn) => {
+        btn.addEventListener('click', () => setWsTab(btn.dataset.wsTab));
+      });
+
+      document.querySelectorAll('#whatif-filter [data-filter]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('#whatif-filter [data-filter]').forEach((b) => b.classList.remove('active'));
+          btn.classList.add('active');
+          const f = btn.dataset.filter;
+          document.querySelectorAll('.whatif-row').forEach((row) => {
+            row.hidden = f !== 'all' && row.dataset.part !== f;
+          });
+        });
+      });
+
+      document.getElementById('btn-fake-solve')?.addEventListener('click', () => {
+        solved = true;
+        resultEmpty.hidden = true;
+        resultFilled.hidden = false;
+        document.getElementById('stat-z').textContent = '150';
+        document.getElementById('stat-status').textContent = 'optimal';
+        syncWhatifVisibility();
+        setWsTab('solve');
+      });
+
+      document.getElementById('btn-save-demo')?.addEventListener('click', () => {
+        const msg = document.getElementById('save-msg');
+        if (!solved) {
+          document.getElementById('result-empty-title').textContent = 'Нечего сохранять';
+          document.getElementById('result-empty-hint').textContent = 'Сначала выполните расчёт.';
+          return;
+        }
+        msg.hidden = false;
+        msg.textContent = loggedIn ? 'Сохранено в облако (demo).' : 'Сохранено в локальный слот (demo).';
+      });
+
+      document.getElementById('btn-whatif')?.addEventListener('click', () => {
+        if (!solved) {
+          setWsTab('sensitivity');
+          syncWhatifVisibility();
+          return;
+        }
+        whatifRun = true;
+        whatifStale.hidden = true;
+        const msg = document.getElementById('whatif-msg');
+        msg.hidden = false;
+        msg.textContent = 'Прогон записан (demo). Таблицы актуальны.';
+        setWsTab('sensitivity');
+      });
+
+      ['pct-b', 'pct-c', 'pct-mod', 'whatif-preset'].forEach((id) => {
+        document.getElementById(id)?.addEventListener('input', markWhatifStale);
+        document.getElementById(id)?.addEventListener('change', markWhatifStale);
+      });
+
+      document.getElementById('model-table')?.addEventListener('input', () => {
+        if (solved) {
+          resultEmpty.hidden = false;
+          resultFilled.hidden = true;
+          document.getElementById('result-empty-title').textContent = 'Модель изменилась';
+          document.getElementById('result-empty-hint').textContent = 'Нажмите «Решить» снова.';
+          solved = false;
+          syncWhatifVisibility();
+        }
+      });
+
+      document.getElementById('btn-login')?.addEventListener('click', () => {
+        loggedIn = true;
+        guestBanner.style.display = 'none';
+        userPill.textContent = 'demo@example.com';
+        userPill.classList.add('ok');
+        go('home');
+      });
+
+      document.getElementById('btn-logout')?.addEventListener('click', () => {
+        loggedIn = false;
+        guestBanner.style.display = '';
+        userPill.textContent = 'гость · 1 слот';
+        userPill.classList.remove('ok');
+      });
+
+      document.getElementById('btn-new-tpl')?.addEventListener('click', () => {
+        alert('Новый шаблон (demo)');
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeDrawer();
+      });
+
+      syncWhatifVisibility();
+
+      const hash = location.hash.replace('#', '') || 'home';
+      if (hash === 'compare') {
+        go('workspace');
+        openCompare();
+      } else if (hash === 'sensitivity') {
+        go('workspace');
+        setWsTab('sensitivity');
+      } else if (document.getElementById(`view-${hash}`)) {
+        go(hash);
+      }
+    </script>
+  </body>
+</html>
