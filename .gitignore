@@ -258,3 +258,5 @@ src-tauri/target/
 !src-tauri/Cargo.lock
 .vercel
 .env*
+
+.env.cloud.local
