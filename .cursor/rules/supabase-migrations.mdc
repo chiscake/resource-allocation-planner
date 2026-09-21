@@ -1,0 +1,12 @@
+---
+description: Supabase migration naming and shelf numbering for this project.
+globs: supabase/migrations/**
+alwaysApply: false
+---
+
+# Migrations
+
+- File names: `NNN_name.sql` (exactly three digits).
+- Major shelves step **10** (`000`, `010`, `020`…). Use `011`–`019` for same-shelf refinements.
+- Shelves: see `AGENTS.md`. Breaking model/DB → `db reset` while schema_version no-compat rule exists.
+- No `payload jsonb` on `audit_events`.

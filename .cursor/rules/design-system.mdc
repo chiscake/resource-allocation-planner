@@ -1,0 +1,28 @@
+---
+description: Apply Cartesia design system from docs/DESIGN.md for UI/visual work.
+globs: src/**/*.{svelte,css},src/app.html,src/**/*.css
+alwaysApply: false
+---
+
+# Design system (Cartesia)
+
+Canonical spec: **`docs/DESIGN.md`** (moved out of `.tmp/`; do not put it back in scratch).
+
+## When this fires
+
+Any UI, layout, theme tokens, typography, color, spacing, or component chrome work under `src/`.
+
+## How to apply
+
+1. Read `docs/DESIGN.md` for tokens (`colors`, type, spacing, motion) before inventing styles.
+2. Prefer CSS variables / a single theme module mapped from DESIGN tokens — do not hardcode one-off hex that contradicts the spec.
+3. **Canvas / page background:** use DESIGN `bg` / `bg-soft` (Cartesia clinical white), **not** Labs root `#f3f3f3`, unless the user asks otherwise.
+4. Brand / actions: DESIGN `brand` (`#2563eb`) and CTA rules from the spec; keep the “one deep blue + near-monochrome” language.
+5. UI copy stays **Russian**; token/docs names stay as in DESIGN.md.
+6. If DESIGN and a product decision conflict, ask — do not silently diverge.
+
+## Do not
+
+- Treat `.tmp/` as the home for DESIGN.md.
+- Load the full DESIGN.md on non-UI tasks (this rule is glob-scoped on purpose).
+- Add a second competing design system without user approval.

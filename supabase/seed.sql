@@ -1,0 +1,1 @@
+-- optional seed; keep file so `supabase start` does not warn

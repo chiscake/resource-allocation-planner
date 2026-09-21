@@ -1,0 +1,13 @@
+---
+description: Domain/solver contract pointers when editing lib or Edge solve code.
+globs: src/lib/**/*.{ts,js},supabase/functions/**
+alwaysApply: false
+---
+
+# Domain & solver
+
+- Shared TS contract for Edge and local: `solve` then `run_mutations`.
+- Duals always in `solve` result; status `done | rejected_too_large | accepted`.
+- `model.schema_version` required; do not bump while AGENTS forbids compat.
+- `what_if_defaults` live on model snapshot; children store `mutation` only (no live template link).
+- Full table rules: `docs/data-model.md`.

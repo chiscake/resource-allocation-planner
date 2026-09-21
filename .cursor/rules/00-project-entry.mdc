@@ -1,0 +1,14 @@
+---
+description: Always prefer project AGENTS.md + AGENT_NAV over Labs root defaults for this app.
+alwaysApply: true
+---
+
+# resource-allocation-planner — agent entry
+
+Before non-trivial work in this project:
+
+1. Read `resource-allocation-planner/AGENTS.md` (Overrides beat `Labs/AGENTS.md`).
+2. For paths/entrypoints, read `docs/AGENT_NAV.md` and update it when the tree changes.
+3. Schema/ownership: `docs/data-model.md` — do not invent parallel models.
+4. UI/visual work: `docs/DESIGN.md` + `.cursor/rules/design-system.mdc` (Cartesia).
+5. English for agent docs; Russian for UI strings.

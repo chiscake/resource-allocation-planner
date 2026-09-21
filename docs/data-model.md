@@ -1,0 +1,201 @@
+# Модель данных (черновик)
+
+Источник: `.tmp/START.md` (R0–R5d). Согласованная схема; не DDL-миграция.
+
+---
+
+## Термины ролей (закреплено)
+
+| Термин | Где | Смысл |
+| --- | --- | --- |
+| **`admin`** | уровень **приложения** | Системные шаблоны, пользователи платформы и т.п. |
+| **`org_owner`** | уровень **организации** | Привилегии org (корзина org, hide чужих публичных задач, audit org, …) |
+| **`member`** | организация | Обычный участник |
+| **`mod`** | later | Модератор user/public repo |
+| **`org_mod`** | later | Модератор внутри org |
+
+В MVP в `organization_members.role`: **`org_owner` \| `member`**. Отдельной org-роли `admin` нет (`org_owner` закрывает этот контур).  
+App-`admin` ≠ `org_owner`.
+
+---
+
+## Принципы
+
+- `model` jsonb + обязательный **`schema_version`**.
+- При create из шаблона в `model` копируется **`what_if_defaults`** ← `templates.what_if` (без живой связи).
+- Дерево `solve_nodes`, depth ≤ 1.
+- Soft-delete + корзина **30 дней** → hard purge **`pg_cron`**.
+- `comparisons` — hard delete only.
+- Create расчёта всегда **личный** (`org_id` null) → явное «В организацию».
+- **`what_if` → UI defaults → `mutation`** на child (см. ниже).
+
+### `what_if` ↔ `mutation`
+
+1. Template: `what_if`.  
+2. Create корня → `model.what_if_defaults` = копия.  
+3. UI sensitivity читает defaults, юзер правит %.  
+4. Child: `mutation` + `model` после apply.  
+5. Re-run: replace children (soft-delete старых).
+
+### AGENTS / `schema_version`
+
+Пока в AGENTS правило «не бампить / без compat» — breaking → **`db reset`**, версию не бампить.
+
+### AGENTS / миграции Supabase
+
+Файлы: **`NNN_name.sql`** (3 цифры). Крупные полки с **шагом 10**; внутри полки `011`, `012`, … Шкала полок — в START/ROADMAP при freeze.
+
+---
+
+## Организации
+
+### `organizations` / `organization_members`
+
+| `organization_members.role` | MVP |
+| --- | --- |
+| `org_owner` | Да |
+| `member` | Да |
+| `org_mod` | Later |
+
+### Привязка и видимость (`org_id` + `org_visibility`)
+
+| `org_id` | `org_visibility` | Смысл |
+| --- | --- | --- |
+| `NULL` | `NULL` | Чисто личная задача |
+| set | `private` | В контексте org, **видит только `owner_id` узла** (и не org_owner чужие private) |
+| set | `org` | Публично **внутри** организации (все members) |
+
+**UI списки:** личные · мои org-`private` · org-`org` (общая лента).
+
+**«В организацию»:** кнопка + **чекбокс** «сделать публичным внутри организации»:
+
+- чекбокс off → `org_id` + `org_visibility=private`
+- чекбокс on → `org_id` + `org_visibility=org`
+
+**Уже в организации (владелец задачи):** кнопки **скрыть / показать** (`private` ↔ `org`).
+
+**`org_owner`:** может **только скрыть** чужую задачу с `org_visibility=org` → `private`.  
+**Не может** принудительно показать (`private` → `org`) чужую задачу.
+
+Children **наследуют** `org_id` + `org_visibility` родителя; при смене у корня — каскад на детей.
+
+### Soft-delete публичных org-задач (`org_visibility=org`)
+
+- Soft-delete по-прежнему возможен (кто именно — node `owner_id` или `org_owner`, см. корзины).
+- Если удаляет **`org_owner`** (не владелец узла) → notification владельцу задачи, тип вроде **`org_owner_deleted_node`**: «Владелец организации удалил ваш сценарий».
+- Владелец задачи может **восстановить** из своей корзины → узел жив, но **`org_visibility` принудительно `private`**.
+
+### Корзины (раздельные)
+
+| Корзина | Содержимое |
+| --- | --- |
+| **User trash** | Soft-deleted узлы, где `owner_id = me` (в т.ч. удалённые org_owner’ом — с **меткой** «удалено организацией» / аналог) |
+| **Org trash** | Soft-deleted узлы этой org, видимые **`org_owner`** |
+
+Восстановление пользователем — по п. выше (после restore от org-delete → всегда `private`).  
+Детали restore из org trash самим `org_owner` — только если понадобится позже; канон restore владельцем задачи описан.
+
+### RLS (solve_nodes, чтение)
+
+```text
+owner_id = auth.uid()                                    -- свои, в т.ч. private
+OR (org_id IN membership AND org_visibility = 'org')     -- общая лента
+-- org_owner НЕ видит чужие org_visibility=private
+```
+
+Write/delete: владелец узла; `org_owner` — hide чужих public + soft-delete (с notify); не unhide чужих.
+
+---
+
+## `templates`
+
+Без `source_id`. `system_kind`: `signup_seed` \| `public_repo` \| null.  
+App-`admin` правит системные. `owner_id` / `org_id` для user/org копий.
+
+---
+
+## `solve_nodes`
+
+Поля: `owner_id`, `org_id`, `org_visibility`, `parent_id`, `kind`, `title`, `model` (+ `schema_version`, `what_if_defaults`), `mutation`, `result`, `solver_meta`, `is_favorite`, timestamps, `deleted_at`.
+
+**CHECK:** `is_favorite = false OR parent_id IS NULL`.  
+**CHECK (логика):** `org_id IS NULL ⇒ org_visibility IS NULL`; `org_id IS NOT NULL ⇒ org_visibility IN ('private','org')`.
+
+Допустимый update: title, favorite, org attach/visibility, soft-delete — не перепись model/result корня.
+
+---
+
+## `comparisons`
+
+`owner_id`, `org_id`, `node_ids`, timestamps. Без soft-delete.
+
+---
+
+## Sharing
+
+| Ресурс | Unshare |
+| --- | --- |
+| Личный (`org_id` null) | Дубль + soft-delete старого корня |
+| Org | Только revoke link / remove grants — **узел не удалять** |
+
+Share-link на org-корнях **разрешён** + **UI warning**.
+
+Fork: корень+дети; при org у источника — модалка личное | в org.
+
+При soft-delete корня с активным share: **в одной транзакции** revoke links/grants + audit + delete.
+
+---
+
+## `audit_events` (без jsonb)
+
+Фиксированные колонки, **без `payload jsonb`**, чтобы не раздувать БД.
+
+| Поле | Смысл |
+| --- | --- |
+| `id` | uuid |
+| `created_at` | timestamptz |
+| `actor_id` | uuid |
+| `org_id` | uuid null — для org-scoped событий |
+| `action` | text/enum (см. ниже) |
+| `entity_type` | text (`solve_nodes`, `share_links`, …) |
+| `entity_id` | uuid |
+| `target_user_id` | uuid null (владельц узла / получатель grant) |
+| `visibility_from` / `visibility_to` | text null (`private`/`org`/…) |
+| … | при необходимости ещё 1–2 узких колонки, не jsonb |
+
+**MVP actions (основные):** create/delete решений; visibility/attach; share link/grant create/revoke.  
+Фильтры на UI — у app-`admin` и `org_owner` later/потом.
+
+**RLS для `org_owner`:** видит строки audit **только** с `org_id` ∈ своих org, где он `org_owner`.  
+App-`admin` — по политике платформы (шире), отдельно.
+
+---
+
+## `notifications`
+
+| type (MVP+) | Когда |
+| --- | --- |
+| `share_incoming` | grant |
+| `org_owner_deleted_node` | org_owner soft-delete чужого сценария |
+| `org_invite` | later |
+
+---
+
+## Auth / admin (app)
+
+Нет self-signup; seed; Edge `admin-create-user`; app-`admin`: users + system templates.
+
+---
+
+## Гость / API solve
+
+localStorage / SQLite; upload при логине; `solve` + `run_mutations`; лимиты START; проверка `schema_version`.
+
+---
+
+## Later / не MVP
+
+- `mod` / `org_mod`; user-driven public repo + модерация.
+- Живая связь template; `source_id`; `batch_id`; share sensitivity-child.
+- Compat-миграции schema_version; jsonb в audit.
+- Полный write-ACL сверх зафиксированного hide/delete.
