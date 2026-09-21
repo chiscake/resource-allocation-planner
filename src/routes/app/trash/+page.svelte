@@ -3,6 +3,10 @@
 	import { supabase } from '$lib/db/supabase';
 	import { writeAudit } from '$lib/db/audit';
 	import { t } from '$lib/i18n';
+	import PageHeader from '$lib/components/ui/PageHeader.svelte';
+	import Button from '$lib/components/ui/Button.svelte';
+	import Card from '$lib/components/ui/Card.svelte';
+	import EmptyState from '$lib/components/ui/EmptyState.svelte';
 
 	type Row = {
 		id: string;
@@ -78,50 +82,54 @@
 </script>
 
 <section class="mx-auto max-w-2xl space-y-8">
+	<PageHeader
+		title={t('trash')}
+		description="Мягко удалённые сценарии хранятся 30 дней, затем удаляются автоматически."
+	/>
+
 	<div>
-		<h1 class="mb-4 text-2xl font-medium">{t('trash')}</h1>
-		<ul class="space-y-2">
-			{#each mine as r}
-				<li class="flex items-center justify-between gap-3 rounded-[8px] border border-border p-3">
-					<div>
-						<p>{r.title}</p>
-						{#if r.deleted_by_org_owner}
-							<p class="text-xs text-warning-text">Удалено организацией</p>
-						{/if}
-					</div>
-					<div class="flex gap-2">
-						<button type="button" class="text-sm text-brand" onclick={() => restore(r)}
-							>Восстановить</button
-						>
-						<button
-							type="button"
-							class="text-sm text-danger-text"
-							onclick={() => hardDelete(r.id)}>{t('hardDelete')}</button
-						>
-					</div>
-				</li>
-			{:else}
-				<li class="text-sm text-text-muted">Корзина пуста</li>
-			{/each}
-		</ul>
+		{#if mine.length === 0}
+			<EmptyState title="Корзина пуста" description="Удалённые сценарии появятся здесь." />
+		{:else}
+			<ul class="space-y-2">
+				{#each mine as r}
+					<Card padding={false} class="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+						<div>
+							<p class="font-medium">{r.title}</p>
+							{#if r.deleted_by_org_owner}
+								<p class="text-xs text-warning-text">Удалено организацией</p>
+							{/if}
+						</div>
+						<div class="flex gap-2">
+							<Button variant="ghost" onclick={() => restore(r)}>Восстановить</Button>
+							<Button variant="ghost" class="!text-danger-text" onclick={() => hardDelete(r.id)}>
+								{t('hardDelete')}
+							</Button>
+						</div>
+					</Card>
+				{/each}
+			</ul>
+		{/if}
 	</div>
 
 	{#if isOrgOwner}
 		<div>
-			<h2 class="mb-3 text-lg font-medium">Корзина организации</h2>
+			<h2 class="mb-2 text-lg font-medium">Корзина организации</h2>
 			<p class="mb-3 text-xs text-text-soft">
 				С ленты: скрыть чужой org-сценарий (soft-delete + уведомление владельцу).
 			</p>
-			<ul class="space-y-2">
-				{#each orgTrash as r}
-					<li class="flex justify-between rounded-[8px] border border-border p-3 text-sm">
-						<span>{r.title}</span>
-						<span class="text-text-muted">уже удалено org</span>
-					</li>
-				{:else}
-					<li class="text-sm text-text-muted">Нет записей</li>
-				{/each}
-			</ul>
+			{#if orgTrash.length === 0}
+				<EmptyState title="Нет записей" />
+			{:else}
+				<ul class="space-y-2">
+					{#each orgTrash as r}
+						<Card padding={false} class="flex items-center justify-between px-4 py-3 text-sm">
+							<span>{r.title}</span>
+							<span class="text-text-muted">уже удалено org</span>
+						</Card>
+					{/each}
+				</ul>
+			{/if}
 		</div>
 	{/if}
 </section>

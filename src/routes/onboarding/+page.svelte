@@ -4,6 +4,8 @@
 	import { completeOnboarding, isTauri } from '$lib/platform';
 	import { t } from '$lib/i18n';
 	import { onMount } from 'svelte';
+	import Button from '$lib/components/ui/Button.svelte';
+	import Card from '$lib/components/ui/Card.svelte';
 
 	let step = $state(0);
 	const steps = [
@@ -29,13 +31,11 @@
 
 <main class="mx-auto flex min-h-screen max-w-lg flex-col justify-center gap-6 p-8">
 	<p class="text-4xl font-medium tracking-tight">{t('desktopEdition')}</p>
-	<p class="text-text-muted">{steps[step]}</p>
-	<p class="font-mono text-xs text-text-soft">{step + 1}/{steps.length}</p>
-	<button
-		type="button"
-		class="rounded-[8px] border border-border bg-bg px-5 py-3 text-base font-medium hover:bg-surface"
-		onclick={next}
-	>
-		{step < steps.length - 1 ? 'Далее' : t('continue')}
-	</button>
+	<Card>
+		<p class="text-text-muted">{steps[step]}</p>
+		<p class="mt-3 font-mono text-xs text-text-soft">{step + 1}/{steps.length}</p>
+		<Button class="mt-6 w-full" onclick={next}>
+			{step < steps.length - 1 ? 'Далее' : t('continue')}
+		</Button>
+	</Card>
 </main>

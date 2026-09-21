@@ -3,6 +3,8 @@
 	import { supabase } from '$lib/db/supabase';
 	import { t } from '$lib/i18n';
 	import { editionLabel } from '$lib/platform';
+	import Button from '$lib/components/ui/Button.svelte';
+	import EmptyState from '$lib/components/ui/EmptyState.svelte';
 
 	type Row = {
 		id: string;
@@ -68,31 +70,13 @@
 		{/if}
 	</div>
 	<div class="flex flex-wrap gap-3">
-		<a
-			href="/app/create"
-			class="rounded-[8px] bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-text-medium"
-			>{t('create')}</a
-		>
-		<a href="/app/templates" class="rounded-[8px] border border-border px-4 py-2 text-sm hover:bg-surface"
-			>{t('templates')}</a
-		>
-		<a
-			href="/app/public-templates"
-			class="rounded-[8px] border border-border px-4 py-2 text-sm hover:bg-surface"
-			>{t('publicTemplates')}</a
-		>
-		<a href="/app/compare" class="rounded-[8px] border border-border px-4 py-2 text-sm hover:bg-surface"
-			>{t('compare')}</a
-		>
-		<a href="/app/trash" class="rounded-[8px] border border-border px-4 py-2 text-sm hover:bg-surface"
-			>{t('trash')}</a
-		>
-		<a href="/app/org" class="rounded-[8px] border border-border px-4 py-2 text-sm hover:bg-surface"
-			>{t('org')}</a
-		>
-		<a href="/app/admin" class="rounded-[8px] border border-border px-4 py-2 text-sm hover:bg-surface"
-			>{t('admin')}</a
-		>
+		<Button href="/app/create">{t('create')}</Button>
+		<Button variant="secondary" href="/app/templates">{t('templates')}</Button>
+		<Button variant="secondary" href="/app/public-templates">{t('publicTemplates')}</Button>
+		<Button variant="secondary" href="/app/compare">{t('compare')}</Button>
+		<Button variant="secondary" href="/app/trash">{t('trash')}</Button>
+		<Button variant="secondary" href="/app/org">{t('org')}</Button>
+		<Button variant="secondary" href="/app/admin">{t('admin')}</Button>
 	</div>
 
 	{#if favorites.length}
@@ -111,7 +95,11 @@
 	<div>
 		<h2 class="mb-2 text-lg font-medium">{t('recent')}</h2>
 		{#if recent.length === 0}
-			<p class="text-sm text-text-muted">Нет сценариев. Создайте задачу.</p>
+			<EmptyState title={t('noScenarios')} description={t('noScenariosHint')}>
+				{#snippet action()}
+					<Button href="/app/create">{t('create')}</Button>
+				{/snippet}
+			</EmptyState>
 		{:else}
 			<ul class="space-y-1">
 				{#each recent as r}

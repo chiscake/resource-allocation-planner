@@ -4,6 +4,7 @@
 	import { supabase } from '$lib/db/supabase';
 	import { createBlankModel, createTask13Model, type Model } from '$lib/domain';
 	import { t } from '$lib/i18n';
+	import Button from '$lib/components/ui/Button.svelte';
 
 	let templates = $state<{ id: string; title: string; model: Model }[]>([]);
 	let msg = $state('');
@@ -42,9 +43,6 @@
 			return;
 		}
 		const snapshot = structuredClone(model);
-		if (snapshot.what_if_defaults == null && 'what_if' in model === false) {
-			/* keep */
-		}
 		const { data, error } = await supabase
 			.from('solve_nodes')
 			.insert({
@@ -63,27 +61,19 @@
 	}
 </script>
 
-<section class="mx-auto flex max-w-2xl flex-col gap-4">
+<section class="mx-auto flex max-w-2xl flex-col gap-3">
 	<h1 class="text-2xl font-medium">{t('create')}</h1>
 	{#if msg}<p class="text-danger-text">{msg}</p>{/if}
-	<button
-		type="button"
-		class="rounded-[8px] border border-border px-4 py-3 text-left hover:bg-surface"
-		onclick={() => createFrom(createBlankModel(), 'Новая задача')}
-	>
+	<Button variant="secondary" class="!justify-start !px-4 !py-3" onclick={() => createFrom(createBlankModel(), 'Новая задача')}>
 		Пустая задача
-	</button>
-	<button
-		type="button"
-		class="rounded-[8px] border border-border px-4 py-3 text-left hover:bg-surface"
-		onclick={() => createFrom(createTask13Model(), 'Задача 13')}
-	>
+	</Button>
+	<Button variant="secondary" class="!justify-start !px-4 !py-3" onclick={() => createFrom(createTask13Model(), 'Задача 13')}>
 		Задача 13 (локальный шаблон)
-	</button>
+	</Button>
 	{#each templates as tpl}
-		<button
-			type="button"
-			class="rounded-[8px] border border-border px-4 py-3 text-left hover:bg-surface"
+		<Button
+			variant="secondary"
+			class="!justify-start !px-4 !py-3"
 			onclick={() =>
 				createFrom(
 					{ ...tpl.model, what_if_defaults: tpl.model.what_if_defaults },
@@ -91,6 +81,6 @@
 				)}
 		>
 			{tpl.title}
-		</button>
+		</Button>
 	{/each}
 </section>

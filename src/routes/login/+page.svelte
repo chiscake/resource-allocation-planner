@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { t } from '$lib/i18n';
 	import { supabase } from '$lib/db/supabase';
@@ -9,6 +10,11 @@
 	let password = $state('password123');
 	let error = $state('');
 	let busy = $state(false);
+	let hasGuest = $state(false);
+
+	onMount(() => {
+		hasGuest = loadGuest() != null;
+	});
 
 	async function uploadGuestIfAny(userId: string) {
 		const guest = loadGuest();
@@ -42,6 +48,9 @@
 <main class="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-4 p-6">
 	<h1 class="text-2xl font-medium">{t('login')}</h1>
 	<p class="text-sm text-text-muted">{t('registerDisabled')}</p>
+	{#if hasGuest}
+		<p class="rounded-[8px] bg-surface px-3 py-2 text-sm text-text-muted">{t('guestUpload')}</p>
+	{/if}
 	{#if error}
 		<p class="rounded-[8px] bg-danger-bg px-3 py-2 text-sm text-danger-text">{error}</p>
 	{/if}

@@ -3,6 +3,11 @@
 	import { supabase } from '$lib/db/supabase';
 	import { env } from '$env/dynamic/public';
 	import { t } from '$lib/i18n';
+	import PageHeader from '$lib/components/ui/PageHeader.svelte';
+	import Button from '$lib/components/ui/Button.svelte';
+	import Card from '$lib/components/ui/Card.svelte';
+	import Input from '$lib/components/ui/Input.svelte';
+
 	let isAdmin = $state(false);
 	let email = $state('');
 	let password = $state('password123');
@@ -59,58 +64,48 @@
 </script>
 
 <section class="mx-auto max-w-2xl space-y-6">
-	<h1 class="text-2xl font-medium">{t('admin')}</h1>
-	{#if !isAdmin}
-		<p class="text-sm text-text-muted">Нужна роль admin (admin@rap.local).</p>
-	{:else}
-		<div class="space-y-3 rounded-[12px] border border-border p-4">
-			<h2 class="font-medium">Создать пользователя</h2>
-			<input class="w-full rounded-[8px] border border-border px-3 py-2" bind:value={email} placeholder="email" />
-			<input
-				class="w-full rounded-[8px] border border-border px-3 py-2"
-				bind:value={displayName}
-				placeholder="display name"
-			/>
-			<input
-				class="w-full rounded-[8px] border border-border px-3 py-2"
-				type="password"
-				bind:value={password}
-			/>
-			<button type="button" class="rounded-[8px] bg-accent px-4 py-2 text-sm text-white" onclick={createUser}
-				>Создать</button
-			>
-			{#if msg}<p class="text-sm">{msg}</p>{/if}
-		</div>
+	<PageHeader title={t('admin')} description="Управление пользователями и системными шаблонами." />
 
-		<div class="rounded-[12px] border border-border p-4">
-			<h2 class="mb-2 font-medium">Пользователи</h2>
+	{#if !isAdmin}
+		<Card>
+			<p class="text-sm text-text-muted">Нужна роль admin (admin@rap.local).</p>
+		</Card>
+	{:else}
+		<Card>
+			<h2 class="mb-3 font-medium">Создать пользователя</h2>
+			<div class="space-y-3">
+				<Input bind:value={email} placeholder="email" type="email" />
+				<Input bind:value={displayName} placeholder="Отображаемое имя" />
+				<Input bind:value={password} type="password" placeholder="Пароль" />
+				<Button onclick={createUser}>Создать</Button>
+				{#if msg}<p class="text-sm text-text-muted">{msg}</p>{/if}
+			</div>
+		</Card>
+
+		<Card>
+			<h2 class="mb-3 font-medium">Пользователи</h2>
 			<ul class="space-y-1 text-sm">
 				{#each users as u}
 					<li class="font-mono text-xs">{u.display_name ?? '—'} · {u.role} · {u.id}</li>
 				{/each}
 			</ul>
-		</div>
+		</Card>
 	{/if}
-	<div class="rounded-[12px] border border-border p-4">
-		<h2 class="mb-2 font-medium">Системные шаблоны</h2>
+
+	<Card>
+		<h2 class="mb-3 font-medium">Системные шаблоны</h2>
 		<ul class="space-y-3 text-sm">
 			{#each templates as tpl}
 				<li class="flex flex-wrap items-center gap-2">
 					<span class="text-text-soft">({tpl.system_kind})</span>
-					<input
-						class="min-w-[12rem] flex-1 rounded-[8px] border border-border px-2 py-1"
-						bind:value={editTitle[tpl.id]}
-						disabled={!isAdmin}
-					/>
+					<Input class="min-w-[12rem] flex-1" bind:value={editTitle[tpl.id]} disabled={!isAdmin} />
 					{#if isAdmin}
-						<button
-							type="button"
-							class="rounded-[6px] border border-border px-2 py-1 text-xs"
-							onclick={() => saveTemplate(tpl.id)}>Сохранить</button
-						>
+						<Button variant="secondary" class="!px-3 !py-1.5 text-xs" onclick={() => saveTemplate(tpl.id)}>
+							Сохранить
+						</Button>
 					{/if}
 				</li>
 			{/each}
 		</ul>
-	</div>
+	</Card>
 </section>

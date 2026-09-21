@@ -106,12 +106,13 @@ Refine `docs/AGENT_NAV.md` when folders actually appear.
 
 ### P4 — Ship
 
-- Placeholders: GA tab, 4D viz (from `.tmp` later).
-- Tauri **installer** build; optional Vercel static/web profile.
-- `pnpm check` + `pnpm test`; purge via `pg_cron`.
-- Update `docs/AGENT_NAV.md` to match reality.
+- Placeholders: GA tab, 4D viz (from `.tmp` later). ✅ UI tabs on node page.
+- Tauri **installer** build (`pnpm tauri:build`); Vercel static/web profile. ✅ https://resource-allocation-planner-taupe.vercel.app
+- `pnpm check` + `pnpm test`; purge via `pg_cron`. ✅ `080_purge_cron.sql`
+- UI kit polish on remaining routes; share page shows Z/plan/duals via `get_shared_node`. ✅
+- Update `docs/AGENT_NAV.md` to match reality. ✅
 
-**Done when:** installer artifact + reproducible demo; AGENT_NAV accurate.
+**Done when:** installer artifact + reproducible demo; AGENT_NAV accurate. *(Web + cron shipped; run `pnpm tauri:build` locally for installer.)*
 
 ---
 

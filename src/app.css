@@ -15,6 +15,9 @@
 	--color-brand: #2563eb;
 	--color-brand-hover: #1d4fd7;
 	--color-brand-soft: #dbeafe;
+	--color-brand-faint: #eff6ff;
+	--color-link: #2563eb;
+	--color-selected-bg: #eff6ff;
 	--color-accent: #0a0a0a;
 	--color-border: #e5e5e5;
 	--color-border-strong: #d4d4d4;
@@ -23,6 +26,10 @@
 	--color-danger-text: #b91c1c;
 	--color-success-bg: #dcfce7;
 	--color-success-text: #15803d;
+	--color-warning-bg: #fef3c7;
+	--color-warning-text: #a16207;
+	--color-info-bg: #dbeafe;
+	--color-info-text: #1e40af;
 	--font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
 	--font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 	--radius-control: 8px;

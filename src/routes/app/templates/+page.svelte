@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { supabase } from '$lib/db/supabase';
 	import { t } from '$lib/i18n';
+	import Button from '$lib/components/ui/Button.svelte';
 
 	let rows = $state<{ id: string; title: string }[]>([]);
 
@@ -27,7 +28,7 @@
 		{#each rows as r}
 			<li class="flex items-center justify-between rounded-[8px] border border-border px-3 py-2">
 				<span>{r.title}</span>
-				<a class="text-sm text-brand hover:underline" href="/app/create">Использовать</a>
+				<Button variant="ghost" href="/app/create" class="!px-2 !py-1">Использовать</Button>
 			</li>
 		{:else}
 			<li class="text-sm text-text-muted">Нет личных шаблонов</li>

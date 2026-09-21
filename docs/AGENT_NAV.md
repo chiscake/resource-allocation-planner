@@ -54,7 +54,7 @@ resource-allocation-planner/
 │           ├── templates/, public-templates/
 │           ├── compare/, trash/, org/, notifications/, admin/
 ├── supabase/
-│   ├── migrations/000…072
+│   ├── migrations/000…080       # 080_purge_cron: pg_cron soft-delete purge
 │   ├── functions/solve, run_mutations, admin-create-user
 │   └── seed.sql                 # noop; users via seed:users
 └── src-tauri/
@@ -63,11 +63,18 @@ resource-allocation-planner/
 **Dev:** `pnpm dev` → http://127.0.0.1:5400 (HMR 5401).  
 **Backend local (one shot):** `pnpm supabase:local` → `supabase start` + `db reset` + `seed:users` + `functions serve`.
 
+**Production (web):** https://resource-allocation-planner-taupe.vercel.app  
+**Vercel build:** `vercel.json` → `pnpm build`, output `build/` (static SPA rewrites).
+
 **Cloud link (once per machine):**
 - `supabase link --project-ref ktdxdqnhjitolfpcztds` (RAP)
 - `vercel link --yes --project resource-allocation-planner --scope chiscakes-projects`
 - Ignore: `.vercel/`, `supabase/.temp/`, `.env.local` (never commit)
-- Client env canon: `PUBLIC_SUPABASE_URL` + `PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+- Client env canon: `PUBLIC_SUPABASE_URL` + `PUBLIC_SUPABASE_PUBLISHABLE_KEY` (Vercel env name: publishable key, not anon)
+
+**Cloud seed:** `pnpm seed:users:cloud` (reads `.env.cloud.local` — service role + project URL).
+
+**Desktop installer:** `pnpm tauri:build` (slow; not part of CI — run locally for `.msi`/bundle).
 
 ---
 
@@ -98,7 +105,9 @@ resource-allocation-planner/
 | Test        | `pnpm test`                                                          |
 | Check       | `pnpm check`                                                         |
 | Seed        | `pnpm seed:users` — admin@rap.local, demo1/2@rap.local / password123 |
+| Cloud seed  | `pnpm seed:users:cloud` — same users against linked RAP project        |
 | Local stack | `pnpm supabase:local` — start + reset + seed + Edge serve            |
+| Installer   | `pnpm tauri:build` — desktop bundle (local only)                       |
 | Edge        | `solve`, `run_mutations`, `admin-create-user`                        |
 | Venue       | Web = cloud when online (fallback local); Tauri UI toggle            |
 

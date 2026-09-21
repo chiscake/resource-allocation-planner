@@ -2,6 +2,10 @@
 	import { onMount } from 'svelte';
 	import { supabase } from '$lib/db/supabase';
 	import { t } from '$lib/i18n';
+	import PageHeader from '$lib/components/ui/PageHeader.svelte';
+	import Button from '$lib/components/ui/Button.svelte';
+	import Card from '$lib/components/ui/Card.svelte';
+	import EmptyState from '$lib/components/ui/EmptyState.svelte';
 
 	let rows = $state<{ id: string; title: string }[]>([]);
 
@@ -15,16 +19,19 @@
 	});
 </script>
 
-<section class="mx-auto max-w-2xl">
-	<h1 class="mb-4 text-2xl font-medium">{t('publicTemplates')}</h1>
-	<ul class="space-y-2">
-		{#each rows as r}
-			<li class="flex items-center justify-between rounded-[8px] border border-border px-3 py-2">
-				<span>{r.title}</span>
-				<a class="text-sm text-brand hover:underline" href="/app/create">Использовать</a>
-			</li>
-		{:else}
-			<li class="text-sm text-text-muted">Каталог пуст</li>
-		{/each}
-	</ul>
+<section class="mx-auto max-w-2xl space-y-6">
+	<PageHeader title={t('publicTemplates')} description="Общедоступные шаблоны для создания сценариев." />
+
+	{#if rows.length === 0}
+		<EmptyState title="Каталог пуст" />
+	{:else}
+		<ul class="space-y-2">
+			{#each rows as r}
+				<Card padding={false} class="flex items-center justify-between px-4 py-3">
+					<span>{r.title}</span>
+					<Button variant="ghost" href="/app/create" class="!px-2 !py-1">Использовать</Button>
+				</Card>
+			{/each}
+		</ul>
+	{/if}
 </section>
