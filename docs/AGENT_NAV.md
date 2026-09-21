@@ -63,6 +63,12 @@ resource-allocation-planner/
 **Dev:** `pnpm dev` → http://127.0.0.1:5400 (HMR 5401).  
 **Backend local (one shot):** `pnpm supabase:local` → `supabase start` + `db reset` + `seed:users` + `functions serve`.
 
+**Cloud link (once per machine):**
+- `supabase link --project-ref ktdxdqnhjitolfpcztds` (RAP)
+- `vercel link --yes --project resource-allocation-planner --scope chiscakes-projects`
+- Ignore: `.vercel/`, `supabase/.temp/`, `.env.local` (never commit)
+- Client env canon: `PUBLIC_SUPABASE_URL` + `PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+
 ---
 
 ## Routes

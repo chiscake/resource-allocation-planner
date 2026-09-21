@@ -13,7 +13,7 @@ async function edgePost<T>(path: string, body: unknown): Promise<T> {
 		headers: {
 			'Content-Type': 'application/json',
 			Authorization: token ? `Bearer ${token}` : '',
-			apikey: env.PUBLIC_SUPABASE_ANON_KEY ?? ''
+			apikey: env.PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? ''
 		},
 		body: JSON.stringify(body)
 	});

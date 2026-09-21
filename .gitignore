@@ -256,3 +256,5 @@ src-tauri/target/
 
 # Rust template ignores Cargo.lock; this is an application — keep it
 !src-tauri/Cargo.lock
+.vercel
+.env*

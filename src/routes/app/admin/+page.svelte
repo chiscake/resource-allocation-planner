@@ -37,7 +37,7 @@
 			headers: {
 				'Content-Type': 'application/json',
 				Authorization: `Bearer ${session.session?.access_token}`,
-				apikey: env.PUBLIC_SUPABASE_ANON_KEY ?? ''
+				apikey: env.PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? ''
 			},
 			body: JSON.stringify({ email, password, display_name: displayName })
 		});
