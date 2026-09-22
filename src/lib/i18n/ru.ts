@@ -116,6 +116,11 @@ const ru = {
   shadowPrices: "Теневые цены",
   resourceSlack: "Недоработанные ресурсы",
   criticalResources: "Критичные ресурсы",
+  roundPlan: "Округлить план до целых",
+  roundPlanHint:
+    "Каждое xᵢ — к ближайшему целому (Math.round). Z и загрузка ресурсов пересчитаны; теневые цены — от непрерывного ЛП.",
+  roundPlanInfeasible: "После округления план не укладывается в запасы",
+
   runWhatIfHint: "Запустите анализ чувствительности.",
   trashToBin: "В корзину",
   mutation: "Мутация",

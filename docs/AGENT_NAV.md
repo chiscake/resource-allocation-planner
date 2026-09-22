@@ -124,6 +124,7 @@ resource-allocation-planner/
 | ------------------------- | ------------------------- |
 | LP model + schema_version | `src/lib/domain/`         |
 | solve / run_mutations     | `src/lib/solver/` + Edge  |
+| Plan rounding (UI post)   | `src/lib/solver/roundPlan.ts` + `roundPref.ts` |
 | Compute venue             | `src/lib/solver/venue.ts` |
 | Guest slot                | `src/lib/db/guest.ts`     |
 | Audit writes              | `src/lib/db/audit.ts`     |

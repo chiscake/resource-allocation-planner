@@ -53,6 +53,8 @@ export interface SolverMeta {
   duration_ms: number;
   rejected_reason?: string;
   hint?: string;
+  /** Present when plan x was post-rounded for display; duals remain from continuous LP. */
+  rounding?: "nearest";
 }
 
 export interface SolveRequest {

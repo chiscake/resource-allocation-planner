@@ -2,7 +2,12 @@
 	import { afterNavigate } from '$app/navigation';
 	import { loadGuest, saveGuest, type GuestSnapshot } from '$lib/db/guest';
 	import { createTask13Model, type Model, type SolveResult } from '$lib/domain';
-	import { solveLocal } from '$lib/solver';
+	import {
+		solveLocal,
+		getRoundPlanPreference,
+		setRoundPlanPreference,
+		maybeRoundPlan
+	} from '$lib/solver';
 	import { t } from '$lib/i18n';
 	import LpModelMatrix from '$lib/components/model/LpModelMatrix.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
@@ -23,6 +28,11 @@
 	let result = $state<SolveResult | null>(null);
 	let error = $state('');
 	let busy = $state(false);
+	let roundPlan = $state(getRoundPlanPreference());
+
+	const displayResult = $derived(
+		result && model ? maybeRoundPlan(model, result, roundPlan) : null
+	);
 
 	function persist() {
 		if (!model) return;
@@ -48,6 +58,7 @@
 	}
 
 	afterNavigate(() => {
+		roundPlan = getRoundPlanPreference();
 		initFromGuest(loadGuest());
 	});
 
@@ -134,17 +145,32 @@
 			<LpModelMatrix {model} onchange={onModelChange} />
 		</Card>
 
-		{#if result}
+		{#if result && displayResult}
 			<Card>
-				<p class="font-mono text-sm">Z = {result.Z.toFixed(4)}</p>
+				<label class="mb-3 flex items-center gap-2 text-sm">
+					<input
+						type="checkbox"
+						checked={roundPlan}
+						onchange={(e) => {
+							roundPlan = e.currentTarget.checked;
+							setRoundPlanPreference(roundPlan);
+						}}
+					/>
+					{t('roundPlan')}
+				</label>
+				<p class="mb-3 text-xs text-text-soft">{t('roundPlanHint')}</p>
+				{#if roundPlan && !displayResult.feasible}
+					<p class="mb-3 text-sm text-warning-text">{t('roundPlanInfeasible')}</p>
+				{/if}
+				<p class="font-mono text-sm">Z = {displayResult.Z.toFixed(4)}</p>
 				<p class="mt-3 text-xs font-medium text-text-soft">{t('guestPlan')}</p>
 				<ul class="mt-1 grid gap-1 font-mono text-sm text-text-muted md:grid-cols-2">
-					{#each Object.entries(result.x) as [k, v] (k)}
+					{#each Object.entries(displayResult.x) as [k, v] (k)}
 						<li>{k}: {v.toFixed(4)}</li>
 					{/each}
 				</ul>
 				<p class="mt-3 text-sm text-text-soft">
-					{t('guestCritical')}: {result.critical_resources.join(', ') || '—'}
+					{t('guestCritical')}: {displayResult.critical_resources.join(', ') || '—'}
 				</p>
 			</Card>
 		{/if}

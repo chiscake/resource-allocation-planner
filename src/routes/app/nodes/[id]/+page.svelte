@@ -11,6 +11,11 @@
 		type Mutation,
 		type WhatIfDefaults
 	} from '$lib/domain';
+	import {
+		getRoundPlanPreference,
+		setRoundPlanPreference,
+		maybeRoundPlan
+	} from '$lib/solver';
 	import { t } from '$lib/i18n';
 	import Tabs from '$lib/components/ui/Tabs.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
@@ -66,11 +71,15 @@
 	let editSourceOpen = $state(false);
 	/** When on, Plan «Рассчитать» also runs what-if pack and shows kids below. */
 	let includeSensitivity = $state(false);
+	let roundPlan = $state(false);
 
 	const id = $derived(page.params.id!);
 	const modelEditable = $derived(node != null && !node.result);
 	/** Prefer live edit buffer; fall back to persisted node model so Plan never blanks. */
 	const planModel = $derived(editModel ?? node?.model ?? null);
+	const displayResult = $derived(
+		node?.result && planModel ? maybeRoundPlan(planModel, node.result, roundPlan) : null
+	);
 	/** What-if kids only — revisions also use parent_id with kind='revision'. */
 	const whatIfChildren = $derived(
 		children.filter((c) => c.kind === 'sensitivity' || c.what_if_generation != null)
@@ -182,6 +191,7 @@
 	}
 
 	afterNavigate(() => {
+		roundPlan = getRoundPlanPreference();
 		void loadUserOrgs().then(() => load());
 	});
 
@@ -854,33 +864,48 @@
 					</Card>
 				{/if}
 
-				{#if node.result}
+				{#if node.result && displayResult}
 					<Card>
-						<p class="font-mono text-sm">Z = {node.result.Z.toFixed(4)}</p>
+						<label class="mb-3 flex items-center gap-2 text-sm">
+							<input
+								type="checkbox"
+								checked={roundPlan}
+								onchange={(e) => {
+									roundPlan = e.currentTarget.checked;
+									setRoundPlanPreference(roundPlan);
+								}}
+							/>
+							{t('roundPlan')}
+						</label>
+						<p class="mb-3 text-xs text-text-soft">{t('roundPlanHint')}</p>
+						{#if roundPlan && !displayResult.feasible}
+							<p class="mb-3 text-sm text-warning-text">{t('roundPlanInfeasible')}</p>
+						{/if}
+						<p class="font-mono text-sm">Z = {displayResult.Z.toFixed(4)}</p>
 						<p class="mt-3 text-xs font-medium text-text-soft">x</p>
 						<ul class="mt-1 grid gap-1 font-mono text-sm text-text-muted md:grid-cols-2">
-							{#each Object.entries(node.result.x) as [k, v]}
+							{#each Object.entries(displayResult.x) as [k, v] (k)}
 								<li>{k}: {v.toFixed(4)}</li>
 							{/each}
 						</ul>
-						{#if node.result.shadow_prices}
+						{#if displayResult.shadow_prices}
 							<p class="mt-3 text-xs font-medium text-text-soft">{t('shadowPrices')}</p>
 							<ul class="mt-1 grid gap-1 font-mono text-sm text-text-muted md:grid-cols-2">
-								{#each Object.entries(node.result.shadow_prices) as [k, v]}
+								{#each Object.entries(displayResult.shadow_prices) as [k, v] (k)}
 									<li>{k}: {v.toFixed(4)}</li>
 								{/each}
 							</ul>
 						{/if}
-						{#if node.result.resource_slack}
+						{#if displayResult.resource_slack}
 							<p class="mt-3 text-xs font-medium text-text-soft">{t('resourceSlack')}</p>
 							<ul class="mt-1 grid gap-1 font-mono text-sm text-text-muted md:grid-cols-2">
-								{#each Object.entries(node.result.resource_slack) as [k, v]}
+								{#each Object.entries(displayResult.resource_slack) as [k, v] (k)}
 									<li>{k}: {v.toFixed(4)}</li>
 								{/each}
 							</ul>
 						{/if}
 						<p class="mt-3 text-sm text-text-soft">
-							{t('criticalResources')}: {node.result.critical_resources.join(', ') || '—'}
+							{t('criticalResources')}: {displayResult.critical_resources.join(', ') || '—'}
 						</p>
 						<div class="mt-6 border-t border-border pt-4">
 							<NodeComments nodeId={node.id} scope="result" />
@@ -929,10 +954,19 @@
 									</tr>
 								</thead>
 								<tbody>
-									{#each visibleChildren as c}
+									{#each visibleChildren as c (c.id)}
 										<tr class="border-b border-border-soft">
 											<td class="py-2 pr-3">{c.title}</td>
-											<td class="font-mono">{c.result?.Z?.toFixed(3) ?? '—'}</td>
+											<td class="font-mono">
+												{#if c.result}
+													{(roundPlan
+														? maybeRoundPlan(c.model, c.result, true).Z
+														: c.result.Z
+													).toFixed(3)}
+												{:else}
+													—
+												{/if}
+											</td>
 										</tr>
 									{/each}
 								</tbody>
