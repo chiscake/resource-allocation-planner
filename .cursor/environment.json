@@ -1,0 +1,13 @@
+{
+  "name": "Resource Allocation Planner",
+  "snapshot": "snapshot-20260922-81865ed2-3170-427d-8464-26c2deea4c52",
+  "install": "bash .cursor/install.sh",
+  "start": "bash .cursor/start.sh",
+  "ports": [
+    { "name": "web", "port": 5400 },
+    { "name": "vite-hmr", "port": 5401 },
+    { "name": "supabase-api", "port": 54321 },
+    { "name": "supabase-studio", "port": 54323 },
+    { "name": "supabase-mailpit", "port": 54324 }
+  ]
+}
