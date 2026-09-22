@@ -74,8 +74,9 @@ resource-allocation-planner/
 
 - `supabase link --project-ref ktdxdqnhjitolfpcztds` (RAP)
 - `vercel link --yes --project resource-allocation-planner --scope chiscakes-projects`
-- Ignore: `.vercel/`, `supabase/.temp/`, `.env.local` (never commit)
+- Ignore: `.vercel/`, `supabase/.temp/`, `.env.local` / `.env.cloud` (never commit)
 - Client env canon: `PUBLIC_SUPABASE_URL` + `PUBLIC_SUPABASE_PUBLISHABLE_KEY` (Vercel env name: publishable key, not anon)
+- Vite env file: `vite.env-file` (path, default `.env.local`) or `RAP_ENV_FILE=… pnpm dev`
 
 **Cloud seed:** `pnpm seed:users:cloud` (reads `.env.cloud` — service role + project URL).
 
