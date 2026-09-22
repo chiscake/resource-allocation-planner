@@ -11,25 +11,24 @@
 		isSolveMethod,
 		type Model,
 		type SolveResult,
-		type SolveMethod,
 		type SolverMeta,
 		type Mutation,
 		type WhatIfDefaults
 	} from '$lib/domain';
-	import {
-		getRoundPlanPreference,
-		maybeRoundPlan
-	} from '$lib/solver';
+	import { maybeRoundPlan } from '$lib/solver';
 	import { t } from '$lib/i18n';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
 	import Select from '$lib/components/ui/Select.svelte';
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
-	import LpModelMatrix from '$lib/components/model/LpModelMatrix.svelte';
-	import PlanSolveControls from '$lib/components/model/PlanSolveControls.svelte';
-	import SolveResultPanel from '$lib/components/model/SolveResultPanel.svelte';
+	import SolveWorkspace from '$lib/components/model/SolveWorkspace.svelte';
 	import NodeComments from '$lib/components/NodeComments.svelte';
+	import {
+		createSolveSession,
+		solveMethodToTab,
+		type WhatIfRow
+	} from '$lib/components/model/solve-session.svelte';
 	import { Star, GitFork, Trash2 } from '@lucide/svelte';
 
 	type NodeRow = {
@@ -63,26 +62,16 @@
 	let generations = $state<number[]>([]);
 	let genIndex = $state(0);
 	let error = $state('');
-	let busy = $state(false);
 	let orgId = $state('');
 	let makePublic = $state(false);
 	let shareUrl = $state('');
 	let grantEmail = $state('');
 	let shareMsg = $state('');
 	let userOrgs = $state<OrgOption[]>([]);
-	let activeTab = $state('plan');
-	let editModel = $state<Model | null>(null);
 	let hasActiveShare = $state(false);
-	/** When on, Plan «Рассчитать» also runs what-if pack and shows kids below. */
-	let includeSensitivity = $state(false);
-	let roundPlan = $state(false);
+	const session = createSolveSession();
 
 	const id = $derived(page.params.id!);
-	/** Prefer live edit buffer; fall back to persisted node model so Plan never blanks. */
-	const planModel = $derived(editModel ?? node?.model ?? null);
-	const displayResult = $derived(
-		node?.result && planModel ? maybeRoundPlan(planModel, node.result, roundPlan) : null
-	);
 	const solverLibrary = $derived(
 		typeof node?.solver_meta?.library === 'string' ? node.solver_meta.library : null
 	);
@@ -94,18 +83,24 @@
 	const visibleChildren = $derived(
 		whatIfChildren.filter((c) => c.what_if_generation === activeGen)
 	);
-	const orgSelectOptions = $derived(userOrgs.map((o) => ({ value: o.id, label: o.name })));
-	/** Tablist doubles as solve-method picker (Симплекс = LP). */
-	const solveMethod = $derived<SolveMethod>(
-		activeTab === 'ipm' ? 'ipm' : activeTab === 'ga' ? 'ga' : 'lp'
+	const whatIfRows = $derived<WhatIfRow[]>(
+		visibleChildren.map((c) => ({
+			title: c.title,
+			Z: c.result
+				? session.roundPlan
+					? maybeRoundPlan(c.model, c.result, true).Z
+					: c.result.Z
+				: Number.NaN
+		}))
 	);
-	const methodReady = $derived(activeTab !== '4d');
-
-	function methodToTab(method: SolveMethod): string {
-		if (method === 'ipm') return 'ipm';
-		if (method === 'ga') return 'ga';
-		return 'plan';
-	}
+	const whatIfArchiveHint = $derived(
+		t('generationPurge', {
+			date: purgeDate(
+				children.find((c) => c.what_if_generation === activeGen)?.deleted_at ?? null
+			)
+		})
+	);
+	const orgSelectOptions = $derived(userOrgs.map((o) => ({ value: o.id, label: o.name })));
 
 	function purgeDate(deletedAt: string | null): string {
 		if (!deletedAt) return '—';
@@ -118,20 +113,19 @@
 		return crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
 	}
 
-	function syncEditModel() {
+	function syncSessionFromNode() {
 		if (!node?.model) {
-			editModel = null;
+			session.model = null;
+			session.result = null;
 			return;
 		}
-		editModel = $state.snapshot(node.model);
-	}
-
-	/** Empty/whitespace → null (omit family). Valid number → fraction. */
-	function inputToPct(s: string): number | null {
-		const trimmed = s.trim();
-		if (trimmed === '') return null;
-		const n = parseFloat(trimmed);
-		return Number.isFinite(n) ? n / 100 : null;
+		const loadedMethod = node.solver_meta?.method;
+		session.hydrate({
+			model: $state.snapshot(node.model),
+			result: node.result,
+			activeTab: isSolveMethod(loadedMethod) ? solveMethodToTab(loadedMethod) : session.activeTab,
+			whatIfItems: []
+		});
 	}
 
 	async function loadUserOrgs() {
@@ -160,9 +154,7 @@
 			return;
 		}
 		node = root as NodeRow;
-		syncEditModel();
-		const loadedMethod = node.solver_meta?.method;
-		if (isSolveMethod(loadedMethod)) activeTab = methodToTab(loadedMethod);
+		syncSessionFromNode();
 		orgId = node.org_id ?? userOrgs[0]?.id ?? '';
 		makePublic = node.org_visibility === 'org';
 		const { data: kids } = await supabase
@@ -195,7 +187,7 @@
 	}
 
 	afterNavigate(() => {
-		roundPlan = getRoundPlanPreference();
+		session.loadRoundPref();
 		void loadUserOrgs().then(() => load());
 	});
 
@@ -207,10 +199,11 @@
 			.eq('id', node.id);
 		if (upErr) {
 			error = upErr.message;
+			session.error = upErr.message;
 			return false;
 		}
 		node = { ...node, model };
-		editModel = $state.snapshot(model);
+		session.replaceModel(model, { clearDerived: false });
 		return true;
 	}
 
@@ -239,7 +232,7 @@
 			// All what-if fields empty/disabled — archive stale kids, no insert.
 			return softDeleteActiveSensitivity();
 		}
-		const pack = await runMutations(node.model, mutations, solveMethod);
+		const pack = await runMutations(node.model, mutations, session.solveMethod);
 		if (pack.status !== 'done') {
 			error = pack.solver_meta.rejected_reason ?? pack.status;
 			return false;
@@ -275,17 +268,20 @@
 	}
 
 	async function doSolve() {
-		if (!node || !planModel || !methodReady) return;
-		busy = true;
+		if (!node || !session.model || !session.methodReady) return;
+		session.busy = true;
+		session.error = '';
 		error = '';
 		try {
-			const toSolve = $state.snapshot(editModel ?? planModel);
+			const toSolve = $state.snapshot(session.model);
 			const ok = await persistModel(toSolve);
 			if (!ok) return;
 
-			const res = await solveModel(toSolve, solveMethod);
+			const res = await solveModel(toSolve, session.solveMethod);
 			if (res.status !== 'done' || !res.result) {
-				error = res.solver_meta.rejected_reason ?? res.status;
+				const msg = res.solver_meta.rejected_reason ?? res.status;
+				error = msg;
+				session.error = msg;
 				return;
 			}
 			const { error: upErr } = await supabase
@@ -299,6 +295,7 @@
 				.eq('id', node.id);
 			if (upErr) {
 				error = upErr.message;
+				session.error = upErr.message;
 				return;
 			}
 			node = {
@@ -307,9 +304,14 @@
 				result: res.result,
 				solver_meta: res.solver_meta
 			};
-			editModel = $state.snapshot(toSolve);
+			session.hydrate({
+				model: toSolve,
+				result: res.result,
+				activeTab: session.activeTab,
+				includeSensitivity: session.includeSensitivity
+			});
 
-			if (includeSensitivity) {
+			if (session.includeSensitivity) {
 				const wiOk = await runWhatIfPack();
 				if (!wiOk) return;
 				await load();
@@ -319,9 +321,11 @@
 				await load();
 			}
 		} catch (e) {
-			error = e instanceof Error ? e.message : String(e);
+			const msg = e instanceof Error ? e.message : String(e);
+			error = msg;
+			session.error = msg;
 		} finally {
-			busy = false;
+			session.busy = false;
 		}
 	}
 
@@ -445,7 +449,7 @@
 
 	async function cancelSharing() {
 		if (!node) return;
-		busy = true;
+		session.busy = true;
 		shareMsg = '';
 		error = '';
 		try {
@@ -516,7 +520,7 @@
 		} catch (e) {
 			error = e instanceof Error ? e.message : String(e);
 		} finally {
-			busy = false;
+			session.busy = false;
 		}
 	}
 
@@ -568,7 +572,7 @@
 
 	async function forkNode() {
 		if (!node) return;
-		busy = true;
+		session.busy = true;
 		error = '';
 		try {
 			const {
@@ -621,19 +625,16 @@
 		} catch (e) {
 			error = e instanceof Error ? e.message : String(e);
 		} finally {
-			busy = false;
+			session.busy = false;
 		}
 	}
 
 	function updateWhatIf(field: keyof WhatIfDefaults, raw: string) {
-		const base = editModel ?? (node ? $state.snapshot(node.model) : null);
-		if (!base) return;
-		const next = cloneModel(base);
-		next.what_if_defaults = {
-			...(next.what_if_defaults ?? {}),
-			[field]: inputToPct(raw)
-		};
-		editModel = next;
+		session.updateWhatIf(field, raw);
+	}
+
+	function onModelChange(next: Model) {
+		session.replaceModel(next);
 	}
 
 	/** Rename allowed even after solve (title-only update). */
@@ -663,7 +664,7 @@
 				<Button
 					variant="secondary"
 					class="!px-2.5 !py-2.5"
-					disabled={busy}
+					disabled={session.busy}
 					aria-label={favoriteLabel}
 					title={favoriteLabel}
 					onclick={toggleFavorite}
@@ -679,7 +680,7 @@
 				<Button
 					variant="secondary"
 					class="!px-2.5 !py-2.5"
-					disabled={busy}
+					disabled={session.busy}
 					aria-label={t('fork')}
 					title={t('fork')}
 					onclick={forkNode}
@@ -689,7 +690,7 @@
 				<Button
 					variant="danger"
 					class="!px-2.5 !py-2.5"
-					disabled={busy}
+					disabled={session.busy}
 					aria-label={t('trashToBin')}
 					title={t('trashToBin')}
 					onclick={softDelete}
@@ -701,117 +702,32 @@
 
 		{#if error}<p class="text-danger-text">{error}</p>{/if}
 
-		{#snippet resultCard()}
-			{#if node && node.result && displayResult && planModel}
-				<SolveResultPanel
-					result={displayResult}
-					bind:roundPlan
-					productOrder={planModel.products}
-					resourceOrder={planModel.resources}
-					{solverLibrary}
-				>
-					<NodeComments nodeId={node.id} scope="result" />
-				</SolveResultPanel>
-			{/if}
-		{/snippet}
-
-		<div class="flex flex-col gap-4">
-			{#if planModel}
-				<Card>
-					<div class="mb-4 min-w-0">
-						<p class="mb-2 text-sm font-medium">{t('modelMatrix')}</p>
-						<LpModelMatrix
-							model={planModel}
-							onchange={(next) => {
-								editModel = next;
-							}}
-						/>
-					</div>
-
-					<PlanSolveControls
-						model={planModel}
-						bind:activeTab
-						bind:includeSensitivity
-						{busy}
-						onWhatIfChange={updateWhatIf}
-						onSolve={doSolve}
-					/>
-
-					<div class="mt-6 border-t border-border pt-4">
-						<NodeComments nodeId={node.id} scope="plan" />
-					</div>
-				</Card>
-			{:else}
-				<Card>
-					<p class="text-sm text-text-muted">{t('modelMatrix')}</p>
-					<p class="mt-2 text-sm text-danger-text">{t('notFound')}</p>
-				</Card>
-			{/if}
-
-			{@render resultCard()}
-
-			{#if generations.length}
-				<Card>
-					<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-						<h2 class="text-lg font-medium">{t('whatIf')}</h2>
-						<div class="flex items-center gap-3">
-							<Button
-								variant="ghost"
-								class="!px-2 !py-1"
-								disabled={genIndex <= 0}
-								onclick={() => (genIndex -= 1)}>←</Button
-							>
-							<span class="font-mono text-sm">{genIndex + 1}/{generations.length}</span>
-							<Button
-								variant="ghost"
-								class="!px-2 !py-1"
-								disabled={genIndex >= generations.length - 1}
-								onclick={() => (genIndex += 1)}>→</Button
-							>
-						</div>
-					</div>
-					<p class="mb-3 text-xs text-text-soft">
-						{#if genIndex === generations.length - 1}
-							{t('generationActiveHint')}
-						{:else}
-							{t('generationPurge', {
-								date: purgeDate(
-									children.find((c) => c.what_if_generation === activeGen)?.deleted_at ??
-										null
-								)
-							})}
-						{/if}
-					</p>
-					<div class="overflow-x-auto">
-						<table class="w-full text-left text-sm">
-							<thead>
-								<tr class="border-b border-border text-text-muted">
-									<th class="py-2 pr-3">{t('mutation')}</th>
-									<th class="py-2">Z</th>
-								</tr>
-							</thead>
-							<tbody>
-								{#each visibleChildren as c (c.id)}
-									<tr class="border-b border-border-soft">
-										<td class="py-2 pr-3">{c.title}</td>
-										<td class="font-mono">
-											{#if c.result}
-												{(roundPlan
-													? maybeRoundPlan(c.model, c.result, true).Z
-													: c.result.Z
-												).toFixed(3)}
-											{:else}
-												—
-											{/if}
-										</td>
-									</tr>
-								{/each}
-							</tbody>
-						</table>
-					</div>
-				</Card>
-			{/if}
-		</div>
+		{#if session.model}
+			<SolveWorkspace
+				{session}
+				{solverLibrary}
+				whatIfRows={whatIfRows}
+				whatIfGenerationIndex={genIndex}
+				whatIfGenerationCount={generations.length || 1}
+				onWhatIfGenerationChange={(i) => (genIndex = i)}
+				whatIfArchiveHint={whatIfArchiveHint}
+				onModelChange={onModelChange}
+				onWhatIfChange={updateWhatIf}
+				onSolve={doSolve}
+			>
+				{#snippet planExtras()}
+					<NodeComments nodeId={node!.id} scope="plan" />
+				{/snippet}
+				{#snippet resultExtras()}
+					<NodeComments nodeId={node!.id} scope="result" />
+				{/snippet}
+			</SolveWorkspace>
+		{:else}
+			<Card>
+				<p class="text-sm text-text-muted">{t('modelMatrix')}</p>
+				<p class="mt-2 text-sm text-danger-text">{t('notFound')}</p>
+			</Card>
+		{/if}
 
 		<Card>
 			<h2 class="mb-3 text-lg font-medium">{t('attachOrg')}</h2>
@@ -857,7 +773,7 @@
 			{/if}
 			{#if hasActiveShare}
 				<div class="mt-2">
-					<Button variant="secondary" disabled={busy} onclick={cancelSharing}>
+					<Button variant="secondary" disabled={session.busy} onclick={cancelSharing}>
 						{t('cancelSharing')}
 					</Button>
 				</div>

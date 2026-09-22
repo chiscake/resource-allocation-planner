@@ -141,7 +141,7 @@ resource-allocation-planner/
 | Public template uses      | `src/lib/db/template-uses.ts`                                         |
 | Create / open solve node  | `src/lib/db/create-solve-node.ts`                                     |
 | UI kit (prefer these)     | `src/lib/components/ui/` — Button, Card, Input, Select, Modal, Tabs, Badge, PageHeader, EmptyState, CardIconButton, `matrix/` |
-| Model solve controls      | `src/lib/components/model/` — LpModelMatrix, PlanSolveControls, SolveResultPanel |
+| Model solve controls      | `src/lib/components/model/` — LpModelMatrix, PlanSolveControls, SolveResultPanel, SolveWorkspace, WhatIfPanel, `solve-session.svelte.ts` |
 | Toasts (`svelte-sonner`)  | `<Toaster />` in `src/routes/+layout.svelte` |
 | Cartesia tokens           | `src/app.css` `@theme`    |
 
