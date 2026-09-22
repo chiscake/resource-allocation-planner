@@ -56,4 +56,12 @@ EOF
   log "Supabase ready: API ${SB_API_URL}  Studio ${SB_STUDIO_URL}"
 fi
 
+# --- Web dev server ----------------------------------------------------------
+# Launch the Vite dev server detached so the app is reachable right after boot.
+# Idempotent: skip if something already listens on 5400.
+if ! curl -fsS -o /dev/null "http://127.0.0.1:5400" 2>/dev/null; then
+  log "starting Vite dev server on http://127.0.0.1:5400"
+  nohup pnpm dev >/tmp/vite-dev.log 2>&1 &
+fi
+
 log "done"
