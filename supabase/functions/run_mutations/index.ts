@@ -1,5 +1,9 @@
-import { createClient } from 'npm:@supabase/supabase-js@2';
-import solver from 'npm:javascript-lp-solver@1.0.3';
+import {
+	LIMITS,
+	libraryFor,
+	type Model,
+	type SolveMethod
+} from '../_shared/solver/types.ts';
 
 const cors: Record<string, string> = {
 	'Access-Control-Allow-Origin': '*',
@@ -13,16 +17,11 @@ function json(body: unknown, status = 200) {
 	});
 }
 
-type Model = {
-	schema_version: number;
-	resources: string[];
-	products: string[];
-	A: number[][];
-	b: number[];
-	c: number[];
-};
-
 type Mutation = { kind: string; target: string; delta: number; label?: string };
+
+function isMethod(v: unknown): v is SolveMethod {
+	return v === 'lp' || v === 'ipm' || v === 'ga';
+}
 
 function applyMutation(model: Model, mutation: Mutation): Model {
 	const next = structuredClone(model);
@@ -39,7 +38,14 @@ function applyMutation(model: Model, mutation: Mutation): Model {
 	return next;
 }
 
-function solveOne(model: Model) {
+/** Delegate to the same solve function module by inlining a fetch-free import. */
+import solver from 'npm:javascript-lp-solver@1.0.3';
+import { buildSolveResult } from '../_shared/solver/resultBuild.ts';
+import { solveIpmModel } from '../_shared/solver/ipm.ts';
+import { solveGaModel } from '../_shared/solver/ga.ts';
+import { SCHEMA_VERSION } from '../_shared/solver/types.ts';
+
+function solveLp(model: Model) {
 	const m = model.resources.length;
 	const n = model.products.length;
 	const constraints: Record<string, { max: number }> = {};
@@ -68,38 +74,71 @@ function solveOne(model: Model) {
 		constraints: dConstraints,
 		variables: dVariables
 	}) as Record<string, unknown>;
-
-	const x: Record<string, number> = {};
-	for (let j = 0; j < n; j++) x[model.products[j]] = Number(primal[`x_${j}`] ?? 0);
-	const shadow_prices: Record<string, number> = {};
-	const critical_resources: string[] = [];
-	const non_critical_resources: string[] = [];
-	const resource_usage: Record<string, number> = {};
-	const resource_slack: Record<string, number> = {};
-	for (let i = 0; i < m; i++) {
-		let usage = 0;
-		for (let j = 0; j < n; j++) usage += model.A[i][j] * x[model.products[j]];
-		const name = model.resources[i];
-		resource_usage[name] = usage;
-		resource_slack[name] = model.b[i] - usage;
-		const sp = Math.max(0, Number(dual[`y_${i}`] ?? 0));
-		shadow_prices[name] = sp < 1e-6 ? 0 : sp;
-		if (shadow_prices[name] > 1e-4) critical_resources.push(name);
-		else non_critical_resources.push(name);
-	}
+	const xVec = model.products.map((_, j) => Number(primal[`x_${j}`] ?? 0));
+	const yVec = model.resources.map((_, i) => Math.max(0, Number(dual[`y_${i}`] ?? 0)));
 	return {
 		status: 'done' as const,
-		result: {
-			x,
-			Z: Number(primal.result ?? 0),
-			resource_usage,
-			resource_slack,
-			shadow_prices,
-			critical_resources,
-			non_critical_resources,
-			feasible: Boolean(primal.feasible)
-		},
-		solver_meta: { venue: 'cloud' as const, library: 'javascript-lp-solver', duration_ms: 0 }
+		result: buildSolveResult(model, xVec, yVec, Boolean(primal.feasible)),
+		solver_meta: {
+			venue: 'cloud' as const,
+			library: libraryFor('lp', 'cloud'),
+			method: 'lp' as const,
+			duration_ms: 0
+		}
+	};
+}
+
+function solveOne(model: Model, method: SolveMethod) {
+	if (model.schema_version !== SCHEMA_VERSION) {
+		return {
+			status: 'rejected_too_large' as const,
+			solver_meta: {
+				venue: 'cloud' as const,
+				library: libraryFor(method, 'cloud'),
+				method,
+				duration_ms: 0,
+				rejected_reason: 'schema'
+			}
+		};
+	}
+	if (method === 'lp') return solveLp(model);
+	if (method === 'ipm') {
+		const result = solveIpmModel(model);
+		if (!result) {
+			return {
+				status: 'rejected_too_large' as const,
+				solver_meta: {
+					venue: 'cloud' as const,
+					library: libraryFor('ipm', 'cloud'),
+					method: 'ipm' as const,
+					duration_ms: 0,
+					rejected_reason: 'ipm_failed'
+				}
+			};
+		}
+		return {
+			status: 'done' as const,
+			result,
+			solver_meta: {
+				venue: 'cloud' as const,
+				library: libraryFor('ipm', 'cloud'),
+				method: 'ipm' as const,
+				duration_ms: 0
+			}
+		};
+	}
+	const ga = solveGaModel(model);
+	const { ga_meta, ...result } = ga;
+	return {
+		status: 'done' as const,
+		result,
+		solver_meta: {
+			venue: 'cloud' as const,
+			library: libraryFor('ga', 'cloud'),
+			method: 'ga' as const,
+			duration_ms: 0,
+			hint: ga_meta.feasible ? undefined : 'infeasible_best'
+		}
 	};
 }
 
@@ -107,20 +146,31 @@ Deno.serve(async (req) => {
 	if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
 	if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
 	try {
-		const body = (await req.json()) as { model?: Model; mutations?: Mutation[] };
+		const body = (await req.json()) as {
+			model?: Model;
+			mutations?: Mutation[];
+			method?: unknown;
+		};
 		if (!body.model || !body.mutations) return json({ error: 'model and mutations required' }, 400);
-		if (body.mutations.length > 64) {
+		const method: SolveMethod = isMethod(body.method) ? body.method : 'lp';
+		if (body.mutations.length > LIMITS.mutationMaxK) {
 			return json({
 				status: 'rejected_too_large',
 				items: [],
-				solver_meta: { venue: 'cloud', library: 'javascript-lp-solver', duration_ms: 0, rejected_reason: 'K>64' }
+				solver_meta: {
+					venue: 'cloud',
+					library: libraryFor(method, 'cloud'),
+					method,
+					duration_ms: 0,
+					rejected_reason: `K>${LIMITS.mutationMaxK}`
+				}
 			});
 		}
 		const started = performance.now();
 		const items = [];
 		for (const mutation of body.mutations) {
 			const model = applyMutation(body.model, mutation);
-			const response = solveOne(model);
+			const response = solveOne(model, method);
 			items.push({ mutation, model, response });
 		}
 		return json({
@@ -128,7 +178,8 @@ Deno.serve(async (req) => {
 			items,
 			solver_meta: {
 				venue: 'cloud',
-				library: 'javascript-lp-solver',
+				library: libraryFor(method, 'cloud'),
+				method,
 				duration_ms: performance.now() - started
 			}
 		});

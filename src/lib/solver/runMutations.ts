@@ -1,8 +1,10 @@
 import {
   applyMutation,
+  libraryFor,
   type Model,
   type Mutation,
   type RunMutationsResponse,
+  type SolveMethod,
 } from "$lib/domain";
 import { SOLVE_LIMITS } from "./limits";
 import { solveLocal } from "./solve";
@@ -12,15 +14,18 @@ export function runMutationsLocal(
   base: Model,
   mutations: Mutation[],
   venue: ResolvedVenue = "local",
+  method: SolveMethod = "lp",
 ): RunMutationsResponse {
   const started = performance.now();
+  const lib = libraryFor(method, venue);
   if (mutations.length > SOLVE_LIMITS.mutationMaxK) {
     return {
       status: "rejected_too_large",
       items: [],
       solver_meta: {
         venue,
-        library: "javascript-lp-solver",
+        library: lib,
+        method,
         duration_ms: 0,
         rejected_reason: `K>${SOLVE_LIMITS.mutationMaxK}`,
       },
@@ -35,14 +40,15 @@ export function runMutationsLocal(
         items,
         solver_meta: {
           venue,
-          library: "javascript-lp-solver",
+          library: lib,
+          method,
           duration_ms: performance.now() - started,
           rejected_reason: "package_timeout",
         },
       };
     }
     const model = applyMutation(base, mutation);
-    const response = solveLocal(model, venue);
+    const response = solveLocal(model, venue, 0, method);
     items.push({ mutation, model, response });
     if (response.status === "rejected_too_large") {
       return {
@@ -50,7 +56,8 @@ export function runMutationsLocal(
         items,
         solver_meta: {
           venue,
-          library: "javascript-lp-solver",
+          library: lib,
+          method,
           duration_ms: performance.now() - started,
           rejected_reason: response.solver_meta.rejected_reason,
         },
@@ -63,7 +70,8 @@ export function runMutationsLocal(
     items,
     solver_meta: {
       venue,
-      library: "javascript-lp-solver",
+      library: lib,
+      method,
       duration_ms: performance.now() - started,
     },
   };

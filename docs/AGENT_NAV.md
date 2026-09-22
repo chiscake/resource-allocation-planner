@@ -39,8 +39,8 @@ resource-allocation-planner/
 │   ├── app.css                  # Tailwind v4 + Cartesia @theme
 │   ├── lib/
 │   │   ├── domain/              # Model, mutations, task13
-│   │   ├── solver/              # local LP + venue + limits
-│   │   ├── api/solve.ts         # Edge or local transport (+ local fallback)
+│   │   ├── solver/              # local LP + IPM + GA + venue + limits
+│   │   ├── api/solve.ts         # Edge or local transport (+ method + local fallback)
 │   │   ├── db/                  # supabase, guest, audit helpers
 │   │   ├── i18n/                # ru
 │   │   ├── components/VenueToggle.svelte  # Tauri only
@@ -53,12 +53,13 @@ resource-allocation-planner/
 │       └── app/                 # authenticated shell (+ unread badge)
 │           ├── +page.svelte     # recent / favorites / personal / org lists
 │           ├── create/
-│           ├── nodes/[id]/     # solve, what-if ←i/N→, share/fork/org
+│           ├── nodes/[id]/     # solve (lp|ipm|ga), what-if ←i/N→, share/fork/org
 │           ├── templates/, public-templates/
 │           ├── compare/, trash/, org/, notifications/, admin/
 ├── supabase/
 │   ├── migrations/000…080       # 070_share_notify_rpc (merged 070–073); 080_purge_cron
-│   ├── functions/solve, run_mutations, admin-create-user
+│   ├── functions/               # solve, run_mutations, admin-create-user
+│   │   └── _shared/solver/      # Edge mirror of ipm/ga/resultBuild (keep ↔ src/lib/solver)
 │   └── seed.sql                 # noop; users via seed:users
 └── src-tauri/
 ```
@@ -124,6 +125,7 @@ resource-allocation-planner/
 | ------------------------- | ------------------------- |
 | LP model + schema_version | `src/lib/domain/`         |
 | solve / run_mutations     | `src/lib/solver/` + Edge  |
+| Methods `lp` / `ipm` / `ga` | `src/lib/solver/{solve,ipm,ga}.ts`; Edge `_shared/solver/` |
 | Plan rounding (UI post)   | `src/lib/solver/roundPlan.ts` + `roundPref.ts` |
 | Compute venue             | `src/lib/solver/venue.ts` |
 | Guest slot                | `src/lib/db/guest.ts`     |

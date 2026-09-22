@@ -77,9 +77,19 @@ const ru = {
   guestCritical: "Критичные ресурсы",
   tabPlan: "План",
   tabSensitivity: "Чувствительность",
+  tabIpm: "Внутр. точка",
   tabGa: "GA",
   tab4d: "4D",
   inDevelopment: "В разработке",
+  solveMethod: "Метод решения",
+  methodLp: "Симплекс (LP)",
+  methodIpm: "Внутр. точка",
+  methodGa: "Генетический",
+  solverLibrary: "Библиотека",
+  methodIpmHint:
+    "Метод внутренней точки для той же ЛП-модели (A, b, c). Двойственные оценки — из IPM.",
+  methodGaHint:
+    "Эволюционный алгоритм (порт ОПР): прибыль минус штраф за нарушение запасов. Допустимость и зазор к ЛП, не равенство симплексу.",
   /** Corner of LP tableau (resource rows × product columns). */
   matrixCorner: "Ресурсы \\ Продукция",
   /** RHS column header (former «b»). */

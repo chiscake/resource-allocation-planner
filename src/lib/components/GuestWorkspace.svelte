@@ -8,10 +8,12 @@
 		setRoundPlanPreference,
 		maybeRoundPlan
 	} from '$lib/solver';
+	import { type SolveMethod } from '$lib/domain';
 	import { t } from '$lib/i18n';
 	import LpModelMatrix from '$lib/components/model/LpModelMatrix.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
+	import Select from '$lib/components/ui/Select.svelte';
 
 	let {
 		showLoginCta = true,
@@ -29,6 +31,12 @@
 	let error = $state('');
 	let busy = $state(false);
 	let roundPlan = $state(getRoundPlanPreference());
+	let solveMethod = $state<SolveMethod>('lp');
+	const methodSelectOptions = [
+		{ value: 'lp', label: t('methodLp') },
+		{ value: 'ipm', label: t('methodIpm') },
+		{ value: 'ga', label: t('methodGa') }
+	];
 
 	const displayResult = $derived(
 		result && model ? maybeRoundPlan(model, result, roundPlan) : null
@@ -73,7 +81,7 @@
 		busy = true;
 		error = '';
 		try {
-			const res = solveLocal(model);
+			const res = solveLocal(model, 'local', 0, solveMethod);
 			if (res.status !== 'done' || !res.result) {
 				error = res.solver_meta.rejected_reason ?? res.status;
 				return;
@@ -143,6 +151,10 @@
 		<Card>
 			<p class="mb-2 text-sm font-medium">{t('modelMatrix')}</p>
 			<LpModelMatrix {model} onchange={onModelChange} />
+			<label class="mt-4 block text-sm">
+				<span class="mb-1 block text-text-muted">{t('solveMethod')}</span>
+				<Select bind:value={solveMethod} options={methodSelectOptions} />
+			</label>
 		</Card>
 
 		{#if result && displayResult}

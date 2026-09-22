@@ -6,8 +6,11 @@
 	import { solveModel, runMutations } from '$lib/api/solve';
 	import {
 		buildDefaultMutations,
+		isSolveMethod,
 		type Model,
 		type SolveResult,
+		type SolveMethod,
+		type SolverMeta,
 		type Mutation,
 		type WhatIfDefaults
 	} from '$lib/domain';
@@ -41,7 +44,7 @@
 		org_visibility: 'private' | 'org' | null;
 		is_favorite: boolean;
 		owner_id: string;
-		solver_meta?: unknown;
+		solver_meta?: SolverMeta | null;
 	};
 
 	type OrgOption = { id: string; name: string };
@@ -72,6 +75,7 @@
 	/** When on, Plan «Рассчитать» also runs what-if pack and shows kids below. */
 	let includeSensitivity = $state(false);
 	let roundPlan = $state(false);
+	let solveMethod = $state<SolveMethod>('lp');
 
 	const id = $derived(page.params.id!);
 	const modelEditable = $derived(node != null && !node.result);
@@ -79,6 +83,9 @@
 	const planModel = $derived(editModel ?? node?.model ?? null);
 	const displayResult = $derived(
 		node?.result && planModel ? maybeRoundPlan(planModel, node.result, roundPlan) : null
+	);
+	const solverLibrary = $derived(
+		typeof node?.solver_meta?.library === 'string' ? node.solver_meta.library : null
 	);
 	/** What-if kids only — revisions also use parent_id with kind='revision'. */
 	const whatIfChildren = $derived(
@@ -90,8 +97,14 @@
 	);
 	const activeChildCount = $derived(children.filter((c) => !c.deleted_at).length);
 	const orgSelectOptions = $derived(userOrgs.map((o) => ({ value: o.id, label: o.name })));
+	const methodSelectOptions = $derived([
+		{ value: 'lp', label: t('methodLp') },
+		{ value: 'ipm', label: t('methodIpm') },
+		{ value: 'ga', label: t('methodGa') }
+	]);
 	const tabItems = $derived([
 		{ id: 'plan', label: t('tabPlan') },
+		{ id: 'ipm', label: t('tabIpm') },
 		{ id: 'ga', label: t('tabGa') },
 		{ id: '4d', label: t('tab4d') }
 	]);
@@ -159,6 +172,8 @@
 		}
 		node = root as NodeRow;
 		syncEditModel();
+		const loadedMethod = node.solver_meta?.method;
+		if (isSolveMethod(loadedMethod)) solveMethod = loadedMethod;
 		orgId = node.org_id ?? userOrgs[0]?.id ?? '';
 		makePublic = node.org_visibility === 'org';
 		const { data: kids } = await supabase
@@ -299,7 +314,7 @@
 	async function runWhatIfPack(): Promise<boolean> {
 		if (!node) return false;
 		const mutations = buildDefaultMutations(node.model);
-		const pack = await runMutations(node.model, mutations);
+		const pack = await runMutations(node.model, mutations, solveMethod);
 		if (pack.status !== 'done') {
 			error = pack.solver_meta.rejected_reason ?? pack.status;
 			return false;
@@ -373,7 +388,7 @@
 				}
 				node = { ...node, model: nextModel };
 			}
-			const res = await solveModel(node.model);
+			const res = await solveModel(node.model, solveMethod);
 			if (res.status !== 'done' || !res.result) {
 				error = res.solver_meta.rejected_reason ?? res.status;
 				return;
@@ -390,7 +405,7 @@
 				error = upErr.message;
 				return;
 			}
-			node = { ...node, result: res.result };
+			node = { ...node, result: res.result, solver_meta: res.solver_meta };
 
 			if (includeSensitivity) {
 				const ok = await runWhatIfPack();
@@ -402,6 +417,11 @@
 		} finally {
 			busy = false;
 		}
+	}
+
+	async function doSolveWithMethod(method: SolveMethod) {
+		solveMethod = method;
+		await doSolve();
 	}
 
 	async function attachOrg() {
@@ -766,6 +786,62 @@
 
 		<Tabs items={tabItems} bind:active={activeTab} />
 
+		{#snippet resultCard()}
+			{#if node && node.result && displayResult}
+				<Card>
+					<label class="mb-3 flex items-center gap-2 text-sm">
+						<input
+							type="checkbox"
+							checked={roundPlan}
+							onchange={(e) => {
+								roundPlan = e.currentTarget.checked;
+								setRoundPlanPreference(roundPlan);
+							}}
+						/>
+						{t('roundPlan')}
+					</label>
+					<p class="mb-3 text-xs text-text-soft">{t('roundPlanHint')}</p>
+					{#if roundPlan && !displayResult.feasible}
+						<p class="mb-3 text-sm text-warning-text">{t('roundPlanInfeasible')}</p>
+					{/if}
+					{#if solverLibrary}
+						<p class="mb-2 text-xs text-text-soft">
+							{t('solverLibrary')}: {solverLibrary}
+						</p>
+					{/if}
+					<p class="font-mono text-sm">Z = {displayResult.Z.toFixed(4)}</p>
+					<p class="mt-3 text-xs font-medium text-text-soft">x</p>
+					<ul class="mt-1 grid gap-1 font-mono text-sm text-text-muted md:grid-cols-2">
+						{#each Object.entries(displayResult.x) as [k, v] (k)}
+							<li>{k}: {v.toFixed(4)}</li>
+						{/each}
+					</ul>
+					{#if displayResult.shadow_prices}
+						<p class="mt-3 text-xs font-medium text-text-soft">{t('shadowPrices')}</p>
+						<ul class="mt-1 grid gap-1 font-mono text-sm text-text-muted md:grid-cols-2">
+							{#each Object.entries(displayResult.shadow_prices) as [k, v] (k)}
+								<li>{k}: {v.toFixed(4)}</li>
+							{/each}
+						</ul>
+					{/if}
+					{#if displayResult.resource_slack}
+						<p class="mt-3 text-xs font-medium text-text-soft">{t('resourceSlack')}</p>
+						<ul class="mt-1 grid gap-1 font-mono text-sm text-text-muted md:grid-cols-2">
+							{#each Object.entries(displayResult.resource_slack) as [k, v] (k)}
+								<li>{k}: {v.toFixed(4)}</li>
+							{/each}
+						</ul>
+					{/if}
+					<p class="mt-3 text-sm text-text-soft">
+						{t('criticalResources')}: {displayResult.critical_resources.join(', ') || '—'}
+					</p>
+					<div class="mt-6 border-t border-border pt-4">
+						<NodeComments nodeId={node.id} scope="result" />
+					</div>
+				</Card>
+			{/if}
+		{/snippet}
+
 		{#if activeTab === 'plan'}
 			<div class="flex flex-col gap-4">
 				{#if planModel}
@@ -795,6 +871,11 @@
 								}}
 							/>
 						</div>
+
+						<label class="mb-3 block text-sm">
+							<span class="mb-1 block text-text-muted">{t('solveMethod')}</span>
+							<Select bind:value={solveMethod} options={methodSelectOptions} />
+						</label>
 
 						<label class="mb-3 flex items-center gap-2 text-sm">
 							<input type="checkbox" bind:checked={includeSensitivity} />
@@ -864,54 +945,7 @@
 					</Card>
 				{/if}
 
-				{#if node.result && displayResult}
-					<Card>
-						<label class="mb-3 flex items-center gap-2 text-sm">
-							<input
-								type="checkbox"
-								checked={roundPlan}
-								onchange={(e) => {
-									roundPlan = e.currentTarget.checked;
-									setRoundPlanPreference(roundPlan);
-								}}
-							/>
-							{t('roundPlan')}
-						</label>
-						<p class="mb-3 text-xs text-text-soft">{t('roundPlanHint')}</p>
-						{#if roundPlan && !displayResult.feasible}
-							<p class="mb-3 text-sm text-warning-text">{t('roundPlanInfeasible')}</p>
-						{/if}
-						<p class="font-mono text-sm">Z = {displayResult.Z.toFixed(4)}</p>
-						<p class="mt-3 text-xs font-medium text-text-soft">x</p>
-						<ul class="mt-1 grid gap-1 font-mono text-sm text-text-muted md:grid-cols-2">
-							{#each Object.entries(displayResult.x) as [k, v] (k)}
-								<li>{k}: {v.toFixed(4)}</li>
-							{/each}
-						</ul>
-						{#if displayResult.shadow_prices}
-							<p class="mt-3 text-xs font-medium text-text-soft">{t('shadowPrices')}</p>
-							<ul class="mt-1 grid gap-1 font-mono text-sm text-text-muted md:grid-cols-2">
-								{#each Object.entries(displayResult.shadow_prices) as [k, v] (k)}
-									<li>{k}: {v.toFixed(4)}</li>
-								{/each}
-							</ul>
-						{/if}
-						{#if displayResult.resource_slack}
-							<p class="mt-3 text-xs font-medium text-text-soft">{t('resourceSlack')}</p>
-							<ul class="mt-1 grid gap-1 font-mono text-sm text-text-muted md:grid-cols-2">
-								{#each Object.entries(displayResult.resource_slack) as [k, v] (k)}
-									<li>{k}: {v.toFixed(4)}</li>
-								{/each}
-							</ul>
-						{/if}
-						<p class="mt-3 text-sm text-text-soft">
-							{t('criticalResources')}: {displayResult.critical_resources.join(', ') || '—'}
-						</p>
-						<div class="mt-6 border-t border-border pt-4">
-							<NodeComments nodeId={node.id} scope="result" />
-						</div>
-					</Card>
-				{/if}
+				{@render resultCard()}
 
 				{#if generations.length}
 					<Card>
@@ -975,7 +1009,33 @@
 					</Card>
 				{/if}
 			</div>
-		{:else if activeTab === 'ga' || activeTab === '4d'}
+		{:else if activeTab === 'ipm'}
+			<div class="flex flex-col gap-4">
+				<Card>
+					<h2 class="mb-2 text-lg font-medium">{t('tabIpm')}</h2>
+					<p class="mb-4 text-sm text-text-muted">{t('methodIpmHint')}</p>
+					<div class="flex justify-end">
+						<Button disabled={busy} onclick={() => doSolveWithMethod('ipm')}>
+							{t('solve')}
+						</Button>
+					</div>
+				</Card>
+				{@render resultCard()}
+			</div>
+		{:else if activeTab === 'ga'}
+			<div class="flex flex-col gap-4">
+				<Card>
+					<h2 class="mb-2 text-lg font-medium">{t('tabGa')}</h2>
+					<p class="mb-4 text-sm text-text-muted">{t('methodGaHint')}</p>
+					<div class="flex justify-end">
+						<Button disabled={busy} onclick={() => doSolveWithMethod('ga')}>
+							{t('solve')}
+						</Button>
+					</div>
+				</Card>
+				{@render resultCard()}
+			</div>
+		{:else if activeTab === '4d'}
 			<Card>
 				<p class="text-center text-text-muted">{t('inDevelopment')}</p>
 			</Card>

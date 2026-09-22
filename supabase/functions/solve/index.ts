@@ -1,4 +1,14 @@
-import { createClient } from 'npm:@supabase/supabase-js@2';
+import solver from 'npm:javascript-lp-solver@1.0.3';
+import {
+	LIMITS,
+	SCHEMA_VERSION,
+	libraryFor,
+	type Model,
+	type SolveMethod
+} from '../_shared/solver/types.ts';
+import { buildSolveResult } from '../_shared/solver/resultBuild.ts';
+import { solveIpmModel } from '../_shared/solver/ipm.ts';
+import { solveGaModel } from '../_shared/solver/ga.ts';
 
 const cors: Record<string, string> = {
 	'Access-Control-Allow-Origin': '*',
@@ -12,44 +22,13 @@ function json(body: unknown, status = 200) {
 	});
 }
 
-/** Inline solver mirror — keep in sync with src/lib/solver (Deno Edge cannot import app $lib). */
-import solver from 'npm:javascript-lp-solver@1.0.3';
+function isMethod(v: unknown): v is SolveMethod {
+	return v === 'lp' || v === 'ipm' || v === 'ga';
+}
 
-const SCHEMA_VERSION = 1;
-const LIMITS = { maxVariables: 200, maxConstraints: 200, maxDenseCells: 20_000, singleSolveMs: 5000 };
-
-type Model = {
-	schema_version: number;
-	resources: string[];
-	products: string[];
-	A: number[][];
-	b: number[];
-	c: number[];
-};
-
-function solveModel(model: Model) {
-	const started = performance.now();
-	if (model.schema_version !== SCHEMA_VERSION) {
-		return {
-			status: 'rejected_too_large',
-			solver_meta: { venue: 'cloud', library: 'javascript-lp-solver', duration_ms: 0, rejected_reason: 'schema' }
-		};
-	}
-	const n = model.products.length;
+function solveLp(model: Model) {
 	const m = model.resources.length;
-	if (n > LIMITS.maxVariables || m > LIMITS.maxConstraints || m * n > LIMITS.maxDenseCells) {
-		return {
-			status: 'rejected_too_large',
-			solver_meta: {
-				venue: 'cloud',
-				library: 'javascript-lp-solver',
-				duration_ms: 0,
-				rejected_reason: 'size',
-				hint: 'solve_locally'
-			}
-		};
-	}
-
+	const n = model.products.length;
 	const constraints: Record<string, { max: number }> = {};
 	for (let i = 0; i < m; i++) constraints[`r_${i}`] = { max: model.b[i] };
 	const variables: Record<string, Record<string, number>> = {};
@@ -71,58 +50,131 @@ function solveModel(model: Model) {
 		for (let j = 0; j < n; j++) v[`p_${j}`] = model.A[i][j];
 		dVariables[`y_${i}`] = v;
 	}
-	const dual = solver.Solve({ optimize: 'cost', opType: 'min', constraints: dConstraints, variables: dVariables }) as Record<
-		string,
-		unknown
-	>;
+	const dual = solver.Solve({
+		optimize: 'cost',
+		opType: 'min',
+		constraints: dConstraints,
+		variables: dVariables
+	}) as Record<string, unknown>;
 
-	const x: Record<string, number> = {};
-	for (let j = 0; j < n; j++) x[model.products[j]] = Number(primal[`x_${j}`] ?? 0);
-	const Z = Number(primal.result ?? 0);
-	const resource_usage: Record<string, number> = {};
-	const resource_slack: Record<string, number> = {};
-	const shadow_prices: Record<string, number> = {};
-	const critical_resources: string[] = [];
-	const non_critical_resources: string[] = [];
-	for (let i = 0; i < m; i++) {
-		let usage = 0;
-		for (let j = 0; j < n; j++) usage += model.A[i][j] * x[model.products[j]];
-		const name = model.resources[i];
-		resource_usage[name] = usage;
-		resource_slack[name] = model.b[i] - usage;
-		const sp = Math.max(0, Number(dual[`y_${i}`] ?? 0));
-		shadow_prices[name] = sp < 1e-6 ? 0 : sp;
-		if (shadow_prices[name] > 1e-4) critical_resources.push(name);
-		else non_critical_resources.push(name);
+	const xVec = model.products.map((_, j) => Number(primal[`x_${j}`] ?? 0));
+	const yVec = model.resources.map((_, i) => Math.max(0, Number(dual[`y_${i}`] ?? 0)));
+	return buildSolveResult(model, xVec, yVec, Boolean(primal.feasible));
+}
+
+function solveModel(model: Model, method: SolveMethod) {
+	const started = performance.now();
+	const venue = 'cloud' as const;
+	if (model.schema_version !== SCHEMA_VERSION) {
+		return {
+			status: 'rejected_too_large',
+			solver_meta: {
+				venue,
+				library: libraryFor(method, venue),
+				method,
+				duration_ms: 0,
+				rejected_reason: 'schema'
+			}
+		};
+	}
+	const n = model.products.length;
+	const m = model.resources.length;
+	if (n > LIMITS.maxVariables || m > LIMITS.maxConstraints || m * n > LIMITS.maxDenseCells) {
+		return {
+			status: 'rejected_too_large',
+			solver_meta: {
+				venue,
+				library: libraryFor(method, venue),
+				method,
+				duration_ms: 0,
+				rejected_reason: 'size',
+				hint: 'solve_locally'
+			}
+		};
 	}
 
-	return {
-		status: 'done',
-		result: {
-			x,
-			Z,
-			resource_usage,
-			resource_slack,
-			shadow_prices,
-			critical_resources,
-			non_critical_resources,
-			feasible: Boolean(primal.feasible)
-		},
-		solver_meta: {
-			venue: 'cloud',
-			library: 'javascript-lp-solver',
-			duration_ms: performance.now() - started
+	try {
+		if (method === 'lp') {
+			const result = solveLp(model);
+			return {
+				status: 'done',
+				result,
+				solver_meta: {
+					venue,
+					library: libraryFor('lp', venue),
+					method: 'lp',
+					duration_ms: performance.now() - started
+				}
+			};
 		}
-	};
+		if (method === 'ipm') {
+			const result = solveIpmModel(model);
+			if (!result) {
+				return {
+					status: 'rejected_too_large',
+					solver_meta: {
+						venue,
+						library: libraryFor('ipm', venue),
+						method: 'ipm',
+						duration_ms: performance.now() - started,
+						rejected_reason: 'ipm_failed'
+					}
+				};
+			}
+			return {
+				status: 'done',
+				result,
+				solver_meta: {
+					venue,
+					library: libraryFor('ipm', venue),
+					method: 'ipm',
+					duration_ms: performance.now() - started
+				}
+			};
+		}
+		const ga = solveGaModel(model);
+		const { ga_meta, ...result } = ga;
+		let gap_vs_lp: number | undefined;
+		try {
+			const lp = solveLp(model);
+			if (lp.Z > 1e-6) gap_vs_lp = Math.max(0, (lp.Z - result.Z) / lp.Z);
+		} catch {
+			/* ignore */
+		}
+		return {
+			status: 'done',
+			result,
+			solver_meta: {
+				venue,
+				library: libraryFor('ga', venue),
+				method: 'ga',
+				duration_ms: performance.now() - started,
+				gap_vs_lp,
+				hint: ga_meta.feasible ? undefined : 'infeasible_best'
+			}
+		};
+	} catch (e) {
+		return {
+			status: 'rejected_too_large',
+			solver_meta: {
+				venue,
+				library: libraryFor(method, venue),
+				method,
+				duration_ms: performance.now() - started,
+				rejected_reason: e instanceof Error ? e.message : 'error'
+			}
+		};
+	}
 }
 
 Deno.serve(async (req) => {
 	if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
 	if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
 	try {
-		const body = (await req.json()) as { model?: Model };
+		const body = (await req.json()) as { model?: Model; method?: unknown };
 		if (!body.model) return json({ error: 'model required' }, 400);
-		return json(solveModel(body.model));
+		const method: SolveMethod = isMethod(body.method) ? body.method : 'lp';
+		return json(solveModel(body.model, method));
 	} catch (e) {
 		return json({ error: e instanceof Error ? e.message : 'error' }, 500);
 	}

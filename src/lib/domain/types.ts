@@ -6,6 +6,26 @@ export type SolveStatus = "done" | "rejected_too_large" | "accepted";
 export type VenuePreference = "auto" | "cloud" | "local";
 export type ResolvedVenue = "cloud" | "local";
 
+/** Solve algorithm. `lp` = javascript-lp-solver (simplex); `ipm` = interior-point; `ga` = evolutionary. */
+export type SolveMethod = "lp" | "ipm" | "ga";
+
+export const SOLVE_METHODS: SolveMethod[] = ["lp", "ipm", "ga"];
+
+export function isSolveMethod(v: unknown): v is SolveMethod {
+  return v === "lp" || v === "ipm" || v === "ga";
+}
+
+/** library string identifies method + venue, e.g. `interior-point@local`. */
+export function libraryFor(method: SolveMethod, venue: ResolvedVenue): string {
+  const name =
+    method === "lp"
+      ? "javascript-lp-solver"
+      : method === "ipm"
+        ? "interior-point"
+        : "ga-evolutionary";
+  return `${name}@${venue}`;
+}
+
 export interface Model {
   schema_version: typeof SCHEMA_VERSION;
   resources: string[];
@@ -49,16 +69,22 @@ export interface SolveResult {
 
 export interface SolverMeta {
   venue: ResolvedVenue;
+  /** Method + venue, e.g. `interior-point@local`, `ga-evolutionary@cloud`. */
   library: string;
   duration_ms: number;
   rejected_reason?: string;
   hint?: string;
   /** Present when plan x was post-rounded for display; duals remain from continuous LP. */
   rounding?: "nearest";
+  /** Explicit method id (mirrors the prefix of `library`). */
+  method?: SolveMethod;
+  /** GA-only: optimality gap vs LP Z when LP reference available. */
+  gap_vs_lp?: number;
 }
 
 export interface SolveRequest {
   model: Model;
+  method?: SolveMethod;
 }
 
 export interface SolveResponse {
