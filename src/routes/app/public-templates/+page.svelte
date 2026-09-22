@@ -14,6 +14,7 @@
 	import CardIconButton from '$lib/components/ui/CardIconButton.svelte';
 	import EmptyState from '$lib/components/ui/EmptyState.svelte';
 	import TemplatePreviewCard from '$lib/components/TemplatePreviewCard.svelte';
+	import InlineAlert from '$lib/components/ui/InlineAlert.svelte';
 
 	type Row = {
 		id: string;
@@ -83,7 +84,7 @@
 	<PageHeader title={t('publicTemplates')} description={t('publicTemplatesHint')} />
 
 	{#if msg}
-		<p class="text-sm text-danger-text">{msg}</p>
+		<InlineAlert>{msg}</InlineAlert>
 	{/if}
 	{#if okMsg}
 		<p class="text-sm text-text-muted">{okMsg}</p>

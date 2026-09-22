@@ -5,6 +5,9 @@
 	import { supabase } from '$lib/db/supabase';
 	import { clearGuest, loadGuest } from '$lib/db/guest';
 	import { createBlankModel } from '$lib/domain';
+	import Button from '$lib/components/ui/Button.svelte';
+	import Input from '$lib/components/ui/Input.svelte';
+	import InlineAlert from '$lib/components/ui/InlineAlert.svelte';
 
 	let email = $state('demo1@example.com');
 	let password = $state('password123');
@@ -21,7 +24,7 @@
 		if (!guest) return;
 		await supabase.from('solve_nodes').insert({
 			owner_id: userId,
-			title: guest.title || 'Гостевой сценарий',
+			title: guest.title || t('guestScenarioTitle'),
 			kind: 'root',
 			model: guest.model ?? createBlankModel(),
 			result: guest.result ?? null
@@ -35,7 +38,7 @@
 		error = '';
 		const { data, error: err } = await supabase.auth.signInWithPassword({ email, password });
 		if (err || !data.user) {
-			error = err?.message ?? 'Ошибка входа';
+			error = err?.message ?? t('loginFailed');
 			busy = false;
 			return;
 		}
@@ -49,37 +52,23 @@
 	<h1 class="text-2xl font-medium">{t('login')}</h1>
 	<p class="text-sm text-text-muted">{t('registerDisabled')}</p>
 	{#if hasGuest}
-		<p class="rounded-[8px] bg-surface px-3 py-2 text-sm text-text-muted">{t('guestUpload')}</p>
+		<InlineAlert tone="muted">{t('guestUpload')}</InlineAlert>
 	{/if}
 	{#if error}
-		<p class="rounded-[8px] bg-danger-bg px-3 py-2 text-sm text-danger-text">{error}</p>
+		<InlineAlert>{error}</InlineAlert>
 	{/if}
 	<form class="flex flex-col gap-3" onsubmit={onSubmit}>
 		<label class="flex flex-col gap-1 text-sm">
 			<span>{t('email')}</span>
-			<input
-				bind:value={email}
-				type="email"
-				class="rounded-[8px] border border-border px-3 py-2"
-				autocomplete="username"
-			/>
+			<Input bind:value={email} type="email" autocomplete="username" />
 		</label>
 		<label class="flex flex-col gap-1 text-sm">
 			<span>{t('password')}</span>
-			<input
-				bind:value={password}
-				type="password"
-				class="rounded-[8px] border border-border px-3 py-2"
-				autocomplete="current-password"
-			/>
+			<Input bind:value={password} type="password" autocomplete="current-password" />
 		</label>
-		<button
-			type="submit"
-			disabled={busy}
-			class="rounded-[8px] bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-text-medium disabled:opacity-50"
-		>
-			{t('login')}
-		</button>
+		<Button type="submit" disabled={busy}>{t('login')}</Button>
 	</form>
-	<button type="button" disabled class="text-sm text-text-faint">{t('registerDisabled')}</button>
+	<Button variant="ghost" type="button" disabled class="!justify-start !px-0 !text-text-faint">
+		{t('registerDisabled')}
+	</Button>
 </main>

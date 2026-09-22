@@ -15,6 +15,7 @@
 		productOrder = undefined,
 		resourceOrder = undefined,
 		solverLibrary = null,
+		showRoundToggle = true,
 		children
 	}: {
 		/** Already display-rounded via maybeRoundPlan when checkbox is on. */
@@ -25,6 +26,8 @@
 		/** Stable resource row order (model.resources). */
 		resourceOrder?: string[];
 		solverLibrary?: string | null;
+		/** Hide round checkbox (e.g. compare second column shares bind). */
+		showRoundToggle?: boolean;
 		/** Authenticated: result comments, etc. */
 		children?: Snippet;
 	} = $props();
@@ -79,24 +82,28 @@
 	<div class="mt-6">
 		<div class="mb-2 flex flex-wrap items-center justify-between gap-2">
 			<p class="text-sm font-medium text-text">{t('guestPlan')}</p>
-			<label class="flex items-center gap-2 text-sm text-text">
-				<input
-					type="checkbox"
-					checked={roundPlan}
-					onchange={(e) => onRoundToggle(e.currentTarget.checked)}
-				/>
-				{t('roundPlan')}
-			</label>
+			{#if showRoundToggle}
+				<label class="flex items-center gap-2 text-sm text-text">
+					<input
+						type="checkbox"
+						checked={roundPlan}
+						onchange={(e) => onRoundToggle(e.currentTarget.checked)}
+					/>
+					{t('roundPlan')}
+				</label>
+			{/if}
 		</div>
 
-		<details class="mb-3">
-			<summary
-				class="cursor-pointer list-none text-xs text-text-soft underline-offset-2 hover:underline [&::-webkit-details-marker]:hidden"
-			>
-				{t('roundPlanHintToggle')}
-			</summary>
-			<p class="mt-1.5 text-xs leading-relaxed text-text-soft">{t('roundPlanHint')}</p>
-		</details>
+		{#if showRoundToggle}
+			<details class="mb-3">
+				<summary
+					class="cursor-pointer list-none text-xs text-text-soft underline-offset-2 hover:underline [&::-webkit-details-marker]:hidden"
+				>
+					{t('roundPlanHintToggle')}
+				</summary>
+				<p class="mt-1.5 text-xs leading-relaxed text-text-soft">{t('roundPlanHint')}</p>
+			</details>
+		{/if}
 
 		{#if roundPlan && !result.feasible}
 			<p class="mb-3 text-sm text-warning-text">{t('roundPlanInfeasible')}</p>

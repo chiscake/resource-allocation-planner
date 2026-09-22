@@ -138,6 +138,8 @@ resource-allocation-planner/
 | Audit writes              | `src/lib/db/audit.ts`     |
 | Soft-delete / restore     | `src/lib/db/soft-delete.ts` (+ toast undo: `src/lib/ui/toast-undo.ts`, optimistic list: `src/lib/ui/optimistic-delete.ts`) |
 | Task / template cards     | `TaskPreviewCard`, `TemplatePreviewCard`, `ScenarioCardGrid` |
+| Task org / share panels   | `OrgAttachPanel`, `SharePanel` |
+| Inline alerts             | `src/lib/components/ui/InlineAlert.svelte` |
 | Task draft (pre-solve)    | `src/lib/db/task-draft.ts` + `/app/create`                            |
 | Public template uses      | `src/lib/db/template-uses.ts`                                         |
 | Create / open solve node  | `src/lib/db/create-solve-node.ts`                                     |

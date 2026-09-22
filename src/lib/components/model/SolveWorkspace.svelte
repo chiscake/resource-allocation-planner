@@ -7,6 +7,7 @@
 	import PlanSolveControls from './PlanSolveControls.svelte';
 	import SolveResultPanel from './SolveResultPanel.svelte';
 	import WhatIfPanel from './WhatIfPanel.svelte';
+	import InlineAlert from '$lib/components/ui/InlineAlert.svelte';
 	import type { SolveSession, WhatIfRow } from './solve-session.svelte';
 
 	let {
@@ -56,7 +57,7 @@
 {#if model}
 	<section class={['flex flex-col', compact ? 'gap-5' : 'gap-6']}>
 		{#if session.error}
-			<p class="rounded-[8px] bg-danger-bg px-3 py-2 text-sm text-danger-text">{session.error}</p>
+			<InlineAlert>{session.error}</InlineAlert>
 		{/if}
 
 		<Card>

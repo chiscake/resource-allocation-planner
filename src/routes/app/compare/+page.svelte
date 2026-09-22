@@ -3,16 +3,13 @@
 	import { supabase } from '$lib/db/supabase';
 	import { t } from '$lib/i18n';
 	import type { Model, SolveResult } from '$lib/domain';
-	import {
-		getRoundPlanPreference,
-		setRoundPlanPreference,
-		maybeRoundPlan
-	} from '$lib/solver';
+	import { getRoundPlanPreference, maybeRoundPlan } from '$lib/solver';
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Select from '$lib/components/ui/Select.svelte';
 	import EmptyState from '$lib/components/ui/EmptyState.svelte';
+	import SolveResultPanel from '$lib/components/model/SolveResultPanel.svelte';
 
 	type NodeView = { title: string; result: SolveResult | null; model: Model | null };
 
@@ -100,65 +97,60 @@
 		<div class="flex flex-col gap-3">
 			<div class="flex flex-wrap items-end gap-3">
 				<div class="min-w-[12rem] flex-1">
-					<label class="mb-1 block text-xs text-text-muted" for="compare-a">Сценарий A</label>
-					<Select id="compare-a" bind:value={a} options={nodeOptions} placeholder="Выберите A" />
+					<label class="mb-1 block text-xs text-text-muted" for="compare-a"
+						>{t('compareScenarioA')}</label
+					>
+					<Select
+						id="compare-a"
+						bind:value={a}
+						options={nodeOptions}
+						placeholder={t('comparePickA')}
+					/>
 				</div>
 				<div class="min-w-[12rem] flex-1">
-					<label class="mb-1 block text-xs text-text-muted" for="compare-b">Сценарий B</label>
-					<Select id="compare-b" bind:value={b} options={nodeOptions} placeholder="Выберите B" />
+					<label class="mb-1 block text-xs text-text-muted" for="compare-b"
+						>{t('compareScenarioB')}</label
+					>
+					<Select
+						id="compare-b"
+						bind:value={b}
+						options={nodeOptions}
+						placeholder={t('comparePickB')}
+					/>
 				</div>
 			</div>
 			<div class="flex justify-end">
-				<Button disabled={!a || !b} onclick={run}>Сравнить</Button>
+				<Button disabled={!a || !b} onclick={run}>{t('compareRun')}</Button>
 			</div>
 		</div>
 	</Card>
 
 	{#if left && right}
-		<label class="flex items-center gap-2 text-sm">
-			<input
-				type="checkbox"
-				checked={roundPlan}
-				onchange={(e) => {
-					roundPlan = e.currentTarget.checked;
-					setRoundPlanPreference(roundPlan);
-				}}
-			/>
-			{t('roundPlan')}
-		</label>
-		<p class="text-xs text-text-soft">{t('roundPlanHint')}</p>
 		<div class="grid gap-4 md:grid-cols-2">
 			{#each [left, right] as side, i (i)}
 				{@const disp = shown(side)}
-				<Card>
+				<div class="space-y-2">
 					<p class="font-medium">{side.title}</p>
-					{#if roundPlan && disp && !disp.feasible}
-						<p class="mt-2 text-sm text-warning-text">{t('roundPlanInfeasible')}</p>
+					{#if disp}
+						<SolveResultPanel
+							result={disp}
+							bind:roundPlan
+							showRoundToggle={i === 0}
+							productOrder={side.model?.products}
+							resourceOrder={side.model?.resources}
+						/>
+					{:else}
+						<Card>
+							<p class="text-sm text-text-muted">—</p>
+						</Card>
 					{/if}
-					<p class="mt-2 font-mono text-sm">Z = {disp?.Z?.toFixed(4) ?? '—'}</p>
-					{#if disp?.x}
-						<p class="mt-3 text-xs text-text-soft">План</p>
-						<ul class="mt-1 space-y-0.5 font-mono text-xs text-text-muted">
-							{#each Object.entries(disp.x) as [k, v] (k)}
-								<li>{k}: {v.toFixed(3)}</li>
-							{/each}
-						</ul>
-					{/if}
-					{#if disp?.shadow_prices}
-						<p class="mt-3 text-xs text-text-soft">Двойственные оценки</p>
-						<ul class="mt-1 space-y-0.5 font-mono text-xs text-text-muted">
-							{#each Object.entries(disp.shadow_prices) as [k, v] (k)}
-								<li>{k}: {v.toFixed(3)}</li>
-							{/each}
-						</ul>
-					{/if}
-				</Card>
+				</div>
 			{/each}
 		</div>
 	{/if}
 
 	<div>
-		<h2 class="mb-3 text-lg font-medium">Сохранённые</h2>
+		<h2 class="mb-3 text-lg font-medium">{t('compareSaved')}</h2>
 		{#if saved.length === 0}
 			<EmptyState title={t('compareEmpty')} description={t('compareEmptyHint')} />
 		{:else}

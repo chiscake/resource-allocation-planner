@@ -9,6 +9,8 @@
 	import EmptyState from '$lib/components/ui/EmptyState.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
+	import InlineAlert from '$lib/components/ui/InlineAlert.svelte';
+	import ScenarioCardGrid from '$lib/components/ScenarioCardGrid.svelte';
 	import TaskPreviewCard from '$lib/components/TaskPreviewCard.svelte';
 
 	type Row = {
@@ -102,40 +104,35 @@
 
 	<label class="block max-w-md">
 		<span class="mb-1 block text-sm text-text-muted">{t('searchByName')}</span>
-		<Input
-			type="search"
-			bind:value={query}
-			placeholder={t('searchByNamePlaceholder')}
-		/>
+		<Input type="search" bind:value={query} placeholder={t('searchByNamePlaceholder')} />
 	</label>
 
 	{#if msg}
-		<p class="text-sm text-danger-text">{msg}</p>
+		<InlineAlert>{msg}</InlineAlert>
 	{/if}
 
 	{#if loading}
 		<p class="text-sm text-text-muted">…</p>
-	{:else if filtered.length === 0}
-		<EmptyState title={t('noScenarios')} description={t('noScenariosHint')}>
-			{#snippet action()}
-				<Button href="/app/create">{t('newTask')}</Button>
-			{/snippet}
-		</EmptyState>
 	{:else}
-		<ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-			{#each filtered as r (r.id)}
-				<li>
-					<TaskPreviewCard
-						href="/app/task/{r.id}"
-						title={r.title}
-						updatedAt={r.updated_at}
-						createdAt={r.created_at}
-						model={r.model}
-						favorite={r.is_favorite}
-						onDelete={() => deleteCard(r)}
-					/>
-				</li>
-			{/each}
-		</ul>
+		<ScenarioCardGrid items={filtered}>
+			{#snippet empty()}
+				<EmptyState title={t('noScenarios')} description={t('noScenariosHint')}>
+					{#snippet action()}
+						<Button href="/app/create">{t('newTask')}</Button>
+					{/snippet}
+				</EmptyState>
+			{/snippet}
+			{#snippet children(r)}
+				<TaskPreviewCard
+					href="/app/task/{r.id}"
+					title={r.title}
+					updatedAt={r.updated_at}
+					createdAt={r.created_at}
+					model={r.model}
+					favorite={r.is_favorite}
+					onDelete={() => deleteCard(r)}
+				/>
+			{/snippet}
+		</ScenarioCardGrid>
 	{/if}
 </section>

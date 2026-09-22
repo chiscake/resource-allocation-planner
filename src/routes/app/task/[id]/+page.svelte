@@ -19,11 +19,12 @@
 	import { t } from '$lib/i18n';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
-	import Input from '$lib/components/ui/Input.svelte';
-	import Select from '$lib/components/ui/Select.svelte';
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
 	import SolveWorkspace from '$lib/components/model/SolveWorkspace.svelte';
 	import NodeComments from '$lib/components/NodeComments.svelte';
+	import OrgAttachPanel from '$lib/components/OrgAttachPanel.svelte';
+	import SharePanel from '$lib/components/SharePanel.svelte';
+	import InlineAlert from '$lib/components/ui/InlineAlert.svelte';
 	import {
 		createSolveSession,
 		solveMethodToTab,
@@ -700,7 +701,9 @@
 			{/snippet}
 		</PageHeader>
 
-		{#if error}<p class="text-danger-text">{error}</p>{/if}
+		{#if error}
+			<InlineAlert>{error}</InlineAlert>
+		{/if}
 
 		{#if session.model}
 			<SolveWorkspace
@@ -729,60 +732,26 @@
 			</Card>
 		{/if}
 
-		<Card>
-			<h2 class="mb-3 text-lg font-medium">{t('attachOrg')}</h2>
-			{#if userOrgs.length === 0}
-				<p class="mb-3 text-sm text-text-muted">{t('noOrgsHint')}</p>
-			{:else}
-				<Select
-					class="mb-3"
-					bind:value={orgId}
-					options={orgSelectOptions}
-					placeholder={t('selectOrg')}
-				/>
-			{/if}
-			<label class="mb-3 flex items-center gap-2 text-sm">
-				<input type="checkbox" bind:checked={makePublic} />
-				{t('makePublicInOrg')}
-			</label>
-			<div class="flex flex-wrap gap-2">
-				<Button variant="secondary" disabled={!orgId} onclick={attachOrg}>{t('attachOrg')}</Button>
-				{#if node.org_id}
-					<Button variant="secondary" onclick={() => setOrgVisibility('private')}>
-						{t('hideInOrg')}
-					</Button>
-					<Button variant="secondary" onclick={() => setOrgVisibility('org')}>
-						{t('showInOrg')}
-					</Button>
-				{/if}
-			</div>
-		</Card>
+		<OrgAttachPanel
+			bind:orgId
+			bind:makePublic
+			orgOptions={orgSelectOptions}
+			attachedOrgId={node.org_id}
+			onAttach={attachOrg}
+			onSetVisibility={setOrgVisibility}
+		/>
 
-		<Card>
-			<h2 class="mb-3 text-lg font-medium">{t('share')}</h2>
-			{#if node.org_id}
-				<p class="mb-3 rounded-[8px] bg-warning-bg px-3 py-2 text-sm text-warning-text">
-					{t('shareOrgWarning')}
-				</p>
-			{/if}
-			{#if shareUrl}
-				<p class="mb-2 break-all font-mono text-xs">{shareUrl}</p>
-				<Button variant="secondary" onclick={revokeShare}>{t('revokeShareLink')}</Button>
-			{:else}
-				<Button variant="secondary" onclick={createShareLink}>{t('createShareLink')}</Button>
-			{/if}
-			{#if hasActiveShare}
-				<div class="mt-2">
-					<Button variant="secondary" disabled={session.busy} onclick={cancelSharing}>
-						{t('cancelSharing')}
-					</Button>
-				</div>
-			{/if}
-			<div class="mt-4 flex flex-wrap gap-2">
-				<Input class="min-w-[12rem] flex-1" placeholder={t('grantPlaceholder')} bind:value={grantEmail} />
-				<Button variant="secondary" onclick={grantToEmail}>{t('grantAccess')}</Button>
-			</div>
-			{#if shareMsg}<p class="mt-2 text-sm text-text-muted">{shareMsg}</p>{/if}
-		</Card>
+		<SharePanel
+			{shareUrl}
+			{hasActiveShare}
+			busy={session.busy}
+			bind:grantValue={grantEmail}
+			message={shareMsg}
+			showOrgWarning={Boolean(node.org_id)}
+			onCreateLink={createShareLink}
+			onRevokeLink={revokeShare}
+			onCancelSharing={cancelSharing}
+			onGrant={grantToEmail}
+		/>
 	</section>
 {/if}

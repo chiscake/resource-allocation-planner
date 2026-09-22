@@ -12,6 +12,7 @@
 	import CardIconButton from '$lib/components/ui/CardIconButton.svelte';
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
 	import EmptyState from '$lib/components/ui/EmptyState.svelte';
+	import InlineAlert from '$lib/components/ui/InlineAlert.svelte';
 
 	type Row = {
 		id: string;
@@ -76,7 +77,7 @@
 	<PageHeader title={t('templates')} />
 
 	{#if msg}
-		<p class="text-sm text-danger-text">{msg}</p>
+		<InlineAlert>{msg}</InlineAlert>
 	{/if}
 
 	{#if rows.length === 0}

@@ -15,7 +15,7 @@
 		empty,
 		children
 	}: {
-		title: string;
+		title?: string;
 		items: T[];
 		limit?: number | null;
 		disableExpand?: boolean;
@@ -58,14 +58,20 @@
 </script>
 
 <div>
-	<div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-		<h2 class="text-lg font-medium">{title}</h2>
-		{#if headerActions}
-			<div class="flex flex-wrap items-center justify-end gap-2">
-				{@render headerActions()}
-			</div>
-		{/if}
-	</div>
+	{#if title || headerActions}
+		<div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+			{#if title}
+				<h2 class="text-lg font-medium">{title}</h2>
+			{:else}
+				<span></span>
+			{/if}
+			{#if headerActions}
+				<div class="flex flex-wrap items-center justify-end gap-2">
+					{@render headerActions()}
+				</div>
+			{/if}
+		</div>
+	{/if}
 	{#if items.length === 0}
 		{#if empty}
 			{@render empty()}
