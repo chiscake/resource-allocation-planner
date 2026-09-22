@@ -150,6 +150,8 @@ Done when: `main` points at the intended SHA and the cloud checklist for that re
 
 Canon gate agents run before commit. Implemented in `scripts/preflight.mjs`. No install step beyond `pnpm install`.
 
+**Order:** `git add` relevant paths **then** `pnpm preflight` — the secret-path scan uses `git diff --cached`; running preflight before staging skips that check.
+
 ### B. Cursor hooks (project) — `.cursor/hooks.json`
 
 | Event                  | Purpose                                                                                                                                                                              |

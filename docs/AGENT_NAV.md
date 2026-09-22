@@ -10,17 +10,17 @@ Purpose: fast orientation for coding agents. Prefer pointers over copying rules 
 
 | If you need…                                         | Open                                               |
 | ---------------------------------------------------- | -------------------------------------------------- |
-| Hard rules / overrides / migrations / schema_version | [`../AGENTS.md`](../AGENTS.md)                     |
+| Hard rules / overrides / migrations / schema_version | [`../AGENTS.md`](../AGENTS.md) (schema rule at **top**) |
 | Commit / push / Vercel / Supabase cloud workflow     | [`COMMIT_WORKFLOW.md`](COMMIT_WORKFLOW.md)         |
 | Tables, org/share/trash, RLS intent                  | [`data-model.md`](data-model.md)                   |
 | Design tokens / Cartesia UI                          | [`DESIGN.md`](DESIGN.md)                           |
-| Phases + intended folder tree                        | [`../ROADMAP.md`](../ROADMAP.md)                   |
+| Shipped status / scope + tree                        | [`../ROADMAP.md`](../ROADMAP.md)                   |
 | Post-MVP / deferred backlog                          | [`TODO-later.md`](TODO-later.md)                   |
-| Why / grill decisions                                | [`../.tmp/START.md`](../.tmp/START.md)             |
+| UI copy tone (RU end-user)                           | [`../AGENTS.md`](../AGENTS.md) + `.cursor/rules/ui-copy.mdc` |
 | Task 13 text                                         | [`course/assignment.md`](course/assignment.md)     |
 | Course formal requirements                           | [`course/requirements.md`](course/requirements.md) |
 
-Scratch: `.tmp/task13_*.py/json`, `LP4DVisualizer.jsx`. Design canon: **`docs/DESIGN.md`**.
+Scratch only (not canon): `.tmp/task13_*.py/json`, `LP4DVisualizer.jsx`. Design canon: **`docs/DESIGN.md`**.
 
 ---
 
@@ -41,7 +41,7 @@ resource-allocation-planner/
 │   │   ├── domain/              # Model, mutations, task13
 │   │   ├── solver/              # local LP + IPM + GA + venue + limits
 │   │   ├── api/solve.ts         # Edge or local transport (+ method + local fallback)
-│   │   ├── db/                  # supabase, guest, audit helpers
+│   │   ├── db/                  # supabase, guest, audit, soft-delete, task-draft, template-uses
 │   │   ├── chrome/              # nav/drawer chrome state
 │   │   ├── components/          # VenueToggle + chrome/ (AppHeader, DevQuickLoginBar, …)
 │   │   ├── i18n/                # ru
@@ -53,13 +53,14 @@ resource-allocation-planner/
 │       ├── onboarding/          # Tauri wizard
 │       ├── share/[token]/      # public link view (Z)
 │       └── app/                 # authenticated shell (+ unread badge)
-│           ├── +page.svelte     # recent / favorites / personal / org lists
-│           ├── create/
+│           ├── +page.svelte     # home: CTA + recent + recent templates
+│           ├── create/          # draft editor; persist on first solve
+│           ├── tasks/           # all owned roots + search
 │           ├── task/[id]/      # solve (lp|ipm|ga), what-if ←i/N→, share/fork/org
 │           ├── templates/, public-templates/
 │           ├── compare/, trash/, org/, notifications/, admin/
 ├── supabase/
-│   ├── migrations/000…080       # 070_share_notify_rpc (merged 070–073); 080_purge_cron
+│   ├── migrations/000…080       # 041_template_uses; 070_share_notify_rpc; 080_purge_cron
 │   ├── functions/               # solve, run_mutations, admin-create-user
 │   │   └── _shared/solver/      # Edge mirror of ipm/ga/resultBuild (keep ↔ src/lib/solver)
 │   └── seed.sql                 # noop; users via seed:users
@@ -67,7 +68,7 @@ resource-allocation-planner/
 ```
 
 **Dev:** `pnpm dev` → http://127.0.0.1:5400 (HMR 5401).  
-**Backend local (one shot):** `pnpm supabase:local` → `supabase start` + `db reset` + `seed:users` + `functions serve`.
+**Backend local (one shot):** `pnpm db:reset` → `supabase start` + `db reset` + `seed:users` + `functions serve`.
 
 **Production (web):** https://resource-allocation-planner-taupe.vercel.app  
 **Vercel build:** `vercel.json` → `pnpm build`, output `build/` (static SPA rewrites).
@@ -93,8 +94,9 @@ resource-allocation-planner/
 | `/`                  | Marketing (web) / guest Task 13 → login; Tauri → onboarding or `/app`   |
 | `/login`             | Auth (Register disabled); always upload guest slot on success           |
 | `/onboarding`        | Tauri first-run wizard                                                  |
-| `/app`               | Home lists (parents only)                                               |
-| `/app/create`        | Blank / Task 13 / templates → personal root                             |
+| `/app`               | Home: new-task CTA, recent (≤6), recent templates mix                   |
+| `/app/create`        | Draft task editor (sessionStorage); DB insert on first solve            |
+| `/app/tasks`         | All owned roots; search by title; updated_at desc                       |
 | `/app/task/[id]`     | Solve, what-if pager, favorite, fork, share link+grant, org attach/hide |
 | `/app/notifications` | Inbox; poll 60s + focus; layout unread badge                            |
 | `/app/trash`         | Soft-deleted roots; restore → private; hard delete                      |
@@ -113,10 +115,10 @@ resource-allocation-planner/
 | Test        | `pnpm test`                                                          |
 | Check       | `pnpm check`                                                         |
 | Preflight   | `pnpm preflight` / `preflight:main` — before commit / promote        |
-| Seed        | `pnpm seed:users` — admin@example.com, demo1/2@example.com / password123 |
+| Seed        | `pnpm seed:users` — admin@example.com, demo1/2/3@example.com / password123 (demo3: no org) |
 | Quick login | Bottom bar under `/app` (`DevQuickLoginBar`); flag `PUBLIC_DEV_QUICK_LOGIN` |
 | Cloud seed  | `pnpm seed:users:cloud` — same users against linked RAP project      |
-| Local stack | `pnpm supabase:local` — start + reset + seed + Edge serve            |
+| Local stack | `pnpm db:reset` — start + reset + seed + Edge serve                  |
 | Installer   | `pnpm tauri:build` — desktop bundle (local only)                     |
 | Edge        | `solve`, `run_mutations`, `admin-create-user`                        |
 | Venue       | Web = cloud when online (fallback local); Tauri UI toggle            |
@@ -134,6 +136,13 @@ resource-allocation-planner/
 | Compute venue             | `src/lib/solver/venue.ts` |
 | Guest slot                | `src/lib/db/guest.ts`     |
 | Audit writes              | `src/lib/db/audit.ts`     |
+| Soft-delete / restore     | `src/lib/db/soft-delete.ts` (+ toast undo: `src/lib/ui/toast-undo.ts`) |
+| Task draft (pre-solve)    | `src/lib/db/task-draft.ts` + `/app/create`                            |
+| Public template uses      | `src/lib/db/template-uses.ts`                                         |
+| Create / open solve node  | `src/lib/db/create-solve-node.ts`                                     |
+| UI kit (prefer these)     | `src/lib/components/ui/` — Button, Card, Input, Select, Modal, Tabs, Badge, PageHeader, EmptyState, CardIconButton, `matrix/` |
+| Model solve controls      | `src/lib/components/model/` — LpModelMatrix, PlanSolveControls, SolveResultPanel |
+| Toasts (`svelte-sonner`)  | `<Toaster />` in `src/routes/+layout.svelte` |
 | Cartesia tokens           | `src/app.css` `@theme`    |
 
 ---

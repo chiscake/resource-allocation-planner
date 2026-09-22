@@ -1,6 +1,6 @@
 # Модель данных (черновик)
 
-Источник: `.tmp/START.md` (R0–R5d). Согласованная схема; не DDL-миграция.
+Источник: согласованная схема (исторически grill R0–R5d). Не DDL-миграция. Статус продукта: [`../ROADMAP.md`](../ROADMAP.md); жёсткие правила: [`../AGENTS.md`](../AGENTS.md).
 
 ---
 
@@ -111,6 +111,17 @@ Write/delete: владелец узла; `org_owner` — hide чужих public 
 
 Без `source_id`. `system_kind`: `signup_seed` \| `public_repo` \| null.  
 App-`admin` правит системные. `owner_id` / `org_id` для user/org копий.
+
+### `template_uses`
+
+Per-user last use of a **`public_repo`** template (home «Последние шаблоны»).
+
+| Поле | Смысл |
+| --- | --- |
+| `user_id` + `template_id` | PK; CASCADE on user/template delete |
+| `last_used_at` | upsert on «Использовать» (даже до первого solve) |
+
+Личные шаблоны в миксе на главной — по `templates.updated_at` / optional use; public — только через эту таблицу.
 
 ---
 

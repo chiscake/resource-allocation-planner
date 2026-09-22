@@ -64,7 +64,7 @@
 </script>
 
 <section class="mx-auto max-w-2xl space-y-6">
-	<PageHeader title={t('admin')} description="Управление пользователями и системными шаблонами." />
+	<PageHeader title={t('admin')} description={t('adminHint')} />
 
 	{#if !isAdmin}
 		<Card>

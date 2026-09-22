@@ -11,6 +11,7 @@
 	import { t } from '$lib/i18n';
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
+	import CardIconButton from '$lib/components/ui/CardIconButton.svelte';
 	import EmptyState from '$lib/components/ui/EmptyState.svelte';
 	import MatrixThumb from '$lib/components/model/MatrixThumb.svelte';
 
@@ -79,10 +80,7 @@
 </script>
 
 <section class="mx-auto flex max-w-5xl flex-col gap-6">
-	<PageHeader
-		title={t('publicTemplates')}
-		description="Общедоступные шаблоны для создания сценариев."
-	/>
+	<PageHeader title={t('publicTemplates')} description={t('publicTemplatesHint')} />
 
 	{#if msg}
 		<p class="text-sm text-danger-text">{msg}</p>
@@ -113,26 +111,22 @@
 							</Button>
 							{#if signedIn}
 								<div class="ml-auto flex gap-2">
-									<Button
-										variant="secondary"
-										class="!px-2.5 !py-2.5"
+									<CardIconButton
 										disabled={busyId === r.id}
 										aria-label={t('saveTemplate')}
 										title={t('saveTemplate')}
 										onclick={() => saveTemplate(r.id)}
 									>
 										<Save size={18} strokeWidth={1.75} aria-hidden="true" />
-									</Button>
-									<Button
-										variant="secondary"
-										class="!px-2.5 !py-2.5"
+									</CardIconButton>
+									<CardIconButton
 										disabled={busyId === r.id}
 										aria-label={t('editTemplate')}
 										title={t('editTemplate')}
 										onclick={() => editTemplate(r.id)}
 									>
 										<Pen size={18} strokeWidth={1.75} aria-hidden="true" />
-									</Button>
+									</CardIconButton>
 								</div>
 							{/if}
 						</div>

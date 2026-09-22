@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { supabase } from '$lib/db/supabase';
 	import { writeAudit } from '$lib/db/audit';
+	import { restoreSolveNode } from '$lib/db/soft-delete';
 	import { t } from '$lib/i18n';
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
@@ -55,22 +56,7 @@
 	});
 
 	async function restore(row: Row) {
-		const patch: Record<string, unknown> = {
-			deleted_at: null,
-			deleted_by_org_owner: false
-		};
-		if (row.org_id) {
-			patch.org_visibility = 'private';
-		} else {
-			patch.org_visibility = null;
-		}
-		await supabase.from('solve_nodes').update(patch).eq('id', row.id);
-		await writeAudit({
-			action: 'restore',
-			entity_type: 'solve_node',
-			entity_id: row.id,
-			org_id: row.org_id
-		});
+		await restoreSolveNode({ id: row.id, org_id: row.org_id });
 		await load();
 	}
 
@@ -82,14 +68,11 @@
 </script>
 
 <section class="mx-auto max-w-2xl space-y-8">
-	<PageHeader
-		title={t('trash')}
-		description="Мягко удалённые сценарии хранятся 30 дней, затем удаляются автоматически."
-	/>
+	<PageHeader title={t('trash')} description={t('trashHint')} />
 
 	<div>
 		{#if mine.length === 0}
-			<EmptyState title="Корзина пуста" description="Удалённые сценарии появятся здесь." />
+			<EmptyState title={t('trashEmpty')} description={t('trashEmptyHint')} />
 		{:else}
 			<ul class="space-y-2">
 				{#each mine as r}
@@ -97,11 +80,11 @@
 						<div>
 							<p class="font-medium">{r.title}</p>
 							{#if r.deleted_by_org_owner}
-								<p class="text-xs text-warning-text">Удалено организацией</p>
+								<p class="text-xs text-warning-text">{t('deletedByOrg')}</p>
 							{/if}
 						</div>
 						<div class="flex gap-2">
-							<Button variant="ghost" onclick={() => restore(r)}>Восстановить</Button>
+							<Button variant="ghost" onclick={() => restore(r)}>{t('restore')}</Button>
 							<Button variant="ghost" class="!text-danger-text" onclick={() => hardDelete(r.id)}>
 								{t('hardDelete')}
 							</Button>
@@ -114,18 +97,16 @@
 
 	{#if isOrgOwner}
 		<div>
-			<h2 class="mb-2 text-lg font-medium">Корзина организации</h2>
-			<p class="mb-3 text-xs text-text-soft">
-				С ленты: скрыть чужой org-сценарий (soft-delete + уведомление владельцу).
-			</p>
+			<h2 class="mb-2 text-lg font-medium">{t('trashOrgTitle')}</h2>
+			<p class="mb-3 text-xs text-text-soft">{t('trashOrgHint')}</p>
 			{#if orgTrash.length === 0}
-				<EmptyState title="Нет записей" />
+				<EmptyState title={t('trashOrgEmpty')} />
 			{:else}
 				<ul class="space-y-2">
 					{#each orgTrash as r}
 						<Card padding={false} class="flex items-center justify-between px-4 py-3 text-sm">
 							<span>{r.title}</span>
-							<span class="text-text-muted">уже удалено org</span>
+							<span class="text-text-muted">{t('trashOrgAlreadyGone')}</span>
 						</Card>
 					{/each}
 				</ul>

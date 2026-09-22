@@ -18,8 +18,10 @@ Any UI, layout, theme tokens, typography, color, spacing, or component chrome wo
 2. Prefer CSS variables / a single theme module mapped from DESIGN tokens — do not hardcode one-off hex that contradicts the spec.
 3. **Canvas / page background:** use DESIGN `bg` / `bg-soft` (Cartesia clinical white), **not** Labs root `#f3f3f3`, unless the user asks otherwise.
 4. Brand / actions: DESIGN `brand` (`#2563eb`) and CTA rules from the spec; keep the “one deep blue + near-monochrome” language.
-5. UI copy stays **Russian**; token/docs names stay as in DESIGN.md.
-6. If DESIGN and a product decision conflict, ask — do not silently diverge.
+5. UI copy stays **Russian for the end user** — see `.cursor/rules/ui-copy.mdc`. **Ignore DESIGN §11 English marketing voice** for app strings.
+6. Prefer existing `src/lib/components/ui/*` (Button variants: `primary|secondary|danger|ghost`) over one-off controls. DESIGN `button-blue` maps to app `primary`.
+7. App density ≠ marketing hero scale in DESIGN; do not paste 96px display rhythm into `/app/*`.
+8. If DESIGN and a product decision conflict, ask — do not silently diverge.
 
 ## Do not
 

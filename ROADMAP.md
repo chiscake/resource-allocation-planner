@@ -2,145 +2,99 @@
 
 Course project: client-server **Resource Allocation Planner** (UI: «Планировщик распределения ресурсов»).
 
-Decisions: `.tmp/START.md`. Schema: `docs/data-model.md`. Agent rules: `AGENTS.md`. Map: `docs/AGENT_NAV.md`.
+**Canon for shipped status / scope.** Schema: `docs/data-model.md`. Agent rules: `AGENTS.md`. Map: `docs/AGENT_NAV.md`. Backlog: `docs/TODO-later.md`.
 
 **Ports:** Vite **5400**, HMR **5401** (block 5400–5409 reserved in `Labs/AGENTS.md`).
 
+**Production (web):** https://resource-allocation-planner-taupe.vercel.app · Vercel Production tracks branch **`dev`**.
+
 ---
 
-## Target tree (approximate)
+## Shipped (current)
+
+- SvelteKit + pnpm + Tauri shell; static adapter; Cartesia tokens in `src/app.css`.
+- Auth (no public signup); guest local slot → upload on login; draft create → persist on first solve.
+- Domain DB + RLS shelves `000`–`080` (incl. template uses, share notify RPC, `pg_cron` purge).
+- Solver: LP (simplex) + IPM + GA locally and on Edge; what-if children; plan rounding UI; venue cloud/local.
+- Product surfaces: home, tasks, task editor, templates / public catalog, compare, trash, org feed, notifications (poll 60s), admin, share-by-token.
+- UI kit under `src/lib/components/ui/` + model controls (`LpModelMatrix`, `PlanSolveControls`, `SolveResultPanel`).
+- Preflight gates + Cursor hooks for cloud mutate; seed via `pnpm seed:users` / `seed:users:cloud`.
+
+**Not shipped / deferred:** Realtime notifications, 4D graphic method (tab placeholder), full Edge≡local golden parity in CI, desktop installer artifact in CI (`pnpm tauri:build` local). See `docs/TODO-later.md`.
+
+**Pre-prod compatibility:** while the `schema_version` rule lives at the top of `AGENTS.md`, breaking changes → `db reset` (no dual readers).
+
+---
+
+## Tree (as built)
+
+Keep in sync with `docs/AGENT_NAV.md` when this drifts.
 
 ```
 resource-allocation-planner/
 ├── AGENTS.md
 ├── ROADMAP.md
-├── package.json                 # pnpm
-├── svelte.config.js             # dual build profiles (app static / web)
-├── vite.config.ts               # port 5400 / hmr 5401
+├── package.json                 # pnpm: dev, check, test, preflight*, db:*, seed:*, tauri:*
+├── scripts/preflight.mjs
+├── scripts/seed-users.mjs
 ├── src/
-│   ├── app.html
-│   ├── routes/
-│   │   ├── (app)/               # authenticated / guest shell
-│   │   │   ├── +layout.svelte
-│   │   │   ├── +page.svelte     # home: create / favorites / recent / templates
-│   │   │   ├── task/[id]/
-│   │   │   ├── compare/
-│   │   │   ├── templates/
-│   │   │   ├── public-templates/
-│   │   │   ├── trash/
-│   │   │   ├── org/
-│   │   │   ├── admin/
-│   │   │   └── notifications/
-│   │   ├── (auth)/
-│   │   ├── (marketing)/         # web profile: home + download CTA
-│   │   └── share/[token]/
+│   ├── app.css                  # Tailwind v4 + Cartesia @theme
 │   ├── lib/
-│   │   ├── domain/              # model types, schema_version, what_if helpers
-│   │   ├── solver/              # shared solve + run_mutations (local impl)
-│   │   ├── api/                 # Edge client wrappers
-│   │   ├── db/                  # supabase client, local guest store adapters
-│   │   ├── i18n/                # ru resources (+ config for more locales)
-│   │   └── platform/            # tauri vs web gates
-│   └── ...
-├── src-tauri/                   # installer target
+│   │   ├── domain/
+│   │   ├── solver/              # local LP + IPM + GA (+ tests)
+│   │   ├── api/                 # Edge transport
+│   │   ├── db/                  # supabase, guest, soft-delete, drafts, …
+│   │   ├── components/          # chrome/, model/, ui/, …
+│   │   ├── i18n/                # ru
+│   │   └── …
+│   └── routes/
+│       ├── +page.svelte         # marketing + guest CTA
+│       ├── login/, onboarding/, share/[token]/
+│       └── app/                 # authenticated shell
+│           ├── create/, tasks/, task/[id]/
+│           ├── templates/, public-templates/
+│           ├── compare/, trash/, org/, notifications/, admin/
 ├── supabase/
-│   ├── migrations/              # NNN_name.sql step-10 shelves
-│   ├── functions/               # solve, run_mutations, admin-create-user, …
-│   └── seed.sql
-├── tests/                       # or src/**/*.test.ts — pick one in scaffold
-├── docs/
-│   ├── AGENT_NAV.md
-│   ├── TODO-later.md            # post-MVP backlog (single list)
-│   ├── data-model.md
-│   └── course/
-│       ├── assignment.md
-│       └── requirements.md
-└── .tmp/                        # scratch: START, golden LP, DESIGN, 4D demo
+│   ├── migrations/000…080
+│   ├── functions/               # solve, run_mutations, admin-create-user
+│   └── seed.sql                 # noop; users via seed:users
+├── src-tauri/
+└── docs/                        # AGENT_NAV, data-model, DESIGN, COMMIT_WORKFLOW, TODO-later, course/
 ```
 
-Refine `docs/AGENT_NAV.md` when folders actually appear.
+Local backend one-shot: **`pnpm db:reset`**.
 
 ---
 
-## Phases
+## Phase history (done)
 
-### P0 — Scaffold & contracts
+Abbreviated; do not treat as a build queue.
 
-- SvelteKit + pnpm + Tauri skeleton; dual adapter profiles (app: onboarding→app; web: home+download).
-- Ports 5400/5401; titles; i18n resource layout (ru).
-- Shared TS: `SolveRequest` / `SolveResponse`, model + `schema_version`, limits config.
-- Spike LP library on Edge + local parity path.
-- Supabase project wiring; migration shelves starting `000_base`.
-
-**Done when:** empty app runs web+tauri; types compile; `pnpm check` clean.
-
-### P1 — Domain DB + auth
-
-- Migrations: base → RLS → auth/admin helpers → org → domain tables (`templates`, `solve_nodes`, …).
-- Seed admin+2 from `.env`; Edge `admin-create-user`.
-- Signup_seed copy on user create; public_repo readable; Create = blank.
-- Guest slot: localStorage / SQLite; always upload on login.
-
-**Done when:** login works; create personal root node; RLS smoke-tested.
-
-### P2 — Solver MVP
-
-- Edge `solve` + `run_mutations`; duals always; size/time gates; reject statuses.
-- Local solver same contract (offline / oversize).
-- UI: edit model → solve → results (plan, Z, duals, critical resources).
-- What-if: defaults from `model.what_if_defaults`; replace children on re-run.
-- Golden tests from `.tmp/task13_*` (LP Edge ≡ local).
-
-**Done when:** Task 13 base + a/b/c sensitivity match golden within float tol; tests green.
-
-### P3 — Product surfaces
-
-- Home lists; favorites; sensitivity screen; compare table (N ids, UI=2).
-- Org attach + checkbox public; hide/show; org_owner hide-only; dual trash; notify on org delete.
-- Notifications inbox: **poll every 60s** (Realtime → `docs/TODO-later.md`).
-- Share link + grant + fork (root+children); unshare rules; audit_events (no jsonb); UI warning on org links.
-- First-run wizard; Register disabled.
-- Admin UI: users + system templates.
-
-**Done when:** demo path for defense: login → task 13 → solve → what-if → org/share story.
-
-### P4 — Ship
-
-- Placeholders: GA tab, 4D viz (from `.tmp` later). ✅ UI tabs on node page.
-- Tauri **installer** build (`pnpm tauri:build`); Vercel static/web profile. ✅ https://resource-allocation-planner-taupe.vercel.app
-- `pnpm check` + `pnpm test`; purge via `pg_cron`. ✅ `080_purge_cron.sql`
-- UI kit polish on remaining routes; share page shows Z/plan/duals via `get_shared_node`. ✅
-- Update `docs/AGENT_NAV.md` to match reality. ✅
-
-**Done when:** installer artifact + reproducible demo; AGENT_NAV accurate. *(Web + cron shipped; run `pnpm tauri:build` locally for installer.)*
+| Phase | Outcome |
+| ----- | ------- |
+| **P0** Scaffold & contracts | Kit + ports + types + migration shelves + dual adapter path |
+| **P1** Domain DB + auth | RLS/org/domain; seed users; guest upload; signup_seed |
+| **P2** Solver MVP | Edge + local solve/mutations; what-if; Task 13 local tests |
+| **P3** Product surfaces | Home/lists, org/share/fork, notifications poll, admin, compare |
+| **P4** Ship | UI kit + purge cron + Vercel web; GA/IPM beyond placeholders; Tauri build local |
 
 ---
 
 ## Out of scope / post-MVP
 
-Canon backlog: **[`docs/TODO-later.md`](docs/TODO-later.md)** (O1.3 + all deferred items). Edit that file, not a second list here.
-
----
-
-## Suggested build order (first week)
-
-1. Scaffold + ports + AGENTS/ROADMAP already here
-2. `000`–`040` migrations + seed
-3. Solver spike + golden test
-4. Minimal solve UI for task 13
-5. Auth + guest upload
-6. What-if children
-7. Org/share only after 1–6 solid
+Canon backlog: **[`docs/TODO-later.md`](docs/TODO-later.md)**. Edit that file, not a second list here.
 
 ---
 
 ## References
 
-| Doc                           | Role                                            |
-| ----------------------------- | ----------------------------------------------- |
-| `.tmp/START.md`               | Decision log                                    |
-| `docs/data-model.md`          | Schema canon                                    |
-| `docs/TODO-later.md`          | Post-MVP backlog                                |
-| `docs/course/assignment.md`   | Task 13                                         |
-| `docs/course/requirements.md` | Course deliverables                             |
-| `Labs/ИБМЗКИ/lab1`            | Admin Edge Function pattern (read-only example) |
+| Doc                           | Role                          |
+| ----------------------------- | ----------------------------- |
+| `docs/data-model.md`          | Schema canon                  |
+| `docs/TODO-later.md`          | Post-MVP backlog              |
+| `docs/AGENT_NAV.md`           | Paths / entrypoints           |
+| `docs/COMMIT_WORKFLOW.md`     | Git / Vercel / Supabase ship  |
+| `docs/DESIGN.md`              | Cartesia visual tokens        |
+| `docs/course/assignment.md`   | Task 13                       |
+| `docs/course/requirements.md` | Course deliverables           |
+| `Labs/ИБМЗКИ/lab1`            | Admin Edge pattern (read-only)|

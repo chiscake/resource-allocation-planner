@@ -3,6 +3,7 @@
 	import { afterNavigate, goto } from '$app/navigation';
 	import { supabase } from '$lib/db/supabase';
 	import { writeAudit } from '$lib/db/audit';
+	import { softDeleteSolveNode } from '$lib/db/soft-delete';
 	import { solveModel, runMutations } from '$lib/api/solve';
 	import {
 		buildDefaultMutations,
@@ -393,22 +394,7 @@
 
 	async function softDelete() {
 		if (!node) return;
-		const now = new Date().toISOString();
-		const { data: links } = await supabase
-			.from('share_links')
-			.select('id')
-			.eq('node_id', node.id)
-			.is('revoked_at', null);
-		if (links?.length) {
-			await revokeAllShares();
-		}
-		await supabase.from('solve_nodes').update({ deleted_at: now }).eq('id', node.id);
-		await writeAudit({
-			action: 'soft_delete',
-			entity_type: 'solve_node',
-			entity_id: node.id,
-			org_id: node.org_id
-		});
+		await softDeleteSolveNode({ id: node.id, org_id: node.org_id });
 		await goto('/app/trash');
 	}
 
@@ -830,7 +816,7 @@
 		<Card>
 			<h2 class="mb-3 text-lg font-medium">{t('attachOrg')}</h2>
 			{#if userOrgs.length === 0}
-				<p class="mb-3 text-sm text-text-muted">Нет организаций (запустите pnpm seed:users)</p>
+				<p class="mb-3 text-sm text-text-muted">{t('noOrgsHint')}</p>
 			{:else}
 				<Select
 					class="mb-3"

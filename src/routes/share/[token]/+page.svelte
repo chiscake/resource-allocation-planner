@@ -3,6 +3,7 @@
 	import { page } from '$app/state';
 	import { supabase } from '$lib/db/supabase';
 	import type { SolveResult } from '$lib/domain';
+	import { t } from '$lib/i18n';
 	import Card from '$lib/components/ui/Card.svelte';
 	import EmptyState from '$lib/components/ui/EmptyState.svelte';
 
@@ -16,20 +17,20 @@
 		const { data, error: e1 } = await supabase.rpc('get_shared_node', { p_token: token });
 		loading = false;
 		if (e1 || !data?.length) {
-			error = 'Ссылка недоступна';
+			error = t('shareUnavailable');
 			return;
 		}
 		const row = data[0] as { title: string; result: SolveResult | null };
-		title = row.title ?? 'Сценарий';
+		title = row.title ?? t('scenarioFallback');
 		result = row.result;
 	});
 </script>
 
 <main class="grid min-h-screen place-items-center p-8">
 	{#if loading}
-		<p class="text-sm text-text-muted">Загрузка…</p>
+		<p class="text-sm text-text-muted">{t('loading')}</p>
 	{:else if error}
-		<EmptyState title={error} description="Ссылка отозвана или истекла." class="max-w-md" />
+		<EmptyState title={error} description={t('shareLinkInvalid')} class="max-w-md" />
 	{:else}
 		<Card class="w-full max-w-lg text-center">
 			<p class="text-xl font-medium">{title}</p>

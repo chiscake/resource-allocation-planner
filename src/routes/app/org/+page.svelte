@@ -82,17 +82,17 @@
 </script>
 
 <section class="mx-auto max-w-2xl space-y-6">
-	<PageHeader title={t('org')} description="Организации и публичная лента org-сценариев." />
+	<PageHeader title={t('org')} description={t('orgHint')} />
 
 	<div>
-		<h2 class="mb-3 text-lg font-medium">Мои организации</h2>
+		<h2 class="mb-3 text-lg font-medium">{t('orgMyTitle')}</h2>
 		{#if orgs.length === 0}
-			<EmptyState title="Нет организаций" description="Запустите pnpm seed:users для демо-данных." />
+			<EmptyState title={t('orgNone')} description={t('orgNoneHint')} />
 		{:else}
 			<ul class="space-y-2">
 				{#each orgs as o}
-					<Card padding={false} class="px-4 py-3 font-mono text-sm">
-						{o.name} — {o.id}
+					<Card padding={false} class="px-4 py-3 text-sm font-medium">
+						{o.name}
 					</Card>
 				{/each}
 			</ul>
@@ -100,9 +100,9 @@
 	</div>
 
 	<div>
-		<h2 class="mb-3 text-lg font-medium">Лента org</h2>
+		<h2 class="mb-3 text-lg font-medium">{t('orgFeed')}</h2>
 		{#if feed.length === 0}
-			<EmptyState title="Пусто" description="Публичные org-сценарии появятся здесь." />
+			<EmptyState title={t('orgFeedEmpty')} description={t('orgFeedEmptyHint')} />
 		{:else}
 			<ul class="space-y-2">
 				{#each feed as n}
@@ -110,7 +110,7 @@
 						<a class="text-brand hover:underline" href="/app/task/{n.id}">{n.title}</a>
 						{#if isOrgOwner && n.owner_id !== myId}
 							<Button variant="ghost" class="!text-danger-text" onclick={() => hideAsOrgOwner(n)}>
-								Скрыть
+								{t('hide')}
 							</Button>
 						{/if}
 					</Card>

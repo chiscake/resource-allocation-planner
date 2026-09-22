@@ -45,13 +45,10 @@
 </script>
 
 <section class="mx-auto max-w-2xl space-y-6">
-	<PageHeader
-		title={t('notifications')}
-		description="Обновление раз в 60 с и при фокусе окна."
-	/>
+	<PageHeader title={t('notifications')} description={t('notificationsHint')} />
 
 	{#if items.length === 0}
-		<EmptyState title="Нет уведомлений" />
+		<EmptyState title={t('notificationsEmpty')} />
 	{:else}
 		<ul class="space-y-2">
 			{#each items as n}
@@ -60,7 +57,7 @@
 					{#if n.body}<p class="mt-1 text-sm text-text-muted">{n.body}</p>{/if}
 					{#if !n.read_at}
 						<Button variant="ghost" class="mt-2 !px-0" onclick={() => markRead(n.id)}>
-							Прочитано
+							{t('markRead')}
 						</Button>
 					{/if}
 				</Card>

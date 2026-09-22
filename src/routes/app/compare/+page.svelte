@@ -94,7 +94,7 @@
 </script>
 
 <section class="mx-auto max-w-4xl space-y-6">
-	<PageHeader title={t('compare')} description="Сравнение Z, плана и двойственных оценок двух сценариев." />
+	<PageHeader title={t('compare')} description={t('compareHint')} />
 
 	<Card>
 		<div class="flex flex-col gap-3">
@@ -160,7 +160,7 @@
 	<div>
 		<h2 class="mb-3 text-lg font-medium">Сохранённые</h2>
 		{#if saved.length === 0}
-			<EmptyState title="Нет сравнений" description="Выберите два сценария и нажмите «Сравнить»." />
+			<EmptyState title={t('compareEmpty')} description={t('compareEmptyHint')} />
 		{:else}
 			<ul class="space-y-2">
 				{#each saved as s (s.id)}
