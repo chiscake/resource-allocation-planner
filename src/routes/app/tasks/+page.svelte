@@ -1,11 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { toast } from 'svelte-sonner';
 	import { supabase } from '$lib/db/supabase';
 	import { softDeleteSolveNode, restoreSolveNode } from '$lib/db/soft-delete';
 	import type { Model } from '$lib/domain';
 	import { t } from '$lib/i18n';
-	import { toastDeletedWithUndo } from '$lib/ui/toast-undo';
+	import { optimisticDeleteWithUndo } from '$lib/ui/optimistic-delete';
 	import Button from '$lib/components/ui/Button.svelte';
 	import EmptyState from '$lib/components/ui/EmptyState.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
@@ -30,13 +29,17 @@
 
 	const filtered = $derived.by(() => {
 		const q = query.trim().toLowerCase();
-		const list = q
-			? rows.filter((r) => r.title.toLowerCase().includes(q))
-			: rows;
+		const list = q ? rows.filter((r) => r.title.toLowerCase().includes(q)) : rows;
 		return [...list].sort(
 			(a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
 		);
 	});
+
+	function sortByUpdated(list: Row[]) {
+		return [...list].sort(
+			(a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+		);
+	}
 
 	async function load() {
 		loading = true;
@@ -69,29 +72,23 @@
 	}
 
 	async function deleteCard(row: Row) {
-		const snapshot = { ...row };
-		rows = rows.filter((r) => r.id !== row.id);
-		const result = await softDeleteSolveNode({ id: row.id, org_id: row.org_id });
-		if (result.error) {
-			rows = [...rows, snapshot].sort(
-				(a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-			);
-			toast.error(result.error || t('deleteFailed'));
-			return;
-		}
-		toastDeletedWithUndo(async () => {
-			const restored = await restoreSolveNode({ id: snapshot.id, org_id: snapshot.org_id });
-			if (restored.error) {
-				toast.error(restored.error || t('restoreFailed'));
-				return;
-			}
-			const restoredRow: Row = {
-				...snapshot,
-				org_visibility: snapshot.org_id ? 'private' : null
-			};
-			rows = [restoredRow, ...rows.filter((r) => r.id !== restoredRow.id)].sort(
-				(a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-			);
+		await optimisticDeleteWithUndo({
+			item: row,
+			removeOptimistic: () => {
+				rows = rows.filter((r) => r.id !== row.id);
+			},
+			restoreOptimistic: (snapshot) => {
+				const restoredRow: Row = {
+					...snapshot,
+					org_visibility: snapshot.org_id ? 'private' : null
+				};
+				rows = sortByUpdated([
+					restoredRow,
+					...rows.filter((r) => r.id !== restoredRow.id)
+				]);
+			},
+			softDelete: () => softDeleteSolveNode({ id: row.id, org_id: row.org_id }),
+			restore: () => restoreSolveNode({ id: row.id, org_id: row.org_id })
 		});
 	}
 

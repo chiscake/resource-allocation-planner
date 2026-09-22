@@ -13,7 +13,7 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import CardIconButton from '$lib/components/ui/CardIconButton.svelte';
 	import EmptyState from '$lib/components/ui/EmptyState.svelte';
-	import MatrixThumb from '$lib/components/model/MatrixThumb.svelte';
+	import TemplatePreviewCard from '$lib/components/TemplatePreviewCard.svelte';
 
 	type Row = {
 		id: string;
@@ -94,13 +94,9 @@
 	{:else}
 		<ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
 			{#each rows as r (r.id)}
-				<li
-					class="flex flex-col overflow-hidden rounded-[12px] border border-border bg-bg"
-				>
-					<MatrixThumb model={r.model} class="rounded-none border-0 border-b border-border" />
-					<div class="flex flex-1 flex-col gap-3 px-3 py-3">
-						<span class="line-clamp-2 text-sm font-medium text-text">{r.title}</span>
-						<div class="mt-auto flex flex-wrap items-center gap-2">
+				<li>
+					<TemplatePreviewCard title={r.title} model={r.model}>
+						{#snippet actions()}
 							<Button
 								variant="primary"
 								class="!px-3 !py-1.5"
@@ -129,8 +125,8 @@
 									</CardIconButton>
 								</div>
 							{/if}
-						</div>
-					</div>
+						{/snippet}
+					</TemplatePreviewCard>
 				</li>
 			{/each}
 		</ul>

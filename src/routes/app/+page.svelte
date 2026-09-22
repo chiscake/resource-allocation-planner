@@ -1,18 +1,17 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { toast } from 'svelte-sonner';
 	import { supabase } from '$lib/db/supabase';
 	import { softDeleteSolveNode, restoreSolveNode } from '$lib/db/soft-delete';
 	import type { Model } from '$lib/domain';
 	import { t } from '$lib/i18n';
-	import { toastDeletedWithUndo } from '$lib/ui/toast-undo';
+	import { optimisticDeleteWithUndo } from '$lib/ui/optimistic-delete';
 	import Button from '$lib/components/ui/Button.svelte';
 	import EmptyState from '$lib/components/ui/EmptyState.svelte';
 	import GuestWorkspace from '$lib/components/GuestWorkspace.svelte';
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
 	import ScenarioCardGrid from '$lib/components/ScenarioCardGrid.svelte';
 	import TaskPreviewCard from '$lib/components/TaskPreviewCard.svelte';
-	import MatrixThumb from '$lib/components/model/MatrixThumb.svelte';
+	import TemplatePreviewCard from '$lib/components/TemplatePreviewCard.svelte';
 	import { createEmptySolveNodeAndOpen } from '$lib/db/create-solve-node';
 
 	type Row = {
@@ -146,24 +145,16 @@
 	}
 
 	async function deleteCard(row: Row) {
-		const snapshot = { ...row };
-		removeFromRecent(row.id);
-		const result = await softDeleteSolveNode({ id: row.id, org_id: row.org_id });
-		if (result.error) {
-			upsertRecent(snapshot);
-			toast.error(result.error || t('deleteFailed'));
-			return;
-		}
-		toastDeletedWithUndo(async () => {
-			const restored = await restoreSolveNode({ id: snapshot.id, org_id: snapshot.org_id });
-			if (restored.error) {
-				toast.error(restored.error || t('restoreFailed'));
-				return;
-			}
-			upsertRecent({
-				...snapshot,
-				org_visibility: snapshot.org_id ? 'private' : null
-			});
+		await optimisticDeleteWithUndo({
+			item: row,
+			removeOptimistic: () => removeFromRecent(row.id),
+			restoreOptimistic: (snapshot) =>
+				upsertRecent({
+					...snapshot,
+					org_visibility: snapshot.org_id ? 'private' : null
+				}),
+			softDelete: () => softDeleteSolveNode({ id: row.id, org_id: row.org_id }),
+			restore: () => restoreSolveNode({ id: row.id, org_id: row.org_id })
 		});
 	}
 
@@ -270,18 +261,12 @@
 				<p class="text-sm text-text-muted">{t('recentTemplatesEmpty')}</p>
 			{/snippet}
 			{#snippet children(tpl)}
-				<a
+				<TemplatePreviewCard
 					href={tpl.href}
-					class="flex flex-col overflow-hidden rounded-[12px] border border-border bg-bg transition-colors hover:border-border-strong hover:bg-bg-soft"
-				>
-					<MatrixThumb model={tpl.model} class="rounded-none border-0 border-b border-border" />
-					<div class="flex flex-1 flex-col gap-1 px-3 py-2.5">
-						<span class="line-clamp-2 text-sm font-medium text-text">{tpl.title}</span>
-						<span class="text-xs text-text-soft">
-							{tpl.kind === 'public' ? t('publicTemplates') : t('templates')}
-						</span>
-					</div>
-				</a>
+					title={tpl.title}
+					model={tpl.model}
+					subtitle={tpl.kind === 'public' ? t('publicTemplates') : t('templates')}
+				/>
 			{/snippet}
 		</ScenarioCardGrid>
 	{/if}
