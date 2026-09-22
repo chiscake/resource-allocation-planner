@@ -1,11 +1,14 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
+	import { env } from '$env/dynamic/public';
 	import type { User } from '@supabase/supabase-js';
 	import { supabase } from '$lib/db/supabase';
 	import AppHeader from '$lib/components/chrome/AppHeader.svelte';
 	import AppSidebar from '$lib/components/chrome/AppSidebar.svelte';
+	import DevQuickLoginBar from '$lib/components/chrome/DevQuickLoginBar.svelte';
 	import NotificationsDrawer from '$lib/components/chrome/NotificationsDrawer.svelte';
+	import { isDevQuickLoginEnabled } from '$lib/devQuickLogin';
 	import { t } from '$lib/i18n';
 	import { chrome, initChromeNav, closeMobileNav } from '$lib/chrome/chrome.svelte';
 
@@ -13,6 +16,8 @@
 	let userEmail = $state('');
 	let isAdmin = $state(false);
 	let signedIn = $state(false);
+
+	const showQuickLogin = isDevQuickLoginEnabled(env.PUBLIC_DEV_QUICK_LOGIN);
 
 	function applyUser(user: User | null) {
 		signedIn = !!user;
@@ -27,7 +32,7 @@
 
 	async function logout() {
 		await supabase.auth.signOut();
-		location.href = '/login';
+		location.href = '/app';
 	}
 
 	onMount(() => {
@@ -46,7 +51,9 @@
 	});
 </script>
 
-<div class="flex h-dvh flex-col overflow-hidden bg-bg">
+<div
+	class={['flex h-dvh flex-col overflow-hidden bg-bg', showQuickLogin && 'pb-[3.25rem]']}
+>
 	<AppHeader {userEmail} onLogout={logout} />
 	<div class="relative flex min-h-0 flex-1 overflow-hidden">
 		<AppSidebar {isAdmin} {signedIn} />
@@ -65,4 +72,7 @@
 		</main>
 	</div>
 	<NotificationsDrawer />
+	{#if showQuickLogin}
+		<DevQuickLoginBar currentEmail={userEmail} />
+	{/if}
 </div>

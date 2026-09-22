@@ -4,9 +4,9 @@
 	import { t } from '$lib/i18n';
 	import { supabase } from '$lib/db/supabase';
 	import { clearGuest, loadGuest } from '$lib/db/guest';
-	import { createTask13Model } from '$lib/domain';
+	import { createBlankModel } from '$lib/domain';
 
-	let email = $state('demo1@rap.local');
+	let email = $state('demo1@example.com');
 	let password = $state('password123');
 	let error = $state('');
 	let busy = $state(false);
@@ -23,7 +23,7 @@
 			owner_id: userId,
 			title: guest.title || 'Гостевой сценарий',
 			kind: 'root',
-			model: guest.model ?? createTask13Model(),
+			model: guest.model ?? createBlankModel(),
 			result: guest.result ?? null
 		});
 		clearGuest();

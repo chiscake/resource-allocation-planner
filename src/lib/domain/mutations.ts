@@ -7,8 +7,14 @@ export function assertSchemaVersion(model: Model): void {
   }
 }
 
+/** Deep-clone a Model. Safe for Svelte `$state` proxies (`structuredClone` cannot clone them). */
 export function cloneModel(model: Model): Model {
-  return structuredClone(model);
+  try {
+    return structuredClone(model);
+  } catch {
+    // Proxies / other non-cloneable hosts: Model is JSON-serializable.
+    return JSON.parse(JSON.stringify(model)) as Model;
+  }
 }
 
 /** Apply a single what-if mutation; returns a new model. */
@@ -44,53 +50,61 @@ export function applyMutation(model: Model, mutation: Mutation): Model {
   return next;
 }
 
-/** Task-13 style default mutation pack from what_if_defaults. */
-export function buildDefaultMutations(model: Model): Mutation[] {
-  const d = model.what_if_defaults ?? {
-    resource_pct: 0.1,
-    modernization_pct: 0.1,
-    price_pct: 0.15,
-  };
-  const out: Mutation[] = [];
-  const rp = d.resource_pct ?? 0.1;
-  const mp = d.modernization_pct ?? 0.1;
-  const pp = d.price_pct ?? 0.15;
+/** True when a what-if pct should generate that mutation family. */
+function activePct(v: number | null | undefined): v is number {
+  return typeof v === "number" && Number.isFinite(v) && v > 0;
+}
 
-  for (const r of model.resources) {
-    out.push({
-      kind: "resource_change",
-      target: r,
-      delta: rp,
-      label: `${r} +${rp * 100}%`,
-    });
-    out.push({
-      kind: "resource_change",
-      target: r,
-      delta: -rp,
-      label: `${r} -${rp * 100}%`,
-    });
+/** Task-13 style default mutation pack from what_if_defaults.
+ * Missing/null/non-positive pct → that family is omitted (no 0.1 fallback). */
+export function buildDefaultMutations(model: Model): Mutation[] {
+  const d = model.what_if_defaults ?? {};
+  const out: Mutation[] = [];
+  const rp = d.resource_pct;
+  const mp = d.modernization_pct;
+  const pp = d.price_pct;
+
+  if (activePct(rp)) {
+    for (const r of model.resources) {
+      out.push({
+        kind: "resource_change",
+        target: r,
+        delta: rp,
+        label: `${r} +${rp * 100}%`,
+      });
+      out.push({
+        kind: "resource_change",
+        target: r,
+        delta: -rp,
+        label: `${r} -${rp * 100}%`,
+      });
+    }
   }
-  for (const p of model.products) {
-    out.push({
-      kind: "modernization",
-      target: p,
-      delta: -mp,
-      label: `${p} A -${mp * 100}%`,
-    });
+  if (activePct(mp)) {
+    for (const p of model.products) {
+      out.push({
+        kind: "modernization",
+        target: p,
+        delta: -mp,
+        label: `${p} A -${mp * 100}%`,
+      });
+    }
   }
-  for (const p of model.products) {
-    out.push({
-      kind: "price_change",
-      target: p,
-      delta: pp,
-      label: `${p} c +${pp * 100}%`,
-    });
-    out.push({
-      kind: "price_change",
-      target: p,
-      delta: -pp,
-      label: `${p} c -${pp * 100}%`,
-    });
+  if (activePct(pp)) {
+    for (const p of model.products) {
+      out.push({
+        kind: "price_change",
+        target: p,
+        delta: pp,
+        label: `${p} c +${pp * 100}%`,
+      });
+      out.push({
+        kind: "price_change",
+        target: p,
+        delta: -pp,
+        label: `${p} c -${pp * 100}%`,
+      });
+    }
   }
   return out;
 }

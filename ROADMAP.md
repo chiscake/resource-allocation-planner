@@ -23,7 +23,7 @@ resource-allocation-planner/
 │   │   ├── (app)/               # authenticated / guest shell
 │   │   │   ├── +layout.svelte
 │   │   │   ├── +page.svelte     # home: create / favorites / recent / templates
-│   │   │   ├── nodes/[id]/
+│   │   │   ├── task/[id]/
 │   │   │   ├── compare/
 │   │   │   ├── templates/
 │   │   │   ├── public-templates/

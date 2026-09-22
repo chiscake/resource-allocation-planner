@@ -10,6 +10,8 @@
 		href,
 		onclick,
 		class: className = '',
+		title,
+		'aria-label': ariaLabel,
 		children
 	}: {
 		variant?: Variant;
@@ -18,6 +20,8 @@
 		href?: string;
 		onclick?: (event: MouseEvent) => void;
 		class?: string;
+		title?: string;
+		'aria-label'?: string;
 		children?: Snippet;
 	} = $props();
 
@@ -38,11 +42,11 @@
 </script>
 
 {#if href}
-	<a {href} class={classes} {onclick}>
+	<a {href} class={classes} {onclick} {title} aria-label={ariaLabel}>
 		{@render children?.()}
 	</a>
 {:else}
-	<button {type} {disabled} class={classes} {onclick}>
+	<button {type} {disabled} class={classes} {onclick} {title} aria-label={ariaLabel}>
 		{@render children?.()}
 	</button>
 {/if}

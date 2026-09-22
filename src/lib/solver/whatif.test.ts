@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyMutation, buildDefaultMutations, createTask13Model } from '$lib/domain';
+import { applyMutation, buildDefaultMutations, cloneModel, createTask13Model } from '$lib/domain';
 import { runMutationsLocal, solveLocal } from '$lib/solver';
 
 describe('what-if pack', () => {
@@ -23,5 +23,27 @@ describe('what-if pack', () => {
 		const pack = runMutationsLocal(model, buildDefaultMutations(model));
 		expect(pack.status).toBe('done');
 		expect(pack.items.length).toBe(buildDefaultMutations(model).length);
+	});
+
+	it('omits mutation families when pct is null or missing', () => {
+		const model = cloneModel(createTask13Model());
+		model.what_if_defaults = {
+			resource_pct: null,
+			modernization_pct: 0.1,
+			price_pct: null
+		};
+		const muts = buildDefaultMutations(model);
+		expect(muts.every((m) => m.kind === 'modernization')).toBe(true);
+		expect(muts.length).toBe(model.products.length);
+	});
+
+	it('returns empty pack when all what-if pcts cleared', () => {
+		const model = cloneModel(createTask13Model());
+		model.what_if_defaults = {
+			resource_pct: null,
+			modernization_pct: null,
+			price_pct: null
+		};
+		expect(buildDefaultMutations(model)).toEqual([]);
 	});
 });

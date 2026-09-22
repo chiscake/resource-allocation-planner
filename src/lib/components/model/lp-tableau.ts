@@ -1,7 +1,64 @@
 import type { Model } from '$lib/domain';
+import { cloneModel } from '$lib/domain';
 import { MatrixModel } from '$lib/components/ui/matrix';
 import { validators } from '$lib/components/ui/matrix';
 import { t } from '$lib/i18n/ru';
+import { SOLVE_LIMITS } from '$lib/solver/limits';
+
+/** Minimum resources / products in the editable LP matrix. */
+export const LP_DIM_MIN = 1;
+/** Max resources (constraints) — aligned with `SOLVE_LIMITS.maxConstraints`. */
+export const LP_DIM_MAX_RESOURCES = SOLVE_LIMITS.maxConstraints;
+/** Max products (variables) — aligned with `SOLVE_LIMITS.maxVariables`. */
+export const LP_DIM_MAX_PRODUCTS = SOLVE_LIMITS.maxVariables;
+
+/** Clamp (m, n) to solver-safe bounds (min 1, max vars/cons, dense cells). */
+export function clampLpDimensions(m: number, n: number): { m: number; n: number } {
+	let mm = Number.isFinite(m) ? Math.floor(m) : LP_DIM_MIN;
+	let nn = Number.isFinite(n) ? Math.floor(n) : LP_DIM_MIN;
+	mm = Math.min(LP_DIM_MAX_RESOURCES, Math.max(LP_DIM_MIN, mm));
+	nn = Math.min(LP_DIM_MAX_PRODUCTS, Math.max(LP_DIM_MIN, nn));
+	while (mm * nn > SOLVE_LIMITS.maxDenseCells) {
+		if (mm >= nn && mm > LP_DIM_MIN) mm -= 1;
+		else if (nn > LP_DIM_MIN) nn -= 1;
+		else break;
+	}
+	return { m: mm, n: nn };
+}
+
+/**
+ * Resize A/b/c and name arrays. Overlapping cells kept; new cells get blank defaults;
+ * truncated rows/cols dropped (caller may keep a full snapshot for undo).
+ */
+export function resizeModelDimensions(model: Model, m: number, n: number): Model {
+	const { m: mm, n: nn } = clampLpDimensions(m, n);
+	const next = cloneModel(model);
+	const oldM = next.resources.length;
+	const oldN = next.products.length;
+
+	next.resources = Array.from({ length: mm }, (_, i) =>
+		i < oldM ? (next.resources[i] ?? `Ресурс ${i + 1}`) : `Ресурс ${i + 1}`
+	);
+	next.products = Array.from({ length: nn }, (_, j) =>
+		j < oldN ? (next.products[j] ?? `Продукт ${j + 1}`) : `Продукт ${j + 1}`
+	);
+	next.A = Array.from({ length: mm }, (_, i) =>
+		Array.from({ length: nn }, (_, j) =>
+			i < oldM && j < oldN ? (next.A[i]?.[j] ?? 0) : 1
+		)
+	);
+	next.b = Array.from({ length: mm }, (_, i) => (i < oldM ? (next.b[i] ?? 0) : 10));
+	next.c = Array.from({ length: nn }, (_, j) => (j < oldN ? (next.c[j] ?? 0) : 1));
+
+	if (next.resource_units) {
+		next.resource_units = Array.from({ length: mm }, (_, i) => next.resource_units?.[i] ?? '');
+	}
+	if (next.product_units) {
+		next.product_units = Array.from({ length: nn }, (_, j) => next.product_units?.[j] ?? '');
+	}
+
+	return next;
+}
 
 function fmt(n: number | undefined): string {
 	if (n == null || !Number.isFinite(n)) return '0';
@@ -93,7 +150,7 @@ export function isLpEditableCell(
  * Read A, b, c and resource/product names from a tableau matrix into a Model clone.
  */
 export function tableauToModel(matrix: MatrixModel, base: Model): Model {
-	const next = structuredClone(base);
+	const next = cloneModel(base);
 	const m = next.resources.length;
 	const n = next.products.length;
 

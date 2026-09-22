@@ -97,16 +97,20 @@
 	<PageHeader title={t('compare')} description="Сравнение Z, плана и двойственных оценок двух сценариев." />
 
 	<Card>
-		<div class="flex flex-wrap items-end gap-3">
-			<div class="min-w-[12rem] flex-1">
-				<label class="mb-1 block text-xs text-text-muted" for="compare-a">Сценарий A</label>
-				<Select id="compare-a" bind:value={a} options={nodeOptions} placeholder="Выберите A" />
+		<div class="flex flex-col gap-3">
+			<div class="flex flex-wrap items-end gap-3">
+				<div class="min-w-[12rem] flex-1">
+					<label class="mb-1 block text-xs text-text-muted" for="compare-a">Сценарий A</label>
+					<Select id="compare-a" bind:value={a} options={nodeOptions} placeholder="Выберите A" />
+				</div>
+				<div class="min-w-[12rem] flex-1">
+					<label class="mb-1 block text-xs text-text-muted" for="compare-b">Сценарий B</label>
+					<Select id="compare-b" bind:value={b} options={nodeOptions} placeholder="Выберите B" />
+				</div>
 			</div>
-			<div class="min-w-[12rem] flex-1">
-				<label class="mb-1 block text-xs text-text-muted" for="compare-b">Сценарий B</label>
-				<Select id="compare-b" bind:value={b} options={nodeOptions} placeholder="Выберите B" />
+			<div class="flex justify-end">
+				<Button disabled={!a || !b} onclick={run}>Сравнить</Button>
 			</div>
-			<Button disabled={!a || !b} onclick={run}>Сравнить</Button>
 		</div>
 	</Card>
 

@@ -51,7 +51,7 @@ SUPABASE_SERVICE_ROLE_KEY=${SB_SERVICE_ROLE_KEY}
 SUPABASE_DB_URL=${SB_DB_URL}
 SEED_PASSWORD=password123
 EOF
-  log "seeding demo users (admin/demo1/demo2 @rap.local)"
+  log "seeding demo users (admin/demo1/demo2 @example.com)"
   pnpm seed:users || log "seed:users failed (non-fatal)"
   log "Supabase ready: API ${SB_API_URL}  Studio ${SB_STUDIO_URL}"
 fi

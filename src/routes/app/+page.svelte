@@ -88,12 +88,7 @@
 	{#if !authReady}
 		<p class="text-sm text-text-muted">…</p>
 	{:else if !signedIn}
-		<PageHeader title={t('home')} description={t('homeGuestHint')}>
-			{#snippet actions()}
-				<Button href="/app/create">{t('newTask')}</Button>
-				<Button variant="secondary" href="/login">{t('login')}</Button>
-			{/snippet}
-		</PageHeader>
+		<PageHeader title={t('home')} description={t('homeGuestHint')} />
 
 		<div class="mx-auto w-full max-w-4xl">
 			<GuestWorkspace compact />
@@ -115,17 +110,13 @@
 			</div>
 		</aside>
 	{:else}
-		<PageHeader title={t('home')} description={t('homeHint')}>
-			{#snippet actions()}
-				<Button href="/app/create">{t('newTask')}</Button>
-			{/snippet}
-		</PageHeader>
+		<PageHeader title={t('home')} description={t('homeHint')} />
 
 		{#if favorites.length}
 			<ScenarioCardGrid title={t('favorites')} items={favorites}>
 				{#snippet children(r)}
 					<TaskPreviewCard
-						href="/app/nodes/{r.id}"
+						href="/app/task/{r.id}"
 						title={r.title}
 						updatedAt={r.updated_at}
 						createdAt={r.created_at}
@@ -146,7 +137,7 @@
 			{/snippet}
 			{#snippet children(r)}
 				<TaskPreviewCard
-					href="/app/nodes/{r.id}"
+					href="/app/task/{r.id}"
 					title={r.title}
 					updatedAt={r.updated_at}
 					createdAt={r.created_at}
@@ -159,7 +150,7 @@
 		<ScenarioCardGrid title={t('personal')} items={personal}>
 			{#snippet children(r)}
 				<TaskPreviewCard
-					href="/app/nodes/{r.id}"
+					href="/app/task/{r.id}"
 					title={r.title}
 					updatedAt={r.updated_at}
 					createdAt={r.created_at}
@@ -172,7 +163,7 @@
 		<ScenarioCardGrid title={t('orgPrivate')} items={orgPrivate}>
 			{#snippet children(r)}
 				<TaskPreviewCard
-					href="/app/nodes/{r.id}"
+					href="/app/task/{r.id}"
 					title={r.title}
 					updatedAt={r.updated_at}
 					createdAt={r.created_at}
@@ -185,7 +176,7 @@
 		<ScenarioCardGrid title={t('orgFeed')} items={orgFeed}>
 			{#snippet children(r)}
 				<TaskPreviewCard
-					href="/app/nodes/{r.id}"
+					href="/app/task/{r.id}"
 					title={r.title}
 					updatedAt={r.updated_at}
 					createdAt={r.created_at}

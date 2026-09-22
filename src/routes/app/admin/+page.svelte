@@ -68,7 +68,7 @@
 
 	{#if !isAdmin}
 		<Card>
-			<p class="text-sm text-text-muted">Нужна роль admin (admin@rap.local).</p>
+			<p class="text-sm text-text-muted">Нужна роль admin (admin@example.com).</p>
 		</Card>
 	{:else}
 		<Card>
@@ -77,8 +77,10 @@
 				<Input bind:value={email} placeholder="email" type="email" />
 				<Input bind:value={displayName} placeholder="Отображаемое имя" />
 				<Input bind:value={password} type="password" placeholder="Пароль" />
-				<Button onclick={createUser}>Создать</Button>
 				{#if msg}<p class="text-sm text-text-muted">{msg}</p>{/if}
+				<div class="flex justify-end">
+					<Button onclick={createUser}>Создать</Button>
+				</div>
 			</div>
 		</Card>
 

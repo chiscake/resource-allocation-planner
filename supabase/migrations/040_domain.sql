@@ -82,6 +82,11 @@ create policy templates_select on public.templates
     )
   );
 
+-- Guests (anon key) may browse the public catalog only.
+create policy templates_select_anon_public on public.templates
+  for select to anon
+  using (deleted_at is null and system_kind = 'public_repo');
+
 create policy templates_insert on public.templates
   for insert to authenticated
   with check (owner_id = auth.uid() or public.is_admin());

@@ -1,5 +1,8 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { Pen } from '@lucide/svelte';
+	import { t } from '$lib/i18n';
+	import Button from '$lib/components/ui/Button.svelte';
 
 	let {
 		title,
@@ -11,7 +14,7 @@
 	}: {
 		title: string;
 		description?: string;
-		/** Double-click / Enter|F2 when focused → rename. */
+		/** Double-click / Enter|F2 when focused → rename; ghost pen also starts edit. */
 		editable?: boolean;
 		class?: string;
 		actions?: Snippet;
@@ -77,15 +80,28 @@
 				onkeydown={onInputKeydown}
 			/>
 		{:else if editable}
-			<button
-				type="button"
-				class="block max-w-full truncate text-left text-3xl font-medium tracking-tight text-text cursor-text rounded-[4px] outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-focus"
-				ondblclick={startEdit}
-				onkeydown={onTitleKeydown}
-				title="Двойной клик или Tab/Enter — переименовать"
-			>
-				{title}
-			</button>
+			<div class="flex min-w-0 items-center gap-0.5">
+				<h1 class="min-w-0 max-w-full text-3xl font-medium tracking-tight text-text">
+					<button
+						type="button"
+						class="block max-w-full truncate text-left cursor-text rounded-[4px] outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-focus"
+						ondblclick={startEdit}
+						onkeydown={onTitleKeydown}
+						title="Двойной клик или Tab/Enter — переименовать"
+					>
+						{title}
+					</button>
+				</h1>
+				<Button
+					variant="ghost"
+					class="!px-2 !py-2 shrink-0 text-text-soft opacity-35 hover:opacity-100 hover:text-text-muted"
+					aria-label={t('editTitle')}
+					title={t('editTitle')}
+					onclick={startEdit}
+				>
+					<Pen size={16} strokeWidth={1.75} aria-hidden="true" />
+				</Button>
+			</div>
 		{:else}
 			<h1 class="text-3xl font-medium tracking-tight text-text">{title}</h1>
 		{/if}

@@ -1,7 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { Pen, Save } from '@lucide/svelte';
 	import { supabase } from '$lib/db/supabase';
-	import { useTemplateAndOpen } from '$lib/db/create-solve-node';
+	import {
+		useTemplateAndOpen,
+		copyTemplateToAccount,
+		copyTemplateAndEdit
+	} from '$lib/db/create-solve-node';
 	import type { Model } from '$lib/domain';
 	import { t } from '$lib/i18n';
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
@@ -16,16 +21,25 @@
 	};
 
 	let rows = $state<Row[]>([]);
+	let signedIn = $state(false);
 	let busyId = $state<string | null>(null);
 	let msg = $state('');
+	let okMsg = $state('');
 
 	onMount(async () => {
-		const { data } = await supabase
+		const { data: auth } = await supabase.auth.getUser();
+		signedIn = Boolean(auth.user);
+		const { data, error } = await supabase
 			.from('templates')
 			.select('id, title, model')
 			.eq('system_kind', 'public_repo')
 			.is('deleted_at', null)
 			.order('title');
+		if (error) {
+			msg = error.message;
+			rows = [];
+			return;
+		}
 		rows = (data ?? []) as Row[];
 	});
 
@@ -33,8 +47,33 @@
 		if (busyId) return;
 		busyId = id;
 		msg = '';
+		okMsg = '';
 		const err = await useTemplateAndOpen(id);
 		if (err) msg = err.error || t('useFailed');
+		busyId = null;
+	}
+
+	async function saveTemplate(id: string) {
+		if (busyId) return;
+		busyId = id;
+		msg = '';
+		okMsg = '';
+		const result = await copyTemplateToAccount(id);
+		if ('error' in result) {
+			msg = result.error || t('saveTemplateFailed');
+		} else {
+			okMsg = t('saveTemplateDone');
+		}
+		busyId = null;
+	}
+
+	async function editTemplate(id: string) {
+		if (busyId) return;
+		busyId = id;
+		msg = '';
+		okMsg = '';
+		const err = await copyTemplateAndEdit(id);
+		if (err) msg = err.error || t('saveTemplateFailed');
 		busyId = null;
 	}
 </script>
@@ -48,9 +87,12 @@
 	{#if msg}
 		<p class="text-sm text-danger-text">{msg}</p>
 	{/if}
+	{#if okMsg}
+		<p class="text-sm text-text-muted">{okMsg}</p>
+	{/if}
 
 	{#if rows.length === 0}
-		<EmptyState title="Каталог пуст" />
+		<EmptyState title={t('catalogEmpty')} />
 	{:else}
 		<ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
 			{#each rows as r (r.id)}
@@ -60,7 +102,7 @@
 					<MatrixThumb model={r.model} class="rounded-none border-0 border-b border-border" />
 					<div class="flex flex-1 flex-col gap-3 px-3 py-3">
 						<span class="line-clamp-2 text-sm font-medium text-text">{r.title}</span>
-						<div class="mt-auto">
+						<div class="mt-auto flex flex-wrap items-center gap-2">
 							<Button
 								variant="primary"
 								class="!px-3 !py-1.5"
@@ -69,6 +111,30 @@
 							>
 								{busyId === r.id ? t('creatingTask') : t('useTemplate')}
 							</Button>
+							{#if signedIn}
+								<div class="ml-auto flex gap-2">
+									<Button
+										variant="secondary"
+										class="!px-2.5 !py-2.5"
+										disabled={busyId === r.id}
+										aria-label={t('saveTemplate')}
+										title={t('saveTemplate')}
+										onclick={() => saveTemplate(r.id)}
+									>
+										<Save size={18} strokeWidth={1.75} aria-hidden="true" />
+									</Button>
+									<Button
+										variant="secondary"
+										class="!px-2.5 !py-2.5"
+										disabled={busyId === r.id}
+										aria-label={t('editTemplate')}
+										title={t('editTemplate')}
+										onclick={() => editTemplate(r.id)}
+									>
+										<Pen size={18} strokeWidth={1.75} aria-hidden="true" />
+									</Button>
+								</div>
+							{/if}
 						</div>
 					</div>
 				</li>

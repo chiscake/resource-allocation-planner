@@ -3,9 +3,12 @@
  * Usage: pnpm seed:users  (requires .env.local with SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY)
  *
  * Default accounts (password from SEED_PASSWORD or password123):
- *   admin@rap.local  — app_metadata.role=admin
- *   demo1@rap.local
- *   demo2@rap.local
+ *   admin@example.com  — app_metadata.role=admin
+ *   demo1@example.com
+ *   demo2@example.com
+ *
+ * Note: switching from older @rap.local emails creates/updates these addresses;
+ * existing cloud users under @rap.local are not removed (no db reset).
  */
 import { createClient } from "@supabase/supabase-js";
 import { readFileSync, existsSync } from "node:fs";
@@ -116,7 +119,7 @@ async function ensureTemplates() {
   }
   if (!kinds.has("public_repo")) {
     const { error } = await admin.from("templates").insert({
-      title: "Задача 13 (публичный каталог)",
+      title: "Задача 13",
       system_kind: "public_repo",
       model: TASK13_MODEL,
       what_if: WHAT_IF,
@@ -124,6 +127,15 @@ async function ensureTemplates() {
     });
     if (error) throw error;
     console.log("inserted public_repo template");
+  } else {
+    // Strip legacy «(публичный каталог)» suffix without full reset.
+    const { error } = await admin
+      .from("templates")
+      .update({ title: "Задача 13" })
+      .eq("system_kind", "public_repo")
+      .is("deleted_at", null)
+      .neq("title", "Задача 13");
+    if (error) throw error;
   }
 }
 
@@ -151,9 +163,9 @@ async function copySignupSeedToUser(userId) {
   }
 }
 
-const adminId = await ensureUser("admin@rap.local", "admin");
-const d1 = await ensureUser("demo1@rap.local", "user");
-const d2 = await ensureUser("demo2@rap.local", "user");
+const adminId = await ensureUser("admin@example.com", "admin");
+const d1 = await ensureUser("demo1@example.com", "user");
+const d2 = await ensureUser("demo2@example.com", "user");
 await ensureTemplates();
 await copySignupSeedToUser(d1);
 await copySignupSeedToUser(d2);

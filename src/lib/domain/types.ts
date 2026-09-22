@@ -40,9 +40,10 @@ export interface Model {
 }
 
 export interface WhatIfDefaults {
-  resource_pct?: number;
-  modernization_pct?: number;
-  price_pct?: number;
+  /** Relative pct (0.1 = 10%). `null` = user cleared → skip that mutation family. */
+  resource_pct?: number | null;
+  modernization_pct?: number | null;
+  price_pct?: number | null;
 }
 
 export type MutationKind = "resource_change" | "modernization" | "price_change";

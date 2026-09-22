@@ -42,8 +42,10 @@ resource-allocation-planner/
 │   │   ├── solver/              # local LP + IPM + GA + venue + limits
 │   │   ├── api/solve.ts         # Edge or local transport (+ method + local fallback)
 │   │   ├── db/                  # supabase, guest, audit helpers
+│   │   ├── chrome/              # nav/drawer chrome state
+│   │   ├── components/          # VenueToggle + chrome/ (AppHeader, DevQuickLoginBar, …)
 │   │   ├── i18n/                # ru
-│   │   ├── components/VenueToggle.svelte  # Tauri only
+│   │   ├── devQuickLogin.ts     # seed accounts for bottom quick-login bar
 │   │   └── platform.ts
 │   └── routes/
 │       ├── +page.svelte         # marketing: Web версия + guest CTA
@@ -53,7 +55,7 @@ resource-allocation-planner/
 │       └── app/                 # authenticated shell (+ unread badge)
 │           ├── +page.svelte     # recent / favorites / personal / org lists
 │           ├── create/
-│           ├── nodes/[id]/     # solve (lp|ipm|ga), what-if ←i/N→, share/fork/org
+│           ├── task/[id]/      # solve (lp|ipm|ga), what-if ←i/N→, share/fork/org
 │           ├── templates/, public-templates/
 │           ├── compare/, trash/, org/, notifications/, admin/
 ├── supabase/
@@ -93,7 +95,7 @@ resource-allocation-planner/
 | `/onboarding`        | Tauri first-run wizard                                                  |
 | `/app`               | Home lists (parents only)                                               |
 | `/app/create`        | Blank / Task 13 / templates → personal root                             |
-| `/app/nodes/[id]`    | Solve, what-if pager, favorite, fork, share link+grant, org attach/hide |
+| `/app/task/[id]`     | Solve, what-if pager, favorite, fork, share link+grant, org attach/hide |
 | `/app/notifications` | Inbox; poll 60s + focus; layout unread badge                            |
 | `/app/trash`         | Soft-deleted roots; restore → private; hard delete                      |
 | `/app/org`           | Org ids + feed; org_owner can hide others                               |
@@ -111,7 +113,8 @@ resource-allocation-planner/
 | Test        | `pnpm test`                                                          |
 | Check       | `pnpm check`                                                         |
 | Preflight   | `pnpm preflight` / `preflight:main` — before commit / promote        |
-| Seed        | `pnpm seed:users` — admin@rap.local, demo1/2@rap.local / password123 |
+| Seed        | `pnpm seed:users` — admin@example.com, demo1/2@example.com / password123 |
+| Quick login | Bottom bar under `/app` (`DevQuickLoginBar`); flag `PUBLIC_DEV_QUICK_LOGIN` |
 | Cloud seed  | `pnpm seed:users:cloud` — same users against linked RAP project      |
 | Local stack | `pnpm supabase:local` — start + reset + seed + Edge serve            |
 | Installer   | `pnpm tauri:build` — desktop bundle (local only)                     |

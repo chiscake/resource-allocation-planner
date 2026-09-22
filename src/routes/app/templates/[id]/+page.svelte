@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { supabase } from '$lib/db/supabase';
 	import type { Model } from '$lib/domain';
+	import { cloneModel } from '$lib/domain';
 	import { t } from '$lib/i18n';
 	import LpModelMatrix from '$lib/components/model/LpModelMatrix.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
@@ -55,7 +56,7 @@
 			return;
 		}
 		title = data.title as string;
-		model = structuredClone(data.model as Model);
+		model = cloneModel(data.model as Model);
 		loadedId = id;
 		loading = false;
 	}
@@ -94,14 +95,7 @@
 		<p class="text-danger-text">{err || t('notFound')}</p>
 		<Button variant="secondary" href="/app/templates">{t('templates')}</Button>
 	{:else}
-		<PageHeader title={t('editTemplateTitle')}>
-			{#snippet actions()}
-				<Button variant="secondary" href="/app/templates">{t('templates')}</Button>
-				<Button disabled={saving} onclick={save}>
-					{saving ? t('saving') : t('save')}
-				</Button>
-			{/snippet}
-		</PageHeader>
+		<PageHeader title={t('editTemplateTitle')} />
 
 		{#if err}
 			<p class="rounded-[8px] bg-danger-bg px-3 py-2 text-sm text-danger-text">{err}</p>
@@ -118,6 +112,11 @@
 		<Card>
 			<p class="mb-2 text-sm font-medium">{t('modelMatrix')}</p>
 			<LpModelMatrix {model} onchange={onModelChange} />
+			<div class="mt-4 flex justify-end">
+				<Button disabled={saving} onclick={save}>
+					{saving ? t('saving') : t('save')}
+				</Button>
+			</div>
 		</Card>
 	{/if}
 </section>

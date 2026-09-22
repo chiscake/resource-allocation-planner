@@ -189,14 +189,15 @@
 			parts.push('font-medium');
 		}
 
+		// Low sticky z kept inside `.matrix-scroll` isolation so chrome (sidebar z-30, drawer z-40/50) stays above.
 		if (row === 0) {
-			parts.push('sticky top-0 z-20');
+			parts.push('sticky top-0 z-[2]');
 		}
 		if (col === 0) {
-			parts.push('sticky left-0 z-10');
+			parts.push('sticky left-0 z-[1]');
 		}
 		if (row === 0 && col === 0) {
-			parts.push('z-30');
+			parts.push('z-[3]');
 		}
 
 		if (editing?.row === row && editing?.col === col) {
@@ -447,6 +448,8 @@
 	.matrix-scroll {
 		width: fit-content;
 		max-width: 100%;
+		/* Contain sticky cell stacking so z-[1–3] never compete with app chrome. */
+		isolation: isolate;
 	}
 
 	.matrix-table {

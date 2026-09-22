@@ -1,11 +1,19 @@
-import { createBlankModel, createTask13Model, type Model } from "$lib/domain";
+import { createBlankModel, cloneModel, type Model } from "$lib/domain";
+import { t } from "$lib/i18n";
 
 const GUEST_KEY = "rap_guest_slot";
+
+export interface GuestWhatIfRow {
+  title: string;
+  Z: number;
+}
 
 export interface GuestSnapshot {
   title: string;
   model: unknown;
   result?: unknown;
+  /** Last local sensitivity pack (simplified table under result). */
+  what_if_items?: GuestWhatIfRow[];
   updated_at: string;
 }
 
@@ -29,7 +37,7 @@ export function clearGuest(): void {
 }
 
 /** One local scenario slot — blank model for «Новая задача». */
-export function saveGuestBlank(title = "Новая задача"): GuestSnapshot {
+export function saveGuestBlank(title = t("newTask")): GuestSnapshot {
   const snapshot: GuestSnapshot = {
     title,
     model: createBlankModel(),
@@ -39,22 +47,16 @@ export function saveGuestBlank(title = "Новая задача"): GuestSnapshot
   return snapshot;
 }
 
-/** Seed / reset the guest slot to Task 13. */
+/** @deprecated Prefer saveGuestBlank — kept for callers that still seed the guest slot. */
 export function saveGuestTask13(): GuestSnapshot {
-  const snapshot: GuestSnapshot = {
-    title: "Задача 13 (гость)",
-    model: createTask13Model(),
-    updated_at: new Date().toISOString(),
-  };
-  saveGuest(snapshot);
-  return snapshot;
+  return saveGuestBlank();
 }
 
 /** Put an arbitrary model into the single guest slot (e.g. public template). */
 export function saveGuestModel(title: string, model: Model): GuestSnapshot {
   const snapshot: GuestSnapshot = {
     title,
-    model: structuredClone(model),
+    model: cloneModel(model),
     updated_at: new Date().toISOString(),
   };
   saveGuest(snapshot);
