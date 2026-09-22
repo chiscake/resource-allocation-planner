@@ -27,6 +27,12 @@ export const DEV_QUICK_ACCOUNTS: readonly DevQuickAccount[] = [
 		email: 'demo2@example.com',
 		password: DEV_QUICK_PASSWORD,
 		role: 'user'
+	},
+	{
+		label: 'Demo 3',
+		email: 'demo3@example.com',
+		password: DEV_QUICK_PASSWORD,
+		role: 'user'
 	}
 ];
 

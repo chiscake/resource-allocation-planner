@@ -3,9 +3,10 @@
  * Usage: pnpm seed:users  (requires .env.local with SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY)
  *
  * Default accounts (password from SEED_PASSWORD or password123):
- *   admin@example.com  — app_metadata.role=admin
- *   demo1@example.com
- *   demo2@example.com
+ *   admin@example.com  — app_metadata.role=admin (no org)
+ *   demo1@example.com  — org_owner of Demo Org
+ *   demo2@example.com  — member of Demo Org
+ *   demo3@example.com  — user, no organization_members row
  *
  * Note: switching from older @rap.local emails creates/updates these addresses;
  * existing cloud users under @rap.local are not removed (no db reset).
@@ -166,9 +167,11 @@ async function copySignupSeedToUser(userId) {
 const adminId = await ensureUser("admin@example.com", "admin");
 const d1 = await ensureUser("demo1@example.com", "user");
 const d2 = await ensureUser("demo2@example.com", "user");
+const d3 = await ensureUser("demo3@example.com", "user");
 await ensureTemplates();
 await copySignupSeedToUser(d1);
 await copySignupSeedToUser(d2);
+await copySignupSeedToUser(d3);
 
 const { data: orgs } = await admin
   .from("organizations")
@@ -184,6 +187,7 @@ if (!orgId) {
     .single();
   if (error) throw error;
   orgId = org.id;
+  // Only demo1/demo2 — demo3 stays without organization_members.
   await admin.from("organization_members").insert([
     { org_id: orgId, user_id: d1, role: "org_owner" },
     { org_id: orgId, user_id: d2, role: "member" },
@@ -191,4 +195,4 @@ if (!orgId) {
   console.log("created Demo Org", orgId);
 }
 
-console.log("seed done", { adminId, d1, d2, orgId });
+console.log("seed done", { adminId, d1, d2, d3, orgId });

@@ -1,7 +1,14 @@
 import { goto } from '$app/navigation';
-import { createBlankModel, cloneModel, type Model } from '$lib/domain';
+import { createBlankModel, cloneModel, type Model, type SolveResponse } from '$lib/domain';
 import { supabase } from '$lib/db/supabase';
 import { saveGuestBlank, saveGuestModel } from '$lib/db/guest';
+import { recordPublicTemplateUse } from '$lib/db/template-uses';
+import {
+	blankTaskDraft,
+	clearTaskDraft,
+	saveTaskDraft,
+	type TaskDraft
+} from '$lib/db/task-draft';
 import { t } from '$lib/i18n';
 
 export type CreateSolveNodeOk = { id: string };
@@ -13,6 +20,7 @@ type TemplateRow = {
 	title: string;
 	model: Model;
 	what_if?: Model['what_if_defaults'] | null;
+	system_kind?: string | null;
 };
 
 /** Snapshot a template row into a solve_nodes model (copies what_if → what_if_defaults). */
@@ -26,7 +34,11 @@ export function modelFromTemplate(row: Pick<TemplateRow, 'model' | 'what_if'>): 
 
 export async function createSolveNode(
 	model: Model,
-	title: string
+	title: string,
+	extra?: {
+		result?: SolveResponse['result'] | null;
+		solver_meta?: SolveResponse['solver_meta'] | null;
+	}
 ): Promise<CreateSolveNodeResult> {
 	const {
 		data: { user }
@@ -41,7 +53,9 @@ export async function createSolveNode(
 			owner_id: user.id,
 			title,
 			kind: 'root',
-			model: snapshot
+			model: snapshot,
+			result: extra?.result ?? null,
+			solver_meta: extra?.solver_meta ?? null
 		})
 		.select('id')
 		.single();
@@ -89,30 +103,37 @@ export async function createSolveNodeAndOpen(
 		}
 		return result;
 	}
+	clearTaskDraft();
 	await goto(`/app/task/${result.id}`, { replaceState: true });
 	return null;
 }
 
+/** Open blank draft editor — no DB row until first solve. */
 export async function createEmptySolveNodeAndOpen(): Promise<CreateSolveNodeErr | null> {
-	const result = await createEmptySolveNode();
-	if ('error' in result) {
-		if (result.error === t('noSession')) {
-			saveGuestBlank(t('newTask'));
-			await goto('/app', { replaceState: true });
-			return null;
-		}
-		return result;
+	const {
+		data: { user }
+	} = await supabase.auth.getUser();
+	if (!user) {
+		saveGuestBlank(t('newTask'));
+		await goto('/app', { replaceState: true });
+		return null;
 	}
-	await goto(`/app/task/${result.id}`, { replaceState: true });
+	const draft = blankTaskDraft();
+	saveTaskDraft(draft);
+	await goto('/app/create', { replaceState: true });
 	return null;
 }
 
+/**
+ * Open draft from template (no solve_nodes insert).
+ * Records template_uses immediately for public_repo.
+ */
 export async function useTemplateAndOpen(
 	templateId: string
 ): Promise<CreateSolveNodeErr | null> {
 	const { data, error } = await supabase
 		.from('templates')
-		.select('id, title, model, what_if')
+		.select('id, title, model, what_if, system_kind')
 		.eq('id', templateId)
 		.is('deleted_at', null)
 		.single();
@@ -121,15 +142,45 @@ export async function useTemplateAndOpen(
 	}
 	const row = data as TemplateRow;
 	const model = modelFromTemplate(row);
-	const result = await createSolveNode(model, row.title);
-	if ('error' in result) {
-		if (result.error === t('noSession')) {
-			return openGuestFromModel(model, row.title);
-		}
-		return result;
+
+	const {
+		data: { user }
+	} = await supabase.auth.getUser();
+	if (!user) {
+		return openGuestFromModel(model, row.title);
 	}
-	await goto(`/app/task/${result.id}`, { replaceState: true });
+
+	await recordPublicTemplateUse(templateId);
+
+	const draft: TaskDraft = {
+		title: row.title,
+		model,
+		templateId,
+		activeTab: 'plan',
+		includeSensitivity: false,
+		updated_at: new Date().toISOString()
+	};
+	saveTaskDraft(draft);
+	await goto(`/app/create?template=${encodeURIComponent(templateId)}`, {
+		replaceState: true
+	});
 	return null;
+}
+
+/** Persist draft after a solve response (any status) and open the task. */
+export async function persistDraftAfterSolve(opts: {
+	title: string;
+	model: Model;
+	response: SolveResponse;
+}): Promise<CreateSolveNodeResult> {
+	const result = await createSolveNode(opts.model, opts.title, {
+		result: opts.response.result ?? null,
+		solver_meta: opts.response.solver_meta ?? null
+	});
+	if ('error' in result) return result;
+	clearTaskDraft();
+	await goto(`/app/task/${result.id}`, { replaceState: true });
+	return result;
 }
 
 /** Copy a catalog/system template onto the signed-in user's personal templates. */

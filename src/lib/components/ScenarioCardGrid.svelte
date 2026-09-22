@@ -7,11 +7,19 @@
 	let {
 		title,
 		items,
+		/** Cap visible cards; omit for full list (e.g. /app/tasks). */
+		limit = null as number | null,
+		/** Disable internal «Показать больше» expand. */
+		disableExpand = false,
+		headerActions,
 		empty,
 		children
 	}: {
 		title: string;
 		items: T[];
+		limit?: number | null;
+		disableExpand?: boolean;
+		headerActions?: Snippet;
 		empty?: Snippet;
 		children: Snippet<[T]>;
 	} = $props();
@@ -36,13 +44,28 @@
 		};
 	});
 
-	const rowLimit = $derived(columns * 2);
-	const needsToggle = $derived(items.length > rowLimit);
-	const visible = $derived(expanded || !needsToggle ? items : items.slice(0, rowLimit));
+	const rowLimit = $derived(limit != null ? limit : columns * 2);
+	const needsToggle = $derived(
+		!disableExpand && limit == null && items.length > rowLimit
+	);
+	const visible = $derived(
+		limit != null
+			? items.slice(0, limit)
+			: expanded || !needsToggle
+				? items
+				: items.slice(0, rowLimit)
+	);
 </script>
 
 <div>
-	<h2 class="mb-3 text-lg font-medium">{title}</h2>
+	<div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+		<h2 class="text-lg font-medium">{title}</h2>
+		{#if headerActions}
+			<div class="flex flex-wrap items-center justify-end gap-2">
+				{@render headerActions()}
+			</div>
+		{/if}
+	</div>
 	{#if items.length === 0}
 		{#if empty}
 			{@render empty()}

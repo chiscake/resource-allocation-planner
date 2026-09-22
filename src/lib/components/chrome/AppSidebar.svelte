@@ -4,6 +4,7 @@
 	import {
 		Home,
 		Plus,
+		ListTodo,
 		LayoutTemplate,
 		Globe2,
 		GitCompareArrows,
@@ -38,6 +39,7 @@
 	const signedInPrimary: NavItem[] = [
 		{ href: '/app', label: 'home', icon: Home },
 		{ href: '/app/create', label: 'newTask', icon: Plus },
+		{ href: '/app/tasks', label: 'myTasks', icon: ListTodo },
 		{ href: '/app/templates', label: 'templates', icon: LayoutTemplate },
 		{ href: '/app/public-templates', label: 'publicTemplates', icon: Globe2 },
 		{ href: '/app/compare', label: 'compare', icon: GitCompareArrows },
@@ -47,6 +49,7 @@
 	];
 
 	const authOnlyItems: NavItem[] = [
+		{ href: '/app/tasks', label: 'myTasks', icon: ListTodo },
 		{ href: '/app/templates', label: 'templates', icon: LayoutTemplate },
 		{ href: '/app/compare', label: 'compare', icon: GitCompareArrows },
 		{ href: '/app/trash', label: 'trash', icon: Trash2 },
