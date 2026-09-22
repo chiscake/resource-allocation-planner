@@ -6,6 +6,8 @@ Human product copy / UI strings: Russian. **Agent docs in this repo (`AGENTS.md`
 
 Canonical decisions: `.tmp/START.md` (grill freeze) + [`docs/data-model.md`](docs/data-model.md). Navigation map: [`docs/AGENT_NAV.md`](docs/AGENT_NAV.md) — **update AGENT_NAV when the tree or entrypoints change**.
 
+**Commits / push / Vercel / Supabase cloud ship:** follow [`docs/COMMIT_WORKFLOW.md`](docs/COMMIT_WORKFLOW.md). Run `pnpm preflight` before committing on `dev`; `pnpm preflight:main` before promote/`main`. Default work branch is `dev` (also current Vercel Production).
+
 ---
 
 ## Overrides
@@ -80,6 +82,7 @@ Follow [`docs/data-model.md`](docs/data-model.md); do not invent parallel owners
 Prefer scripts from `package.json` when present. Typical:
 
 - `pnpm install` / `pnpm dev` / `pnpm check` / `pnpm test` / `pnpm tauri:dev` / `pnpm tauri:build`
+- Pre-commit gates: `pnpm preflight` · `pnpm preflight:quick` · `pnpm preflight:main` — see [`docs/COMMIT_WORKFLOW.md`](docs/COMMIT_WORKFLOW.md)
 - Supabase: local CLI + Edge Functions as in sibling Labs projects (e.g. ИБМЗКИ lab1 patterns for `admin-create-user`)
 
 ---

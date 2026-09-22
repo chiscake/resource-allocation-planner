@@ -121,7 +121,24 @@ App-`admin` правит системные. `owner_id` / `org_id` для user/o
 **CHECK:** `is_favorite = false OR parent_id IS NULL`.  
 **CHECK (логика):** `org_id IS NULL ⇒ org_visibility IS NULL`; `org_id IS NOT NULL ⇒ org_visibility IN ('private','org')`.
 
-Допустимый update: title, favorite, org attach/visibility, soft-delete — не перепись model/result корня.
+Допустимый update: title, favorite, org attach/visibility, soft-delete — не перепись model/result корня.  
+**Title** можно менять и после расчёта (UI: inline rename).
+
+---
+
+## `node_comments`
+
+Комментарии к узлу: план и/или результат. Ревизии — отдельные `solve_nodes` (`kind=revision`), комментарии живут на их `node_id`.
+
+| Поле        | Смысл                       |
+| ----------- | --------------------------- |
+| `node_id`   | узел (корень / ревизия / …) |
+| `author_id` | автор                       |
+| `scope`     | `plan` \| `result`          |
+| `body`      | текст (trim, non-empty)     |
+| timestamps  | `created_at`, `updated_at`  |
+
+**RLS:** select как у видимости `solve_nodes`; insert — кто видит живой узел; update/delete — автор (или app-`admin`).
 
 ---
 

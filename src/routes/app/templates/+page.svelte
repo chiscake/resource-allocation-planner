@@ -1,10 +1,24 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { supabase } from '$lib/db/supabase';
+	import { useTemplateAndOpen } from '$lib/db/create-solve-node';
+	import type { Model } from '$lib/domain';
 	import { t } from '$lib/i18n';
+	import MatrixThumb from '$lib/components/model/MatrixThumb.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
+	import PageHeader from '$lib/components/ui/PageHeader.svelte';
+	import EmptyState from '$lib/components/ui/EmptyState.svelte';
 
-	let rows = $state<{ id: string; title: string }[]>([]);
+	type Row = {
+		id: string;
+		title: string;
+		model: Model | null;
+		updated_at: string | null;
+	};
+
+	let rows = $state<Row[]>([]);
+	let busyId = $state<string | null>(null);
+	let msg = $state('');
 
 	onMount(async () => {
 		const { data: auth } = await supabase.auth.getUser();
@@ -14,24 +28,62 @@
 		}
 		const { data } = await supabase
 			.from('templates')
-			.select('id, title')
+			.select('id, title, model, updated_at')
 			.is('deleted_at', null)
 			.is('system_kind', null)
-			.eq('owner_id', auth.user.id);
-		rows = (data ?? []) as typeof rows;
+			.eq('owner_id', auth.user.id)
+			.order('title');
+		rows = (data ?? []) as Row[];
 	});
+
+	async function useTemplate(id: string) {
+		if (busyId) return;
+		busyId = id;
+		msg = '';
+		const err = await useTemplateAndOpen(id);
+		if (err) msg = err.error || t('useFailed');
+		busyId = null;
+	}
 </script>
 
-<section class="mx-auto max-w-2xl">
-	<h1 class="mb-4 text-2xl font-medium">{t('templates')}</h1>
-	<ul class="space-y-2">
-		{#each rows as r}
-			<li class="flex items-center justify-between rounded-[8px] border border-border px-3 py-2">
-				<span>{r.title}</span>
-				<Button variant="ghost" href="/app/create" class="!px-2 !py-1">Использовать</Button>
-			</li>
-		{:else}
-			<li class="text-sm text-text-muted">Нет личных шаблонов</li>
-		{/each}
-	</ul>
+<section class="mx-auto flex max-w-5xl flex-col gap-6">
+	<PageHeader title={t('templates')} />
+
+	{#if msg}
+		<p class="text-sm text-danger-text">{msg}</p>
+	{/if}
+
+	{#if rows.length === 0}
+		<EmptyState title={t('noPersonalTemplates')} />
+	{:else}
+		<ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+			{#each rows as r (r.id)}
+				<li
+					class="flex flex-col overflow-hidden rounded-[12px] border border-border bg-bg"
+				>
+					<MatrixThumb model={r.model} class="rounded-none border-0 border-b border-border" />
+					<div class="flex flex-1 flex-col gap-3 px-3 py-3">
+						<span class="line-clamp-2 text-sm font-medium text-text">{r.title}</span>
+						<div class="mt-auto flex flex-wrap gap-2">
+							<Button
+								variant="primary"
+								class="!px-3 !py-1.5"
+								disabled={busyId === r.id}
+								onclick={() => useTemplate(r.id)}
+							>
+								{busyId === r.id ? t('creatingTask') : t('useTemplate')}
+							</Button>
+							<Button
+								variant="secondary"
+								href="/app/templates/{r.id}"
+								class="!px-3 !py-1.5"
+							>
+								{t('editTemplate')}
+							</Button>
+						</div>
+					</div>
+				</li>
+			{/each}
+		</ul>
+	{/if}
 </section>

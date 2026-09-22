@@ -1,35 +1,41 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { supabase } from '$lib/db/supabase';
+	import type { Model } from '$lib/domain';
 	import { t } from '$lib/i18n';
-	import { editionLabel } from '$lib/platform';
 	import Button from '$lib/components/ui/Button.svelte';
 	import EmptyState from '$lib/components/ui/EmptyState.svelte';
+	import GuestWorkspace from '$lib/components/GuestWorkspace.svelte';
+	import PageHeader from '$lib/components/ui/PageHeader.svelte';
+	import ScenarioCardGrid from '$lib/components/ScenarioCardGrid.svelte';
+	import TaskPreviewCard from '$lib/components/TaskPreviewCard.svelte';
 
 	type Row = {
 		id: string;
 		title: string;
 		updated_at: string;
+		created_at?: string;
 		is_favorite: boolean;
 		org_id: string | null;
 		org_visibility: string | null;
+		model: Model | null;
 	};
 
+	let signedIn = $state(false);
+	let authReady = $state(false);
 	let recent = $state<Row[]>([]);
 	let favorites = $state<Row[]>([]);
 	let personal = $state<Row[]>([]);
 	let orgPrivate = $state<Row[]>([]);
 	let orgFeed = $state<Row[]>([]);
-	let label = $state('Web версия');
-	let userEmail = $state('');
 
-	onMount(async () => {
-		label = editionLabel();
-		const { data: auth } = await supabase.auth.getUser();
-		userEmail = auth.user?.email ?? '';
+	const listSelect =
+		'id, title, updated_at, created_at, is_favorite, org_id, org_visibility, model';
+
+	async function loadCloudLists() {
 		const { data } = await supabase
 			.from('solve_nodes')
-			.select('id, title, updated_at, is_favorite, org_id, org_visibility')
+			.select(listSelect)
 			.is('parent_id', null)
 			.is('deleted_at', null)
 			.order('updated_at', { ascending: false })
@@ -40,107 +46,153 @@
 		orgPrivate = recent.filter((r) => r.org_id && r.org_visibility === 'private');
 		const { data: feed } = await supabase
 			.from('solve_nodes')
-			.select('id, title, updated_at, is_favorite, org_id, org_visibility')
+			.select(listSelect)
 			.eq('org_visibility', 'org')
 			.is('parent_id', null)
 			.is('deleted_at', null)
 			.order('updated_at', { ascending: false })
 			.limit(20);
 		orgFeed = (feed ?? []) as Row[];
-	});
-
-	async function logout() {
-		await supabase.auth.signOut();
-		location.href = '/login';
 	}
+
+	onMount(() => {
+		void (async () => {
+			const { data } = await supabase.auth.getSession();
+			signedIn = !!data.session?.user;
+			authReady = true;
+			if (signedIn) {
+				await loadCloudLists();
+			}
+		})();
+
+		const {
+			data: { subscription }
+		} = supabase.auth.onAuthStateChange((_event, session) => {
+			signedIn = !!session?.user;
+			authReady = true;
+			if (signedIn) {
+				void loadCloudLists();
+			} else {
+				recent = [];
+				favorites = [];
+				personal = [];
+				orgPrivate = [];
+				orgFeed = [];
+			}
+		});
+		return () => subscription.unsubscribe();
+	});
 </script>
 
-<section class="mx-auto flex max-w-3xl flex-col gap-6">
-	<div class="flex items-start justify-between gap-4">
-		<div>
-			<h1 class="text-3xl font-medium tracking-tight">{label}</h1>
-			<p class="text-sm text-text-muted">{userEmail || t('home')}</p>
-		</div>
-		{#if userEmail}
-			<button type="button" class="text-sm text-text-muted hover:text-text" onclick={logout}
-				>{t('logout')}</button
-			>
-		{:else}
-			<a href="/login" class="text-sm text-brand">{t('login')}</a>
-		{/if}
-	</div>
-	<div class="flex flex-wrap gap-3">
-		<Button href="/app/create">{t('create')}</Button>
-		<Button variant="secondary" href="/app/templates">{t('templates')}</Button>
-		<Button variant="secondary" href="/app/public-templates">{t('publicTemplates')}</Button>
-		<Button variant="secondary" href="/app/compare">{t('compare')}</Button>
-		<Button variant="secondary" href="/app/trash">{t('trash')}</Button>
-		<Button variant="secondary" href="/app/org">{t('org')}</Button>
-		<Button variant="secondary" href="/app/admin">{t('admin')}</Button>
-	</div>
+<section class="mx-auto flex max-w-5xl flex-col gap-8">
+	{#if !authReady}
+		<p class="text-sm text-text-muted">…</p>
+	{:else if !signedIn}
+		<PageHeader title={t('home')} description={t('homeGuestHint')}>
+			{#snippet actions()}
+				<Button href="/app/create">{t('newTask')}</Button>
+				<Button variant="secondary" href="/login">{t('login')}</Button>
+			{/snippet}
+		</PageHeader>
 
-	{#if favorites.length}
-		<div>
-			<h2 class="mb-2 text-lg font-medium">{t('favorites')}</h2>
-			<ul class="space-y-1">
-				{#each favorites as r}
-					<li>
-						<a class="text-brand hover:underline" href="/app/nodes/{r.id}">{r.title}</a>
-					</li>
-				{/each}
-			</ul>
+		<div class="mx-auto w-full max-w-4xl">
+			<GuestWorkspace compact />
 		</div>
-	{/if}
 
-	<div>
-		<h2 class="mb-2 text-lg font-medium">{t('recent')}</h2>
-		{#if recent.length === 0}
-			<EmptyState title={t('noScenarios')} description={t('noScenariosHint')}>
-				{#snippet action()}
-					<Button href="/app/create">{t('create')}</Button>
+		<div class="flex flex-wrap items-center gap-2">
+			<Button variant="secondary" href="/app/public-templates">{t('publicTemplates')}</Button>
+		</div>
+
+		<aside
+			class="rounded-[12px] border border-border bg-bg-soft px-6 py-8 text-center sm:px-10"
+		>
+			<p class="text-lg font-medium tracking-tight text-text">{t('homeLoginUpsellTitle')}</p>
+			<p class="mx-auto mt-2 max-w-md text-sm leading-relaxed text-text-muted">
+				{t('homeLoginUpsellBody')}
+			</p>
+			<div class="mt-5 flex justify-center">
+				<Button href="/login">{t('homeLoginUpsellCta')}</Button>
+			</div>
+		</aside>
+	{:else}
+		<PageHeader title={t('home')} description={t('homeHint')}>
+			{#snippet actions()}
+				<Button href="/app/create">{t('newTask')}</Button>
+			{/snippet}
+		</PageHeader>
+
+		{#if favorites.length}
+			<ScenarioCardGrid title={t('favorites')} items={favorites}>
+				{#snippet children(r)}
+					<TaskPreviewCard
+						href="/app/nodes/{r.id}"
+						title={r.title}
+						updatedAt={r.updated_at}
+						createdAt={r.created_at}
+						model={r.model}
+						favorite
+					/>
 				{/snippet}
-			</EmptyState>
-		{:else}
-			<ul class="space-y-1">
-				{#each recent as r}
-					<li>
-						<a class="text-brand hover:underline" href="/app/nodes/{r.id}">{r.title}</a>
-					</li>
-				{/each}
-			</ul>
+			</ScenarioCardGrid>
 		{/if}
-	</div>
 
-	<div>
-		<h2 class="mb-2 text-lg font-medium">{t('personal')}</h2>
-		<ul class="space-y-1">
-			{#each personal as r}
-				<li><a class="text-brand hover:underline" href="/app/nodes/{r.id}">{r.title}</a></li>
-			{:else}
-				<li class="text-sm text-text-muted">—</li>
-			{/each}
-		</ul>
-	</div>
+		<ScenarioCardGrid title={t('recent')} items={recent}>
+			{#snippet empty()}
+				<EmptyState title={t('noScenarios')} description={t('noScenariosHint')}>
+					{#snippet action()}
+						<Button href="/app/create">{t('newTask')}</Button>
+					{/snippet}
+				</EmptyState>
+			{/snippet}
+			{#snippet children(r)}
+				<TaskPreviewCard
+					href="/app/nodes/{r.id}"
+					title={r.title}
+					updatedAt={r.updated_at}
+					createdAt={r.created_at}
+					model={r.model}
+					favorite={r.is_favorite}
+				/>
+			{/snippet}
+		</ScenarioCardGrid>
 
-	<div>
-		<h2 class="mb-2 text-lg font-medium">{t('orgPrivate')}</h2>
-		<ul class="space-y-1">
-			{#each orgPrivate as r}
-				<li><a class="text-brand hover:underline" href="/app/nodes/{r.id}">{r.title}</a></li>
-			{:else}
-				<li class="text-sm text-text-muted">—</li>
-			{/each}
-		</ul>
-	</div>
+		<ScenarioCardGrid title={t('personal')} items={personal}>
+			{#snippet children(r)}
+				<TaskPreviewCard
+					href="/app/nodes/{r.id}"
+					title={r.title}
+					updatedAt={r.updated_at}
+					createdAt={r.created_at}
+					model={r.model}
+					favorite={r.is_favorite}
+				/>
+			{/snippet}
+		</ScenarioCardGrid>
 
-	<div>
-		<h2 class="mb-2 text-lg font-medium">{t('orgFeed')}</h2>
-		<ul class="space-y-1">
-			{#each orgFeed as r}
-				<li><a class="text-brand hover:underline" href="/app/nodes/{r.id}">{r.title}</a></li>
-			{:else}
-				<li class="text-sm text-text-muted">—</li>
-			{/each}
-		</ul>
-	</div>
+		<ScenarioCardGrid title={t('orgPrivate')} items={orgPrivate}>
+			{#snippet children(r)}
+				<TaskPreviewCard
+					href="/app/nodes/{r.id}"
+					title={r.title}
+					updatedAt={r.updated_at}
+					createdAt={r.created_at}
+					model={r.model}
+					favorite={r.is_favorite}
+				/>
+			{/snippet}
+		</ScenarioCardGrid>
+
+		<ScenarioCardGrid title={t('orgFeed')} items={orgFeed}>
+			{#snippet children(r)}
+				<TaskPreviewCard
+					href="/app/nodes/{r.id}"
+					title={r.title}
+					updatedAt={r.updated_at}
+					createdAt={r.created_at}
+					model={r.model}
+					favorite={r.is_favorite}
+				/>
+			{/snippet}
+		</ScenarioCardGrid>
+	{/if}
 </section>

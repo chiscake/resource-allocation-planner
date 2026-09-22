@@ -36,6 +36,12 @@
 	--radius-card: 12px;
 }
 
+:root {
+	/* Align header burger icon with sidebar icon column */
+	--chrome-pad-x: 0.75rem; /* 12px */
+	--chrome-control-size: 2.25rem; /* 36px = size-9 */
+}
+
 html,
 body {
 	margin: 0;

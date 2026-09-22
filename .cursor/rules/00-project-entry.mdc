@@ -12,3 +12,4 @@ Before non-trivial work in this project:
 3. Schema/ownership: `docs/data-model.md` — do not invent parallel models.
 4. UI/visual work: `docs/DESIGN.md` + `.cursor/rules/design-system.mdc` (Cartesia).
 5. English for agent docs; Russian for UI strings.
+6. Commits / cloud ship: `docs/COMMIT_WORKFLOW.md` + `pnpm preflight` (default branch `dev`).

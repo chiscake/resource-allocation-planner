@@ -11,6 +11,7 @@ Purpose: fast orientation for coding agents. Prefer pointers over copying rules 
 | If you need…                                         | Open                                               |
 | ---------------------------------------------------- | -------------------------------------------------- |
 | Hard rules / overrides / migrations / schema_version | [`../AGENTS.md`](../AGENTS.md)                     |
+| Commit / push / Vercel / Supabase cloud workflow     | [`COMMIT_WORKFLOW.md`](COMMIT_WORKFLOW.md)         |
 | Tables, org/share/trash, RLS intent                  | [`data-model.md`](data-model.md)                   |
 | Design tokens / Cartesia UI                          | [`DESIGN.md`](DESIGN.md)                           |
 | Phases + intended folder tree                        | [`../ROADMAP.md`](../ROADMAP.md)                   |
@@ -29,8 +30,10 @@ Scratch: `.tmp/task13_*.py/json`, `LP4DVisualizer.jsx`. Design canon: **`docs/DE
 resource-allocation-planner/
 ├── AGENTS.md
 ├── ROADMAP.md
-├── package.json                 # pnpm: dev, check, test, seed:users, supabase:local, tauri:*
+├── package.json                 # pnpm: dev, check, test, preflight*, seed:users, db:*, tauri:*
+├── scripts/preflight.mjs        # commit gates (check+test+secrets); see COMMIT_WORKFLOW.md
 ├── scripts/seed-users.mjs       # Auth Admin API (not SQL users)
+├── .cursor/hooks.json           # Cursor gates for push/cloud mutate
 ├── vitest.config.ts
 ├── src/
 │   ├── app.css                  # Tailwind v4 + Cartesia @theme
@@ -54,7 +57,7 @@ resource-allocation-planner/
 │           ├── templates/, public-templates/
 │           ├── compare/, trash/, org/, notifications/, admin/
 ├── supabase/
-│   ├── migrations/000…080       # 080_purge_cron: pg_cron soft-delete purge
+│   ├── migrations/000…080       # 070_share_notify_rpc (merged 070–073); 080_purge_cron
 │   ├── functions/solve, run_mutations, admin-create-user
 │   └── seed.sql                 # noop; users via seed:users
 └── src-tauri/
@@ -67,12 +70,13 @@ resource-allocation-planner/
 **Vercel build:** `vercel.json` → `pnpm build`, output `build/` (static SPA rewrites).
 
 **Cloud link (once per machine):**
+
 - `supabase link --project-ref ktdxdqnhjitolfpcztds` (RAP)
 - `vercel link --yes --project resource-allocation-planner --scope chiscakes-projects`
 - Ignore: `.vercel/`, `supabase/.temp/`, `.env.local` (never commit)
 - Client env canon: `PUBLIC_SUPABASE_URL` + `PUBLIC_SUPABASE_PUBLISHABLE_KEY` (Vercel env name: publishable key, not anon)
 
-**Cloud seed:** `pnpm seed:users:cloud` (reads `.env.cloud.local` — service role + project URL).
+**Cloud seed:** `pnpm seed:users:cloud` (reads `.env.cloud` — service role + project URL).
 
 **Desktop installer:** `pnpm tauri:build` (slow; not part of CI — run locally for `.msi`/bundle).
 
@@ -104,10 +108,11 @@ resource-allocation-planner/
 | Dev         | `pnpm dev` :5400                                                     |
 | Test        | `pnpm test`                                                          |
 | Check       | `pnpm check`                                                         |
+| Preflight   | `pnpm preflight` / `preflight:main` — before commit / promote        |
 | Seed        | `pnpm seed:users` — admin@rap.local, demo1/2@rap.local / password123 |
-| Cloud seed  | `pnpm seed:users:cloud` — same users against linked RAP project        |
+| Cloud seed  | `pnpm seed:users:cloud` — same users against linked RAP project      |
 | Local stack | `pnpm supabase:local` — start + reset + seed + Edge serve            |
-| Installer   | `pnpm tauri:build` — desktop bundle (local only)                       |
+| Installer   | `pnpm tauri:build` — desktop bundle (local only)                     |
 | Edge        | `solve`, `run_mutations`, `admin-create-user`                        |
 | Venue       | Web = cloud when online (fallback local); Tauri UI toggle            |
 

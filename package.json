@@ -1,42 +1,48 @@
 {
-	"name": "resource-allocation-planner",
-	"private": true,
-	"version": "1.0.0",
-	"type": "module",
-	"scripts": {
-		"dev": "vite dev",
-		"build": "vite build",
-		"preview": "vite preview",
-		"prepare": "svelte-kit sync || echo ''",
-		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-		"test": "vitest run",
-		"test:watch": "vitest",
-		"seed:users": "node scripts/seed-users.mjs",
-		"supabase:local": "supabase start && supabase db reset && pnpm seed:users && supabase functions serve --env-file .env.local",
-		"tauri": "tauri",
-		"tauri:dev": "tauri dev",
-		"tauri:build": "tauri build",
-		"seed:users:cloud": "node --env-file=.env.cloud.local scripts/seed-users.mjs"
-	},
-	"dependencies": {
-		"@supabase/supabase-js": "^2.116.0",
-		"@tauri-apps/api": "^2",
-		"@tauri-apps/plugin-opener": "^2",
-		"dotenv": "^18.0.1",
-		"javascript-lp-solver": "^1.0.3"
-	},
-	"devDependencies": {
-		"@sveltejs/adapter-static": "^3.0.10",
-		"@sveltejs/kit": "^2.65.1",
-		"@sveltejs/vite-plugin-svelte": "^7.1.2",
-		"@tailwindcss/vite": "^4.3.3",
-		"@tauri-apps/cli": "^2",
-		"@types/node": "^24.3.0",
-		"svelte": "^5.56.3",
-		"svelte-check": "^4.6.0",
-		"tailwindcss": "^4.3.3",
-		"typescript": "~6.0.3",
-		"vite": "^8.0.16",
-		"vitest": "^5.0.1"
-	}
+  "name": "resource-allocation-planner",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview",
+    "prepare": "svelte-kit sync || echo ''",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "preflight": "node scripts/preflight.mjs",
+    "preflight:quick": "node scripts/preflight.mjs --quick",
+    "preflight:main": "node scripts/preflight.mjs --main",
+    "seed:users": "node scripts/seed-users.mjs",
+    "db:serve": "supabase functions serve --env-file .env.local",
+    "db:start": "supabase start && pnpm db:serve",
+    "db:reset": "supabase start && supabase db reset && pnpm seed:users && pnpm db:serve",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
+    "seed:users:cloud": "node --env-file=.env.cloud scripts/seed-users.mjs"
+  },
+  "dependencies": {
+    "@lucide/svelte": "^1.47.0",
+    "@supabase/supabase-js": "^2.116.0",
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-opener": "^2",
+    "dotenv": "^18.0.1",
+    "javascript-lp-solver": "^1.0.3"
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-static": "^3.0.10",
+    "@sveltejs/kit": "^2.65.1",
+    "@sveltejs/vite-plugin-svelte": "^7.1.2",
+    "@tailwindcss/vite": "^4.3.3",
+    "@tauri-apps/cli": "^2",
+    "@types/node": "^24.3.0",
+    "svelte": "^5.56.3",
+    "svelte-check": "^4.6.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "~6.0.3",
+    "vite": "^8.0.16",
+    "vitest": "^5.0.1"
+  }
 }
