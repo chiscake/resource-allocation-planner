@@ -8,9 +8,9 @@
  *
  * Acceptance (AGENTS): feasibility + gap vs LP — not equality to simplex.
  */
-import type { Model, SolveResult } from './types.ts';
-import { buildSolveResult, usageViolation, variableBounds } from './resultBuild.ts';
-import { solveLocalLpDuals } from './lpDuals.ts';
+import type { Model, SolveResult } from '../../types.ts';
+import { buildSolveResult, usageViolation, variableBounds } from '../../shared/resultBuild.ts';
+import { solveLocalLpDuals } from '../../shared/lpDuals.ts';
 
 export type SelectionMethod = "roulette" | "rank" | "tournament" | "elitism";
 export type CrossoverType = "uniform" | "one-point";

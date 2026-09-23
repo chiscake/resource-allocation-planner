@@ -41,7 +41,8 @@ resource-allocation-planner/
 │   ├── app.css                  # Tailwind v4 + Cartesia @theme
 │   ├── lib/
 │   │   ├── domain/
-│   │   ├── solver/              # local LP + IPM + GA (+ tests)
+│   │   ├── solver/              # contract/registry + methods × engine (+ tests)
+│   │   ├── display/             # roundPlan / roundPref (UI post-process)
 │   │   ├── api/                 # Edge transport
 │   │   ├── db/                  # supabase, guest, soft-delete, drafts, …
 │   │   ├── components/          # chrome/, model/, ui/, …

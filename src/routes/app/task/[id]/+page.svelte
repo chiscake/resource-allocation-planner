@@ -15,7 +15,7 @@
 		type Mutation,
 		type WhatIfDefaults
 	} from '$lib/domain';
-	import { maybeRoundPlan } from '$lib/solver';
+	import { maybeRoundPlan } from '$lib/display';
 	import { t } from '$lib/i18n';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Card from '$lib/components/ui/Card.svelte';

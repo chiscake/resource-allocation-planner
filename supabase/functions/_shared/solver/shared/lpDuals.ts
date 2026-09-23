@@ -1,5 +1,5 @@
 import solver from 'npm:javascript-lp-solver@1.0.3';
-import type { Model } from './types.ts';
+import type { Model } from '../types.ts';
 
 export function solveLocalLpDuals(model: Model): number[] {
 	const constraints: Record<string, { min: number }> = {};

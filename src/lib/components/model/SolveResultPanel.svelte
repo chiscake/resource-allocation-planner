@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import type { SolveResult } from '$lib/domain';
-	import { setRoundPlanPreference } from '$lib/solver';
+	import { setRoundPlanPreference } from '$lib/display';
 	import { t } from '$lib/i18n';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Badge from '$lib/components/ui/Badge.svelte';

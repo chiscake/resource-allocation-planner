@@ -9,8 +9,12 @@
  * Acceptance (AGENTS): feasibility + gap vs LP — not equality to simplex.
  */
 import type { Model, SolveResult } from "$lib/domain";
-import { buildSolveResult, usageViolation, variableBounds } from "./resultBuild";
-import { solveLocalLpDuals } from "./lpDuals";
+import {
+  buildSolveResult,
+  usageViolation,
+  variableBounds,
+} from "../../shared/resultBuild";
+import { solveLocalLpDuals } from "../../shared/lpDuals";
 
 export type SelectionMethod = "roulette" | "rank" | "tournament" | "elitism";
 export type CrossoverType = "uniform" | "one-point";

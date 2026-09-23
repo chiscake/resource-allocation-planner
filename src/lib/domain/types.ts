@@ -6,24 +6,44 @@ export type SolveStatus = "done" | "rejected_too_large" | "accepted";
 export type VenuePreference = "auto" | "cloud" | "local";
 export type ResolvedVenue = "cloud" | "local";
 
-/** Solve algorithm. `lp` = javascript-lp-solver (simplex); `ipm` = interior-point; `ga` = evolutionary. */
+/** Solve algorithm family (UI tabs). */
 export type SolveMethod = "lp" | "ipm" | "ga";
 
+/** How the method is implemented: hand-rolled vs third-party library. */
+export type SolveEngine = "native" | "library";
+
 export const SOLVE_METHODS: SolveMethod[] = ["lp", "ipm", "ga"];
+export const SOLVE_ENGINES: SolveEngine[] = ["native", "library"];
 
 export function isSolveMethod(v: unknown): v is SolveMethod {
   return v === "lp" || v === "ipm" || v === "ga";
 }
 
-/** library string identifies method + venue, e.g. `interior-point@local`. */
-export function libraryFor(method: SolveMethod, venue: ResolvedVenue): string {
-  const name =
-    method === "lp"
-      ? "javascript-lp-solver"
-      : method === "ipm"
-        ? "interior-point"
-        : "ga-evolutionary";
-  return `${name}@${venue}`;
+export function isSolveEngine(v: unknown): v is SolveEngine {
+  return v === "native" || v === "library";
+}
+
+/** Package id before `@venue` in solver_meta.library. */
+export function libraryPackageId(
+  method: SolveMethod,
+  engine: SolveEngine,
+): string {
+  if (method === "lp") {
+    return engine === "library" ? "javascript-lp-solver" : "simplex-native";
+  }
+  if (method === "ipm") {
+    return engine === "library" ? "interior-point-lib" : "interior-point";
+  }
+  return engine === "library" ? "ga-evolutionary-lib" : "ga-evolutionary";
+}
+
+/** library string identifies package + venue, e.g. `interior-point@local`. */
+export function libraryFor(
+  method: SolveMethod,
+  venue: ResolvedVenue,
+  engine: SolveEngine,
+): string {
+  return `${libraryPackageId(method, engine)}@${venue}`;
 }
 
 export interface Model {
@@ -70,28 +90,62 @@ export interface SolveResult {
 
 export interface SolverMeta {
   venue: ResolvedVenue;
-  /** Method + venue, e.g. `interior-point@local`, `ga-evolutionary@cloud`. */
+  /** Package + venue, e.g. `javascript-lp-solver@local`, `simplex-native@cloud`. */
   library: string;
   duration_ms: number;
   rejected_reason?: string;
   hint?: string;
   /** Present when plan x was post-rounded for display; duals remain from continuous LP. */
   rounding?: "nearest";
-  /** Explicit method id (mirrors the prefix of `library`). */
+  /** Explicit method id. */
   method?: SolveMethod;
+  /** native = hand-rolled (viz); library = third-party (verify / default calc). */
+  engine?: SolveEngine;
   /** GA-only: optimality gap vs LP Z when LP reference available. */
   gap_vs_lp?: number;
 }
 
+/** Flexible per-method viz payload (in-memory only; not persisted). */
+export type SimplexTraceFrame = {
+  /** Tableau / reduced costs / basis labels — shape filled by native LP later. */
+  matrix?: number[][];
+  reducedCosts?: number[];
+  basis?: string[];
+  note?: string;
+};
+
+export type GaGenerationSnapshot = {
+  generation: number;
+  bestFitness?: number;
+  meanFitness?: number;
+  /** Optional 2D scatter when n=2. */
+  points?: { x: number; y: number; fitness?: number }[];
+};
+
+export type IpmTraceFrame = {
+  iteration: number;
+  dualityGap?: number;
+  note?: string;
+};
+
+export type SolveTrace =
+  | { method: "lp"; frames: SimplexTraceFrame[] }
+  | { method: "ga"; generations: GaGenerationSnapshot[] }
+  | { method: "ipm"; frames: IpmTraceFrame[] };
+
 export interface SolveRequest {
   model: Model;
   method?: SolveMethod;
+  /** Omit → registry default (library if registered, else native). */
+  engine?: SolveEngine;
 }
 
 export interface SolveResponse {
   status: SolveStatus;
   result?: SolveResult;
   solver_meta: SolverMeta;
+  /** Present for native viz / streaming consumers; never written to DB. */
+  trace?: SolveTrace;
 }
 
 export interface MutationRunItem {

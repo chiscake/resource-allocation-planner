@@ -4,20 +4,24 @@ import {
   type Model,
   type Mutation,
   type RunMutationsResponse,
+  type SolveEngine,
   type SolveMethod,
 } from "$lib/domain";
-import { SOLVE_LIMITS } from "./limits";
-import { solveLocal } from "./solve";
 import type { ResolvedVenue } from "$lib/domain/types";
+import { SOLVE_LIMITS } from "./limits";
+import { defaultEngine } from "./registry";
+import { solveLocal } from "./run";
 
 export function runMutationsLocal(
   base: Model,
   mutations: Mutation[],
   venue: ResolvedVenue = "local",
   method: SolveMethod = "lp",
+  engine?: SolveEngine,
 ): RunMutationsResponse {
   const started = performance.now();
-  const lib = libraryFor(method, venue);
+  const eng = engine ?? defaultEngine(method);
+  const lib = libraryFor(method, venue, eng);
   if (mutations.length > SOLVE_LIMITS.mutationMaxK) {
     return {
       status: "rejected_too_large",
@@ -26,6 +30,7 @@ export function runMutationsLocal(
         venue,
         library: lib,
         method,
+        engine: eng,
         duration_ms: 0,
         rejected_reason: `K>${SOLVE_LIMITS.mutationMaxK}`,
       },
@@ -42,13 +47,14 @@ export function runMutationsLocal(
           venue,
           library: lib,
           method,
+          engine: eng,
           duration_ms: performance.now() - started,
           rejected_reason: "package_timeout",
         },
       };
     }
     const model = applyMutation(base, mutation);
-    const response = solveLocal(model, venue, 0, method);
+    const response = solveLocal(model, venue, 0, method, eng);
     items.push({ mutation, model, response });
     if (response.status === "rejected_too_large") {
       return {
@@ -58,6 +64,7 @@ export function runMutationsLocal(
           venue,
           library: lib,
           method,
+          engine: eng,
           duration_ms: performance.now() - started,
           rejected_reason: response.solver_meta.rejected_reason,
         },
@@ -72,6 +79,7 @@ export function runMutationsLocal(
       venue,
       library: lib,
       method,
+      engine: eng,
       duration_ms: performance.now() - started,
     },
   };

@@ -5,7 +5,7 @@ import {
   roundPlanNearest,
   withRoundingMeta,
 } from "./roundPlan";
-import { solveLocal } from "./solve";
+import { solveLocal } from "$lib/solver";
 
 function baseResult(partial: Partial<SolveResult> & Pick<SolveResult, "x" | "Z">): SolveResult {
   return {

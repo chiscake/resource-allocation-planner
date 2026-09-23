@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { createTask13Model } from "$lib/domain";
-import { solveLocal } from "./solve";
-import { solveIpmRaw } from "./ipm";
-import { solveGaRaw, DEFAULT_GA_HYPERPARAMS } from "./ga";
+import { solveLocal } from "./run";
+import { solveIpmRaw } from "./methods/ipm";
+import { solveGaRaw, DEFAULT_GA_HYPERPARAMS } from "./methods/ga";
 
 const TOL = 1e-3;
 const IPM_TOL = 1e-2;
@@ -15,6 +15,7 @@ describe("solveLocal task13 (lp)", () => {
     expect(res.result).toBeDefined();
     expect(res.solver_meta.library).toBe("javascript-lp-solver@local");
     expect(res.solver_meta.method).toBe("lp");
+    expect(res.solver_meta.engine).toBe("library");
     expect(res.result!.Z).toBeCloseTo(150, 2);
     expect(res.result!.x["Частотомер"]).toBeCloseTo(30, 2);
     expect(res.result!.x["Генератор"]).toBeCloseTo(10, 2);
@@ -25,6 +26,14 @@ describe("solveLocal task13 (lp)", () => {
     );
     expect(Math.abs(res.result!.x["Осциллограф"] ?? 0)).toBeLessThan(TOL);
     expect(Math.abs(res.result!.x["Вольтметр"] ?? 0)).toBeLessThan(TOL);
+  });
+
+  it("native LP stub rejects with not_implemented", () => {
+    const model = createTask13Model();
+    const res = solveLocal(model, "local", 0, "lp", "native");
+    expect(res.status).toBe("rejected_too_large");
+    expect(res.solver_meta.engine).toBe("native");
+    expect(res.solver_meta.rejected_reason).toBe("not_implemented");
   });
 });
 
@@ -39,6 +48,7 @@ describe("interior-point task13", () => {
     expect(res.status).toBe("done");
     expect(res.solver_meta.library).toBe("interior-point@local");
     expect(res.solver_meta.method).toBe("ipm");
+    expect(res.solver_meta.engine).toBe("native");
     expect(res.result!.Z).toBeCloseTo(150, 1);
     expect(res.result!.x["Частотомер"]).toBeCloseTo(30, 0);
     expect(res.result!.x["Генератор"]).toBeCloseTo(10, 0);
@@ -60,6 +70,7 @@ describe("ga-evolutionary task13", () => {
     expect(res.status).toBe("done");
     expect(res.solver_meta.library).toBe("ga-evolutionary@local");
     expect(res.solver_meta.method).toBe("ga");
+    expect(res.solver_meta.engine).toBe("native");
     expect(res.result).toBeDefined();
     expect(res.result!.feasible).toBe(true);
     // Gap vs LP: allow up to 15% for heuristic (AGENTS: not equality)

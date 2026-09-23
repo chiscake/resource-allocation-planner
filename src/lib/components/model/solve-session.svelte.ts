@@ -9,7 +9,7 @@ import {
 	type SolveResult,
 	type WhatIfDefaults
 } from '$lib/domain';
-import { getRoundPlanPreference, maybeRoundPlan } from '$lib/solver';
+import { getRoundPlanPreference, maybeRoundPlan } from '$lib/display';
 import { modelSourceKey } from '$lib/components/model/lp-tableau';
 
 export type SolveTabId = 'plan' | 'ipm' | 'ga' | '4d';

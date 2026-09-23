@@ -39,8 +39,9 @@ resource-allocation-planner/
 │   ├── app.css                  # Tailwind v4 + Cartesia @theme
 │   ├── lib/
 │   │   ├── domain/              # Model, mutations, task13
-│   │   ├── solver/              # local LP + IPM + GA + venue + limits
-│   │   ├── api/solve.ts         # Edge or local transport (+ method + local fallback)
+│   │   ├── solver/              # contract/registry/run + methods/{lp,ipm,ga} × engine
+│   │   ├── display/             # roundPlan / roundPref (UI post-process, not solver)
+│   │   ├── api/solve.ts         # Edge or local transport (+ method + engine + local fallback)
 │   │   ├── db/                  # supabase, guest, audit, soft-delete, task-draft, template-uses
 │   │   ├── chrome/              # nav/drawer chrome state
 │   │   ├── components/          # VenueToggle + chrome/ (AppHeader, DevQuickLoginBar, …)
@@ -62,7 +63,7 @@ resource-allocation-planner/
 ├── supabase/
 │   ├── migrations/000…080       # 041_template_uses; 070_share_notify_rpc; 080_purge_cron
 │   ├── functions/               # solve, run_mutations, admin-create-user
-│   │   └── _shared/solver/      # Edge mirror of ipm/ga/resultBuild (keep ↔ src/lib/solver)
+│   │   └── _shared/solver/      # Edge mirror: registry + methods (keep ↔ src/lib/solver)
 │   └── seed.sql                 # noop; users via seed:users
 └── src-tauri/
 ```
@@ -131,8 +132,8 @@ resource-allocation-planner/
 | ------------------------- | ------------------------- |
 | LP model + schema_version | `src/lib/domain/`         |
 | solve / run_mutations     | `src/lib/solver/` + Edge  |
-| Methods `lp` / `ipm` / `ga` | `src/lib/solver/{solve,ipm,ga}.ts`; Edge `_shared/solver/` |
-| Plan rounding (UI post)   | `src/lib/solver/roundPlan.ts` + `roundPref.ts` |
+| Methods `lp` / `ipm` / `ga` × `engine` | `src/lib/solver/` (`contract`, `registry`, `run`, `methods/*`); Edge `_shared/solver/` |
+| Plan rounding (UI post)   | `src/lib/display/roundPlan.ts` + `roundPref.ts` |
 | Compute venue             | `src/lib/solver/venue.ts` |
 | Guest slot                | `src/lib/db/guest.ts`     |
 | Audit writes              | `src/lib/db/audit.ts`     |

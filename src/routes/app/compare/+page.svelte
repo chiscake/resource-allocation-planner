@@ -3,7 +3,7 @@
 	import { supabase } from '$lib/db/supabase';
 	import { t } from '$lib/i18n';
 	import type { Model, SolveResult } from '$lib/domain';
-	import { getRoundPlanPreference, maybeRoundPlan } from '$lib/solver';
+	import { getRoundPlanPreference, maybeRoundPlan } from '$lib/display';
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Card from '$lib/components/ui/Card.svelte';

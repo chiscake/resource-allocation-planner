@@ -1,4 +1,4 @@
-import type { Model, SolveResult } from './types.ts';
+import type { Model, SolveResult } from '../types.ts';
 
 const DUAL_EPS = 1e-6;
 const CRITICAL_EPS = 1e-4;

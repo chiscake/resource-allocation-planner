@@ -2,8 +2,8 @@
  * Primal-dual interior-point method for max cᵀx s.t. Ax ≤ b, x ≥ 0.
  * Mehrotra predictor-corrector style; duals from y (shadow prices).
  */
-import type { Model } from './types.ts';
-import { buildSolveResult } from './resultBuild.ts';
+import type { Model } from "$lib/domain";
+import { buildSolveResult } from "../../shared/resultBuild";
 
 const EPS = 1e-9;
 const TOL = 1e-8;
