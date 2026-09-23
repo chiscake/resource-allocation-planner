@@ -5,15 +5,17 @@
 	import { writeAudit } from '$lib/db/audit';
 	import { softDeleteSolveNode } from '$lib/db/soft-delete';
 	import { solveModel, runMutations } from '$lib/api/solve';
+	import { logSolverMismatches } from '$lib/db/solver-mismatch';
 	import {
-		buildDefaultMutations,
 		cloneModel,
 		isSolveMethod,
+		buildWhatIfRowData,
 		type Model,
 		type SolveResult,
 		type SolverMeta,
 		type Mutation,
-		type WhatIfDefaults
+		type WhatIfDefaults,
+		type RunMutationsResponse
 	} from '$lib/domain';
 	import { maybeRoundPlan } from '$lib/display';
 	import { t } from '$lib/i18n';
@@ -28,8 +30,10 @@
 	import {
 		createSolveSession,
 		solveMethodToTab,
+		type SolveTransport,
 		type WhatIfRow
 	} from '$lib/components/model/solve-session.svelte';
+	import type { VerifyReport } from '$lib/solver/verify';
 	import { Star, GitFork, Trash2 } from '@lucide/svelte';
 
 	type NodeRow = {
@@ -85,14 +89,36 @@
 		whatIfChildren.filter((c) => c.what_if_generation === activeGen)
 	);
 	const whatIfRows = $derived<WhatIfRow[]>(
-		visibleChildren.map((c) => ({
-			title: c.title,
-			Z: c.result
-				? session.roundPlan
-					? maybeRoundPlan(c.model, c.result, true).Z
-					: c.result.Z
-				: Number.NaN
-		}))
+		visibleChildren.flatMap((c) => {
+			if (!c.mutation || !node) return [];
+			const continuous = c.result;
+			const row = buildWhatIfRowData({
+				base: node.model,
+				baseResult: node.result,
+				mutation: c.mutation,
+				mutatedModel: c.model,
+				result: continuous,
+				valuesFromMutated: true
+			});
+			if (continuous && session.roundPlan) {
+				const display = maybeRoundPlan(c.model, continuous, true);
+				const baseZ = node.result?.Z;
+				return [
+					{
+						...row,
+						Z: display.Z,
+						deltaZ: baseZ != null && Number.isFinite(baseZ) ? display.Z - baseZ : row.deltaZ,
+						plan: display.x,
+						// Dual / modernization price from continuous solve.
+						shadowMetric:
+							row.shadowKind === 'modernization' && baseZ != null
+								? continuous.Z - baseZ
+								: row.shadowMetric
+					}
+				];
+			}
+			return [row];
+		})
 	);
 	const whatIfArchiveHint = $derived(
 		t('generationPurge', {
@@ -125,7 +151,8 @@
 			model: $state.snapshot(node.model),
 			result: node.result,
 			activeTab: isSolveMethod(loadedMethod) ? solveMethodToTab(loadedMethod) : session.activeTab,
-			whatIfItems: []
+			whatIfItems: [],
+			lastWasCloud: node.solver_meta?.venue === 'cloud'
 		});
 	}
 
@@ -225,19 +252,19 @@
 		return true;
 	}
 
-	/** Persist what-if kids for current node.model (caller holds busy/error). */
-	async function runWhatIfPack(): Promise<boolean> {
+	const taskTransport: SolveTransport = {
+		solve: (model, method, opts) =>
+			solveModel(model, { method, engine: opts?.engine, cloud: opts?.cloud }),
+		runMutations: (model, mutations, method, opts) =>
+			runMutations(model, mutations, {
+				method,
+				engine: opts?.engine,
+				cloud: opts?.cloud
+			})
+	};
+
+	async function persistSensitivityKids(pack: RunMutationsResponse): Promise<boolean> {
 		if (!node) return false;
-		const mutations = buildDefaultMutations(node.model);
-		if (mutations.length === 0) {
-			// All what-if fields empty/disabled — archive stale kids, no insert.
-			return softDeleteActiveSensitivity();
-		}
-		const pack = await runMutations(node.model, mutations, session.solveMethod);
-		if (pack.status !== 'done') {
-			error = pack.solver_meta.rejected_reason ?? pack.status;
-			return false;
-		}
 		const nextGen = (generations.at(-1) ?? 0) + 1;
 		if (!(await softDeleteActiveSensitivity())) return false;
 		const {
@@ -268,65 +295,85 @@
 		return true;
 	}
 
-	async function doSolve() {
-		if (!node || !session.model || !session.methodReady) return;
-		session.busy = true;
-		session.error = '';
-		error = '';
-		try {
-			const toSolve = $state.snapshot(session.model);
-			const ok = await persistModel(toSolve);
-			if (!ok) return;
-
-			const res = await solveModel(toSolve, session.solveMethod);
-			if (res.status !== 'done' || !res.result) {
-				const msg = res.solver_meta.rejected_reason ?? res.status;
-				error = msg;
-				session.error = msg;
-				return;
-			}
-			const { error: upErr } = await supabase
-				.from('solve_nodes')
-				.update({
-					model: toSolve,
-					result: res.result,
-					solver_meta: res.solver_meta,
-					updated_at: new Date().toISOString()
-				})
-				.eq('id', node.id);
-			if (upErr) {
-				error = upErr.message;
-				session.error = upErr.message;
-				return;
-			}
-			node = {
-				...node,
-				model: toSolve,
-				result: res.result,
-				solver_meta: res.solver_meta
-			};
-			session.hydrate({
-				model: toSolve,
-				result: res.result,
-				activeTab: session.activeTab,
-				includeSensitivity: session.includeSensitivity
+	async function onVerifyReport(report: VerifyReport) {
+		if (!report.anyMismatch || !node) return;
+		const rows = [];
+		if (report.root && !report.root.diff.match) {
+			rows.push({
+				solve_node_id: node.id,
+				method: 'lp',
+				label: 'root',
+				native_z: report.root.native.result?.Z ?? null,
+				library_z: report.root.library.result?.Z ?? null,
+				max_abs_dx: report.root.diff.maxAbsDx
 			});
+		}
+		for (const item of report.items) {
+			if (item.diff.match) continue;
+			rows.push({
+				solve_node_id: node.id,
+				method: 'lp',
+				label: item.label,
+				native_z: item.native.result?.Z ?? null,
+				library_z: item.library.result?.Z ?? null,
+				max_abs_dx: item.diff.maxAbsDx
+			});
+		}
+		await logSolverMismatches(rows);
+	}
 
-			if (session.includeSensitivity) {
-				const wiOk = await runWhatIfPack();
+	async function doSolve(cloud = false) {
+		if (!node || !session.model || !session.methodReady) return;
+		error = '';
+		const cycle = await session.runSolveCycle(taskTransport, {
+			cloud,
+			afterSolve: async ({ model, result, response }) => {
+				const ok = await persistModel(model);
+				if (!ok) return false;
+				const { error: upErr } = await supabase
+					.from('solve_nodes')
+					.update({
+						model,
+						result: result ?? null,
+						solver_meta: response.solver_meta,
+						updated_at: new Date().toISOString()
+					})
+					.eq('id', node!.id);
+				if (upErr) {
+					error = upErr.message;
+					session.error = upErr.message;
+					return false;
+				}
+				node = {
+					...node!,
+					model,
+					result: result ?? null,
+					solver_meta: response.solver_meta
+				};
+				return true;
+			},
+			onVerify: onVerifyReport
+		});
+		if (!cycle) {
+			if (session.error) error = session.error;
+			return;
+		}
+
+		if (session.includeSensitivity) {
+			if (cycle.mutationsResponse?.status === 'done') {
+				const wiOk = await persistSensitivityKids(cycle.mutationsResponse);
 				if (!wiOk) return;
 				await load();
-			} else if (whatIfChildren.some((c) => !c.deleted_at)) {
-				// Model/result changed — archive stale sensitivity kids.
-				if (!(await softDeleteActiveSensitivity())) return;
-				await load();
+			} else if (!cycle.mutationsResponse) {
+				// Sensitivity enabled but no mutation families → archive stale kids.
+				if (whatIfChildren.some((c) => !c.deleted_at)) {
+					if (!(await softDeleteActiveSensitivity())) return;
+					await load();
+				}
 			}
-		} catch (e) {
-			const msg = e instanceof Error ? e.message : String(e);
-			error = msg;
-			session.error = msg;
-		} finally {
-			session.busy = false;
+		} else if (whatIfChildren.some((c) => !c.deleted_at)) {
+			if (!(await softDeleteActiveSensitivity())) return;
+			await load();
 		}
 	}
 
@@ -709,6 +756,7 @@
 			<SolveWorkspace
 				{session}
 				{solverLibrary}
+				showCloudSplit
 				whatIfRows={whatIfRows}
 				whatIfGenerationIndex={genIndex}
 				whatIfGenerationCount={generations.length || 1}
@@ -716,7 +764,8 @@
 				whatIfArchiveHint={whatIfArchiveHint}
 				onModelChange={onModelChange}
 				onWhatIfChange={updateWhatIf}
-				onSolve={doSolve}
+				onSolve={() => void doSolve(false)}
+				onSolveCloud={() => void doSolve(true)}
 			>
 				{#snippet planExtras()}
 					<NodeComments nodeId={node!.id} scope="plan" />

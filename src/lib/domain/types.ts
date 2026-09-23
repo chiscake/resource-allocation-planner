@@ -107,11 +107,18 @@ export interface SolverMeta {
 
 /** Flexible per-method viz payload (in-memory only; not persisted). */
 export type SimplexTraceFrame = {
-  /** Tableau / reduced costs / basis labels — shape filled by native LP later. */
+  /** Full tableau rows (constraints + objective); last column is RHS. */
   matrix?: number[][];
   reducedCosts?: number[];
   basis?: string[];
   note?: string;
+  phase?: 1 | 2;
+  Z?: number;
+  colLabels?: string[];
+  rowLabels?: string[];
+  entering?: string;
+  leaving?: string;
+  problem?: "primal" | "dual";
 };
 
 export type GaGenerationSnapshot = {
@@ -129,7 +136,13 @@ export type IpmTraceFrame = {
 };
 
 export type SolveTrace =
-  | { method: "lp"; frames: SimplexTraceFrame[] }
+  | {
+      method: "lp";
+      /** Primal simplex frames. */
+      frames: SimplexTraceFrame[];
+      /** Dual simplex frames (shadow-price solve). */
+      dual_frames?: SimplexTraceFrame[];
+    }
   | { method: "ga"; generations: GaGenerationSnapshot[] }
   | { method: "ipm"; frames: IpmTraceFrame[] };
 

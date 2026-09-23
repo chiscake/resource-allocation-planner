@@ -174,6 +174,22 @@ Fork: корень+дети; при org у источника — модалка
 
 ---
 
+## `solver_mismatch_events`
+
+Узкий лог расхождений native vs library (без jsonb). Пишется клиентом после фоновой сверки.
+
+| Поле | Смысл |
+| ---- | ----- |
+| `actor_id` | кто считал |
+| `solve_node_id` | корень (nullable) |
+| `method` | обычно `lp` |
+| `label` | `root` или label мутации |
+| `native_z` / `library_z` / `max_abs_dx` | числа |
+
+RLS: select/insert своих; app-admin — все. UI-браузера нет (alert + console).
+
+---
+
 ## `audit_events` (без jsonb)
 
 Фиксированные колонки, **без `payload jsonb`**, чтобы не раздувать БД.

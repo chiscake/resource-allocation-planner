@@ -44,7 +44,7 @@ resource-allocation-planner/
 │   │   ├── api/solve.ts         # Edge or local transport (+ method + engine + local fallback)
 │   │   ├── db/                  # supabase, guest, audit, soft-delete, task-draft, template-uses
 │   │   ├── chrome/              # nav/drawer chrome state
-│   │   ├── components/          # VenueToggle + chrome/ (AppHeader, DevQuickLoginBar, …)
+│   │   ├── components/          # chrome/ (AppHeader, DevQuickLoginBar, …) + model/
 │   │   ├── i18n/                # ru
 │   │   ├── devQuickLogin.ts     # seed accounts for bottom quick-login bar
 │   │   └── platform.ts
@@ -133,6 +133,7 @@ resource-allocation-planner/
 | LP model + schema_version | `src/lib/domain/`         |
 | solve / run_mutations     | `src/lib/solver/` + Edge  |
 | Methods `lp` / `ipm` / `ga` × `engine` | `src/lib/solver/` (`contract`, `registry`, `run`, `methods/*`); Edge `_shared/solver/` |
+| Native LP (two-phase simplex + traces) | `src/lib/solver/methods/lp/simplex.ts` + `native.ts` (Edge mirror under `_shared/solver/methods/lp/`) |
 | Plan rounding (UI post)   | `src/lib/display/roundPlan.ts` + `roundPref.ts` |
 | Compute venue             | `src/lib/solver/venue.ts` |
 | Guest slot                | `src/lib/db/guest.ts`     |

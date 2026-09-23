@@ -1,11 +1,14 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import type { SolveResult } from '$lib/domain';
+	import type { SolveResult, SolveTrace } from '$lib/domain';
+	import type { VerifyReport } from '$lib/solver/verify';
 	import { setRoundPlanPreference } from '$lib/display';
 	import { t } from '$lib/i18n';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Badge from '$lib/components/ui/Badge.svelte';
 	import { formatPlanNumber } from './format-plan-number';
+	import SimplexStepsPanel from './SimplexStepsPanel.svelte';
+	import LibraryVerifyPanel from './LibraryVerifyPanel.svelte';
 
 	const ZERO_EPS = 1e-9;
 
@@ -16,6 +19,10 @@
 		resourceOrder = undefined,
 		solverLibrary = null,
 		showRoundToggle = true,
+		trace = null,
+		stepsAvailable = false,
+		verifyReport = null,
+		onRequestSteps,
 		children
 	}: {
 		/** Already display-rounded via maybeRoundPlan when checkbox is on. */
@@ -28,9 +35,16 @@
 		solverLibrary?: string | null;
 		/** Hide round checkbox (e.g. compare second column shares bind). */
 		showRoundToggle?: boolean;
+		trace?: SolveTrace | null;
+		stepsAvailable?: boolean;
+		verifyReport?: VerifyReport | null;
+		/** Called once when user opens the steps details (parent may re-fetch native trace). */
+		onRequestSteps?: () => void;
 		/** Authenticated: result comments, etc. */
 		children?: Snippet;
 	} = $props();
+
+	let stepsRequested = $state(false);
 
 	const planEntries = $derived.by(() => {
 		const keys = productOrder?.length ? productOrder : Object.keys(result.x);
@@ -64,6 +78,13 @@
 	function onRoundToggle(checked: boolean) {
 		roundPlan = checked;
 		setRoundPlanPreference(checked);
+	}
+
+	function onStepsToggle(e: Event) {
+		const el = e.currentTarget as HTMLDetailsElement;
+		if (!el.open || stepsRequested) return;
+		stepsRequested = true;
+		onRequestSteps?.();
 	}
 </script>
 
@@ -190,6 +211,21 @@
 			</table>
 		</div>
 	{/if}
+
+	{#if stepsAvailable}
+		<details class="mt-6" ontoggle={onStepsToggle}>
+			<summary
+				class="cursor-pointer list-none text-sm font-medium text-text underline-offset-2 hover:underline [&::-webkit-details-marker]:hidden"
+			>
+				{t('solveDetails')}
+			</summary>
+			<div class="mt-3">
+				<SimplexStepsPanel {trace} />
+			</div>
+		</details>
+	{/if}
+
+	<LibraryVerifyPanel report={verifyReport} />
 
 	{#if children}
 		<div class="mt-6 border-t border-border pt-4">

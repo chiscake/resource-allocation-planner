@@ -5,6 +5,8 @@ export * from "./run";
 export * from "./streaming";
 export * from "./mutations";
 export * from "./venue";
+export * from "./mode";
+export * from "./verify";
 export * from "./shared/resultBuild";
 export * from "./shared/lpDuals";
 export * from "./methods/lp";

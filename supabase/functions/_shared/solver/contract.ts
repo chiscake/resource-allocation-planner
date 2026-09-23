@@ -1,4 +1,4 @@
-import type { Model, SolveEngine, SolveMethod, SolveResult, SolveTrace } from '../types.ts';
+import type { Model, SolveEngine, SolveMethod, SolveResult, SolveTrace } from './types.ts';
 
 export type TraceSink = (trace: SolveTrace) => void;
 

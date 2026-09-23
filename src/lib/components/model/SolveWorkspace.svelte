@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import type { Model } from '$lib/domain';
+	import { solveLocal } from '$lib/solver';
 	import { t } from '$lib/i18n';
 	import Card from '$lib/components/ui/Card.svelte';
 	import LpModelMatrix from './LpModelMatrix.svelte';
@@ -13,6 +14,7 @@
 	let {
 		session,
 		showLoginCta = false,
+		showCloudSplit = false,
 		compact = false,
 		solverLibrary = null,
 		matrixFooter,
@@ -26,10 +28,13 @@
 		whatIfArchiveHint,
 		onModelChange,
 		onWhatIfChange,
-		onSolve
+		onSolve,
+		onSolveCloud
 	}: {
 		session: SolveSession;
 		showLoginCta?: boolean;
+		/** Authenticated: fused local / cloud solve control. */
+		showCloudSplit?: boolean;
 		compact?: boolean;
 		solverLibrary?: string | null;
 		/** Below solve controls inside the matrix card (e.g. draft hint). */
@@ -48,10 +53,17 @@
 		onModelChange: (next: Model) => void;
 		onWhatIfChange: (field: Parameters<SolveSession['updateWhatIf']>[0], raw: string) => void;
 		onSolve: () => void;
+		onSolveCloud?: () => void;
 	} = $props();
 
 	const model = $derived(session.model);
 	const rows = $derived(whatIfRows ?? session.whatIfItems);
+
+	function onRequestSteps() {
+		if (session.lastTrace || !session.model) return;
+		const res = solveLocal(session.model, 'local', 0, 'lp', 'native');
+		session.lastTrace = res.trace ?? null;
+	}
 </script>
 
 {#if model}
@@ -76,8 +88,10 @@
 					}
 					busy={session.busy}
 					{showLoginCta}
+					{showCloudSplit}
 					{onWhatIfChange}
 					{onSolve}
+					{onSolveCloud}
 				/>
 			</div>
 			{#if matrixFooter}
@@ -101,6 +115,10 @@
 					productOrder={model.products}
 					resourceOrder={model.resources}
 					{solverLibrary}
+					trace={session.lastTrace}
+					stepsAvailable={session.stepsAvailable}
+					verifyReport={session.verifyReport}
+					{onRequestSteps}
 				>
 					{#if resultExtras}
 						{@render resultExtras()}

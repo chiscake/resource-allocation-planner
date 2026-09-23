@@ -21,8 +21,12 @@ const REGISTRY: Record<
   },
 };
 
-/** Calc default: library when registered, else native. */
+/**
+ * Calc default: LP → native (library used for verify / cloud one-shot).
+ * Other methods → library if registered, else native.
+ */
 export function defaultEngine(method: SolveMethod): SolveEngine {
+  if (method === "lp") return "native";
   const slot = REGISTRY[method];
   if (slot.library) return "library";
   return "native";

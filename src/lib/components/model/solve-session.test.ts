@@ -1,11 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import {
+	applyMutation,
+	buildDefaultMutations,
+	buildWhatIfRowData,
+	createTask13Model
+} from '$lib/domain';
+import { solveLocal, runMutationsLocal } from '$lib/solver';
+import {
 	inputToPct,
 	solveMethodToTab,
 	tabToSolveMethod,
 	whatIfRowsFromMutations
 } from './solve-session.svelte';
-import type { RunMutationsResponse } from '$lib/domain';
 
 describe('solve-session helpers', () => {
 	it('inputToPct maps percent text to fraction and blank to null', () => {
@@ -26,34 +32,67 @@ describe('solve-session helpers', () => {
 		expect(solveMethodToTab('ga')).toBe('ga');
 	});
 
-	it('whatIfRowsFromMutations maps labels and Z', () => {
-		const pack = {
-			status: 'done',
-			solver_meta: { venue: 'local', library: 'x', duration_ms: 1 },
-			items: [
-				{
-					mutation: { kind: 'resource_change', target: 'A', delta: 0.1, label: 'A +10%' },
-					model: {} as never,
-					response: {
-						status: 'done',
-						result: { Z: 12.5 } as never,
-						solver_meta: { venue: 'local', library: 'x', duration_ms: 1 }
-					}
-				},
-				{
-					mutation: { kind: 'price_change', target: 'P', delta: -0.1 },
-					model: {} as never,
-					response: {
-						status: 'done',
-						solver_meta: { venue: 'local', library: 'x', duration_ms: 1 }
-					}
-				}
-			]
-		} as RunMutationsResponse;
+	it('whatIfRowsFromMutations includes shadow metrics for Task 13 pack', () => {
+		const model = createTask13Model();
+		const base = solveLocal(model, 'local', 0, 'lp', 'native');
+		expect(base.status).toBe('done');
+		const pack = runMutationsLocal(
+			model,
+			buildDefaultMutations(model),
+			'local',
+			'lp',
+			'native'
+		);
+		expect(pack.status).toBe('done');
+		const rows = whatIfRowsFromMutations(pack, model, base.result);
 
-		const rows = whatIfRowsFromMutations(pack);
-		expect(rows[0]).toEqual({ title: 'A +10%', Z: 12.5 });
-		expect(rows[1].title).toBe('price_change');
-		expect(rows[1].Z).toBeNaN();
+		const laborPlus = rows.find(
+			(r) =>
+				r.mutation.kind === 'resource_change' &&
+				r.mutation.target === 'Труд' &&
+				r.mutation.delta > 0
+		);
+		expect(laborPlus).toBeDefined();
+		expect(laborPlus!.shadowKind).toBe('resource');
+		expect(laborPlus!.shadowMetric).toBeGreaterThan(0);
+		expect(laborPlus!.plan['Частотомер']).toBeDefined();
+
+		const mod = rows.find(
+			(r) => r.mutation.kind === 'modernization' && r.mutation.target === 'Частотомер'
+		);
+		expect(mod).toBeDefined();
+		expect(mod!.shadowKind).toBe('modernization');
+		expect(mod!.shadowMetric).toBeCloseTo(mod!.deltaZ, 6);
+
+		const price = rows.find(
+			(r) => r.mutation.kind === 'price_change' && r.mutation.target === 'Генератор'
+		);
+		expect(price).toBeDefined();
+		expect(price!.shadowKind).toBe('none');
+		expect(price!.shadowMetric).toBeNull();
+		expect(Number.isFinite(price!.deltaZ)).toBe(true);
+	});
+});
+
+describe('buildWhatIfRowData', () => {
+	it('resource shadow comes from re-solved dual', () => {
+		const model = createTask13Model();
+		const base = solveLocal(model, 'local', 0, 'lp', 'native');
+		const mut = {
+			kind: 'resource_change' as const,
+			target: 'Труд',
+			delta: 0.1
+		};
+		const next = applyMutation(model, mut);
+		const res = solveLocal(next, 'local', 0, 'lp', 'native');
+		const row = buildWhatIfRowData({
+			base: model,
+			baseResult: base.result,
+			mutation: mut,
+			mutatedModel: next,
+			result: res.result
+		});
+		expect(row.shadowKind).toBe('resource');
+		expect(row.shadowMetric).toBeCloseTo(res.result!.shadow_prices['Труд'], 6);
 	});
 });

@@ -1,6 +1,28 @@
 import type { Model, Mutation } from "./types";
 import { SCHEMA_VERSION } from "./types";
 
+/** Signed percent for labels, e.g. +10% / −15%. */
+export function formatMutationDeltaPct(delta: number): string {
+  const pct = Math.round(Math.abs(delta) * 100);
+  const sign = delta >= 0 ? "+" : "−";
+  return `${sign}${pct}%`;
+}
+
+/** End-user mutation title (RU). Kept here so DB titles match the sensitivity table. */
+export function formatMutationLabel(mutation: Mutation): string {
+  const d = formatMutationDeltaPct(mutation.delta);
+  switch (mutation.kind) {
+    case "resource_change":
+      return `Запас: ${mutation.target} ${d}`;
+    case "modernization":
+      return `Расход: ${mutation.target} ${d}`;
+    case "price_change":
+      return `Цена: ${mutation.target} ${d}`;
+    default:
+      return mutation.label ?? mutation.kind;
+  }
+}
+
 export function assertSchemaVersion(model: Model): void {
   if (model.schema_version !== SCHEMA_VERSION) {
     throw new Error(`Unsupported schema_version ${model.schema_version}`);
@@ -66,44 +88,44 @@ export function buildDefaultMutations(model: Model): Mutation[] {
 
   if (activePct(rp)) {
     for (const r of model.resources) {
-      out.push({
+      const plus: Mutation = {
         kind: "resource_change",
         target: r,
         delta: rp,
-        label: `${r} +${rp * 100}%`,
-      });
-      out.push({
+      };
+      const minus: Mutation = {
         kind: "resource_change",
         target: r,
         delta: -rp,
-        label: `${r} -${rp * 100}%`,
-      });
+      };
+      out.push({ ...plus, label: formatMutationLabel(plus) });
+      out.push({ ...minus, label: formatMutationLabel(minus) });
     }
   }
   if (activePct(mp)) {
     for (const p of model.products) {
-      out.push({
+      const m: Mutation = {
         kind: "modernization",
         target: p,
         delta: -mp,
-        label: `${p} A -${mp * 100}%`,
-      });
+      };
+      out.push({ ...m, label: formatMutationLabel(m) });
     }
   }
   if (activePct(pp)) {
     for (const p of model.products) {
-      out.push({
+      const plus: Mutation = {
         kind: "price_change",
         target: p,
         delta: pp,
-        label: `${p} c +${pp * 100}%`,
-      });
-      out.push({
+      };
+      const minus: Mutation = {
         kind: "price_change",
         target: p,
         delta: -pp,
-        label: `${p} c -${pp * 100}%`,
-      });
+      };
+      out.push({ ...plus, label: formatMutationLabel(plus) });
+      out.push({ ...minus, label: formatMutationLabel(minus) });
     }
   }
   return out;

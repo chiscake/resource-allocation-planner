@@ -7,8 +7,44 @@
 	import SolveWorkspace from '$lib/components/model/SolveWorkspace.svelte';
 	import {
 		createSolveSession,
-		type SolveTransport
+		type SolveTransport,
+		type WhatIfRow
 	} from '$lib/components/model/solve-session.svelte';
+	import type { Mutation } from '$lib/domain';
+
+	function asWhatIfRows(items: GuestWhatIfRow[] | undefined): WhatIfRow[] {
+		if (!items?.length) return [];
+		const out: WhatIfRow[] = [];
+		for (const raw of items) {
+			const m = raw.mutation as Mutation | undefined;
+			const model = raw.mutatedModel as WhatIfRow['mutatedModel'] | undefined;
+			const plan = raw.plan as Record<string, number> | undefined;
+			if (!m || !model || !plan) continue;
+			out.push({
+				title: String(raw.title ?? ''),
+				Z: typeof raw.Z === 'number' ? raw.Z : Number.NaN,
+				baseZ: typeof raw.baseZ === 'number' ? raw.baseZ : Number.NaN,
+				deltaZ: typeof raw.deltaZ === 'number' ? raw.deltaZ : Number.NaN,
+				mutation: m,
+				mutatedModel: model,
+				before: typeof raw.before === 'string' ? raw.before : '—',
+				after: typeof raw.after === 'string' ? raw.after : '—',
+				plan,
+				shadowMetric:
+					typeof raw.shadowMetric === 'number' || raw.shadowMetric === null
+						? (raw.shadowMetric as number | null)
+						: null,
+				shadowKind:
+					raw.shadowKind === 'resource' || raw.shadowKind === 'modernization'
+						? raw.shadowKind
+						: 'none',
+				criticalResources: Array.isArray(raw.criticalResources)
+					? (raw.criticalResources as string[])
+					: []
+			});
+		}
+		return out;
+	}
 
 	let {
 		showLoginCta = true,
@@ -25,9 +61,10 @@
 	const session = createSolveSession();
 
 	const localTransport: SolveTransport = {
-		solve: async (model, method) => solveLocal(model, 'local', 0, method),
-		runMutations: async (model, mutations, method) =>
-			runMutationsLocal(model, mutations, 'local', method)
+		solve: async (model, method, opts) =>
+			solveLocal(model, 'local', 0, method, opts?.engine),
+		runMutations: async (model, mutations, method, opts) =>
+			runMutationsLocal(model, mutations, 'local', method, opts?.engine)
 	};
 
 	function persist() {
@@ -49,7 +86,7 @@
 			session.hydrate({
 				model: guest.model as Model,
 				result: (guest.result as SolveResult | undefined) ?? null,
-				whatIfItems: guest.what_if_items ?? []
+				whatIfItems: asWhatIfRows(guest.what_if_items)
 			});
 			return;
 		}

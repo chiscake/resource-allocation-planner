@@ -23,8 +23,22 @@ export interface SolveResult {
 	feasible: boolean;
 }
 
+export type SimplexTraceFrame = {
+	matrix?: number[][];
+	reducedCosts?: number[];
+	basis?: string[];
+	note?: string;
+	phase?: 1 | 2;
+	Z?: number;
+	colLabels?: string[];
+	rowLabels?: string[];
+	entering?: string;
+	leaving?: string;
+	problem?: 'primal' | 'dual';
+};
+
 export type SolveTrace =
-	| { method: 'lp'; frames: unknown[] }
+	| { method: 'lp'; frames: SimplexTraceFrame[]; dual_frames?: SimplexTraceFrame[] }
 	| { method: 'ga'; generations: unknown[] }
 	| { method: 'ipm'; frames: unknown[] };
 

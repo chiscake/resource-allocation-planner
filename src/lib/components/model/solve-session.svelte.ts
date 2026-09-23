@@ -1,5 +1,6 @@
 import {
 	buildDefaultMutations,
+	buildWhatIfRowData,
 	cloneModel,
 	type Model,
 	type Mutation,
@@ -7,14 +8,20 @@ import {
 	type SolveMethod,
 	type SolveResponse,
 	type SolveResult,
-	type WhatIfDefaults
+	type SolveTrace,
+	type WhatIfDefaults,
+	type WhatIfRowData
 } from '$lib/domain';
 import { getRoundPlanPreference, maybeRoundPlan } from '$lib/display';
 import { modelSourceKey } from '$lib/components/model/lp-tableau';
+import { resolveSolveMode } from '$lib/solver/mode';
+import { verifyAgainstLibrary, type VerifyReport } from '$lib/solver/verify';
+import { t } from '$lib/i18n';
 
 export type SolveTabId = 'plan' | 'ipm' | 'ga' | '4d';
 
-export type WhatIfRow = { title: string; Z: number };
+/** Sensitivity table row (Task 13 а/б/в fields). */
+export type WhatIfRow = WhatIfRowData;
 
 /** Empty/whitespace → null (omit family). Valid number → fraction. */
 export function inputToPct(s: string): number | null {
@@ -36,19 +43,38 @@ export function solveMethodToTab(method: SolveMethod): SolveTabId {
 	return 'plan';
 }
 
-export function whatIfRowsFromMutations(pack: RunMutationsResponse): WhatIfRow[] {
-	return pack.items.map((item) => ({
-		title: item.mutation.label ?? item.mutation.kind,
-		Z: item.response.result?.Z ?? Number.NaN
-	}));
+export function whatIfRowsFromMutations(
+	pack: RunMutationsResponse,
+	base: Model,
+	baseResult?: SolveResult | null
+): WhatIfRow[] {
+	return pack.items.map((item) =>
+		buildWhatIfRowData({
+			base,
+			baseResult,
+			mutation: item.mutation,
+			mutatedModel: item.model,
+			result: item.response.result ?? null
+		})
+	);
 }
 
+export type SolveTransportOpts = {
+	engine?: import('$lib/domain').SolveEngine;
+	cloud?: boolean;
+};
+
 export type SolveTransport = {
-	solve: (model: Model, method: SolveMethod) => Promise<SolveResponse>;
+	solve: (
+		model: Model,
+		method: SolveMethod,
+		opts?: SolveTransportOpts
+	) => Promise<SolveResponse>;
 	runMutations: (
 		model: Model,
 		mutations: Mutation[],
-		method: SolveMethod
+		method: SolveMethod,
+		opts?: SolveTransportOpts
 	) => Promise<RunMutationsResponse>;
 };
 
@@ -57,6 +83,7 @@ export type AfterSolveCtx = {
 	result: SolveResult | null;
 	response: SolveResponse;
 	method: SolveMethod;
+	cloud: boolean;
 };
 
 export type SolveCycleResult = {
@@ -66,6 +93,8 @@ export type SolveCycleResult = {
 	whatIfItems: WhatIfRow[];
 	mutationsResponse: RunMutationsResponse | null;
 	method: SolveMethod;
+	cloud: boolean;
+	verifyReport: VerifyReport | null;
 };
 
 export type SolveSession = ReturnType<typeof createSolveSession>;
@@ -89,11 +118,19 @@ export function createSolveSession(init?: {
 	let model = $state<Model | null>(init?.model ?? null);
 	let result = $state<SolveResult | null>(init?.result ?? null);
 	let whatIfItems = $state<WhatIfRow[]>([]);
+	let lastResponse = $state<SolveResponse | null>(null);
+	let lastTrace = $state<SolveTrace | null>(null);
+	let verifyReport = $state<VerifyReport | null>(null);
+	/** True when last successful solve was cloud one-shot (no steps / no verify). */
+	let lastWasCloud = $state(false);
 
 	const solveMethod = $derived(tabToSolveMethod(activeTab));
 	const methodReady = $derived(activeTab !== '4d');
 	const displayResult = $derived(
 		result && model ? maybeRoundPlan(model, result, roundPlan) : null
+	);
+	const stepsAvailable = $derived(
+		!lastWasCloud && solveMethod === 'lp' && result != null
 	);
 
 	function loadRoundPref() {
@@ -108,6 +145,10 @@ export function createSolveSession(init?: {
 		if (clear && nextKey !== prevKey) {
 			result = null;
 			whatIfItems = [];
+			lastResponse = null;
+			lastTrace = null;
+			verifyReport = null;
+			lastWasCloud = false;
 		}
 	}
 
@@ -127,22 +168,41 @@ export function createSolveSession(init?: {
 		activeTab?: string;
 		includeSensitivity?: boolean;
 		whatIfItems?: WhatIfRow[];
+		lastResponse?: SolveResponse | null;
+		verifyReport?: VerifyReport | null;
+		lastWasCloud?: boolean;
 	}) {
 		model = cloneModel(next.model);
 		result = next.result ?? null;
 		if (next.activeTab != null) activeTab = next.activeTab;
 		if (next.includeSensitivity != null) includeSensitivity = next.includeSensitivity;
 		whatIfItems = next.whatIfItems ?? [];
+		lastResponse = next.lastResponse ?? null;
+		lastTrace = next.lastResponse?.trace ?? null;
+		verifyReport = next.verifyReport ?? null;
+		lastWasCloud = next.lastWasCloud ?? false;
+	}
+
+	function applyVerify(report: VerifyReport) {
+		verifyReport = report;
+		if (!report.anyMismatch) return;
+		console.warn('[solver_mismatch] native vs library', report);
+		if (typeof alert === 'function') {
+			alert(t('solverMismatchAlert'));
+		}
 	}
 
 	/**
 	 * Primary solve + optional sensitivity pack.
 	 * `afterSolve`: return `false` to skip mutations (and treat as abort for caller).
+	 * `cloud`: one-shot Edge / library path (LP).
 	 */
 	async function runSolveCycle(
 		transport: SolveTransport,
 		opts?: {
 			afterSolve?: (ctx: AfterSolveCtx) => Promise<boolean | void>;
+			cloud?: boolean;
+			onVerify?: (report: VerifyReport) => void | Promise<void>;
 		}
 	): Promise<SolveCycleResult | null> {
 		if (!model || busy || !methodReady) return null;
@@ -151,17 +211,29 @@ export function createSolveSession(init?: {
 		try {
 			const snapshot = $state.snapshot(model);
 			const method = tabToSolveMethod(activeTab);
-			const response = await transport.solve(snapshot, method);
+			const cloud = opts?.cloud === true;
+			const mode = resolveSolveMode(method, cloud);
+			const transportOpts: SolveTransportOpts = {
+				engine: mode.engine,
+				cloud
+			};
+
+			const response = await transport.solve(snapshot, method, transportOpts);
 			model = snapshot;
 			result = response.result ?? null;
+			lastResponse = response;
+			lastTrace = response.trace ?? null;
+			lastWasCloud = cloud;
 			whatIfItems = [];
+			verifyReport = null;
 			solveEpoch += 1;
 
 			const after = await opts?.afterSolve?.({
 				model: snapshot,
 				result: response.result ?? null,
 				response,
-				method
+				method,
+				cloud
 			});
 			if (after === false) {
 				return {
@@ -170,7 +242,9 @@ export function createSolveSession(init?: {
 					response,
 					whatIfItems: [],
 					mutationsResponse: null,
-					method
+					method,
+					cloud,
+					verifyReport: null
 				};
 			}
 
@@ -178,9 +252,18 @@ export function createSolveSession(init?: {
 			if (response.status === 'done' && includeSensitivity) {
 				const mutations = buildDefaultMutations(snapshot);
 				if (mutations.length > 0) {
-					mutationsResponse = await transport.runMutations(snapshot, mutations, method);
+					mutationsResponse = await transport.runMutations(
+						snapshot,
+						mutations,
+						method,
+						transportOpts
+					);
 					if (mutationsResponse.status === 'done') {
-						whatIfItems = whatIfRowsFromMutations(mutationsResponse);
+						whatIfItems = whatIfRowsFromMutations(
+							mutationsResponse,
+							snapshot,
+							response.result ?? null
+						);
 					} else {
 						error =
 							mutationsResponse.solver_meta.rejected_reason ?? mutationsResponse.status;
@@ -190,13 +273,32 @@ export function createSolveSession(init?: {
 				error = response.solver_meta.rejected_reason ?? response.status;
 			}
 
+			let report: VerifyReport | null = null;
+			if (
+				!cloud &&
+				method === 'lp' &&
+				response.status === 'done' &&
+				response.solver_meta.engine === 'native'
+			) {
+				report = verifyAgainstLibrary(
+					snapshot,
+					response,
+					method,
+					mutationsResponse?.status === 'done' ? mutationsResponse.items : undefined
+				);
+				applyVerify(report);
+				await opts?.onVerify?.(report);
+			}
+
 			return {
 				model: snapshot,
 				result: response.result ?? null,
 				response,
 				whatIfItems: [...whatIfItems],
 				mutationsResponse,
-				method
+				method,
+				cloud,
+				verifyReport: report
 			};
 		} catch (e) {
 			error = e instanceof Error ? e.message : String(e);
@@ -258,6 +360,27 @@ export function createSolveSession(init?: {
 		set whatIfItems(v: WhatIfRow[]) {
 			whatIfItems = v;
 		},
+		get lastResponse() {
+			return lastResponse;
+		},
+		get lastTrace() {
+			return lastTrace;
+		},
+		set lastTrace(v: SolveTrace | null) {
+			lastTrace = v;
+		},
+		get verifyReport() {
+			return verifyReport;
+		},
+		set verifyReport(v: VerifyReport | null) {
+			verifyReport = v;
+		},
+		get lastWasCloud() {
+			return lastWasCloud;
+		},
+		set lastWasCloud(v: boolean) {
+			lastWasCloud = v;
+		},
 		get solveMethod() {
 			return solveMethod;
 		},
@@ -267,10 +390,14 @@ export function createSolveSession(init?: {
 		get displayResult() {
 			return displayResult;
 		},
+		get stepsAvailable() {
+			return stepsAvailable;
+		},
 		loadRoundPref,
 		replaceModel,
 		updateWhatIf,
 		hydrate,
+		applyVerify,
 		runSolveCycle
 	};
 }

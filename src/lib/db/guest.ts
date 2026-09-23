@@ -6,6 +6,12 @@ const GUEST_KEY = "rap_guest_slot";
 export interface GuestWhatIfRow {
   title: string;
   Z: number;
+  before?: string;
+  after?: string;
+  deltaZ?: number;
+  shadowMetric?: number | null;
+  /** Partial rows from older guest slots are tolerated at hydrate. */
+  [key: string]: unknown;
 }
 
 export interface GuestSnapshot {

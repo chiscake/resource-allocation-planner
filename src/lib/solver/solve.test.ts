@@ -13,9 +13,9 @@ describe("solveLocal task13 (lp)", () => {
     const res = solveLocal(model, "local", 0, "lp");
     expect(res.status).toBe("done");
     expect(res.result).toBeDefined();
-    expect(res.solver_meta.library).toBe("javascript-lp-solver@local");
+    expect(res.solver_meta.library).toBe("simplex-native@local");
     expect(res.solver_meta.method).toBe("lp");
-    expect(res.solver_meta.engine).toBe("library");
+    expect(res.solver_meta.engine).toBe("native");
     expect(res.result!.Z).toBeCloseTo(150, 2);
     expect(res.result!.x["Частотомер"]).toBeCloseTo(30, 2);
     expect(res.result!.x["Генератор"]).toBeCloseTo(10, 2);
@@ -28,12 +28,22 @@ describe("solveLocal task13 (lp)", () => {
     expect(Math.abs(res.result!.x["Вольтметр"] ?? 0)).toBeLessThan(TOL);
   });
 
-  it("native LP stub rejects with not_implemented", () => {
+  it("native LP matches golden within 1e-6", () => {
     const model = createTask13Model();
     const res = solveLocal(model, "local", 0, "lp", "native");
-    expect(res.status).toBe("rejected_too_large");
+    expect(res.status).toBe("done");
     expect(res.solver_meta.engine).toBe("native");
-    expect(res.solver_meta.rejected_reason).toBe("not_implemented");
+    expect(res.solver_meta.library).toBe("simplex-native@local");
+    expect(res.result!.Z).toBeCloseTo(150, 5);
+    expect(res.result!.x["Частотомер"]).toBeCloseTo(30, 5);
+    expect(res.result!.x["Генератор"]).toBeCloseTo(10, 5);
+    expect(res.result!.shadow_prices["Труд"]).toBeCloseTo(1.333333, 4);
+    expect(res.result!.shadow_prices["Оборудование"]).toBeCloseTo(0.333333, 4);
+    expect(res.trace?.method).toBe("lp");
+    if (res.trace?.method === "lp") {
+      expect(res.trace.frames.length).toBeGreaterThan(0);
+      expect(res.trace.dual_frames?.length).toBeGreaterThan(0);
+    }
   });
 });
 

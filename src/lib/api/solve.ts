@@ -6,6 +6,7 @@ import {
 	isSolveMethod,
 	type Model,
 	type Mutation,
+	type ResolvedVenue,
 	type RunMutationsResponse,
 	type SolveEngine,
 	type SolveMethod,
@@ -13,15 +14,25 @@ import {
 } from '$lib/domain';
 import { supabase } from '$lib/db/supabase';
 
+export type SolveCallOpts = {
+	method?: SolveMethod;
+	engine?: SolveEngine;
+	/** One-shot Edge solve when true (requires session + online). */
+	cloud?: boolean;
+};
+
 async function edgePost<T>(path: string, body: unknown): Promise<T> {
 	const { data: session } = await supabase.auth.getSession();
 	const token = session.session?.access_token;
+	if (!token) {
+		throw new Error('auth_required_for_cloud');
+	}
 	const base = env.PUBLIC_SUPABASE_URL ?? 'http://127.0.0.1:54321';
 	const res = await fetch(`${base}/functions/v1/${path}`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json',
-			Authorization: token ? `Bearer ${token}` : '',
+			Authorization: `Bearer ${token}`,
 			apikey: env.PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? ''
 		},
 		body: JSON.stringify(body)
@@ -41,14 +52,23 @@ function normalizeEngine(engine?: SolveEngine): SolveEngine | undefined {
 	return isSolveEngine(engine) ? engine : undefined;
 }
 
+function venueFor(cloud?: boolean): ResolvedVenue {
+	return resolveVenue({ forceCloud: cloud === true });
+}
+
 export async function solveModel(
 	model: Model,
-	method: SolveMethod = 'lp',
-	engine?: SolveEngine
+	methodOrOpts: SolveMethod | SolveCallOpts = 'lp',
+	engine?: SolveEngine,
+	cloud?: boolean
 ): Promise<SolveResponse> {
-	const m = normalizeMethod(method);
-	const e = normalizeEngine(engine);
-	const venue = resolveVenue();
+	const opts: SolveCallOpts =
+		typeof methodOrOpts === 'string' || methodOrOpts == null
+			? { method: methodOrOpts as SolveMethod | undefined, engine, cloud }
+			: methodOrOpts;
+	const m = normalizeMethod(opts.method);
+	const e = normalizeEngine(opts.engine);
+	const venue = venueFor(opts.cloud);
 	if (venue === 'local') return solveLocal(model, 'local', 0, m, e);
 	try {
 		return await edgePost<SolveResponse>('solve', { model, method: m, engine: e });
@@ -60,12 +80,17 @@ export async function solveModel(
 export async function runMutations(
 	model: Model,
 	mutations: Mutation[],
-	method: SolveMethod = 'lp',
-	engine?: SolveEngine
+	methodOrOpts: SolveMethod | SolveCallOpts = 'lp',
+	engine?: SolveEngine,
+	cloud?: boolean
 ): Promise<RunMutationsResponse> {
-	const m = normalizeMethod(method);
-	const e = normalizeEngine(engine);
-	const venue = resolveVenue();
+	const opts: SolveCallOpts =
+		typeof methodOrOpts === 'string' || methodOrOpts == null
+			? { method: methodOrOpts as SolveMethod | undefined, engine, cloud }
+			: methodOrOpts;
+	const m = normalizeMethod(opts.method);
+	const e = normalizeEngine(opts.engine);
+	const venue = venueFor(opts.cloud);
 	if (venue === 'local') return runMutationsLocal(model, mutations, 'local', m, e);
 	try {
 		return await edgePost<RunMutationsResponse>('run_mutations', {

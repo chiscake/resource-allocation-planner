@@ -1,8 +1,6 @@
 <script lang="ts">
 	import { Menu, Bell, LogOut, LogIn } from '@lucide/svelte';
 	import { t } from '$lib/i18n';
-	import VenueToggle from '$lib/components/VenueToggle.svelte';
-	import { isTauri } from '$lib/platform';
 	import { chrome, toggleNav, openNotifications } from '$lib/chrome/chrome.svelte';
 
 	let {
@@ -49,10 +47,6 @@
 	</button>
 
 	<div class="ml-auto flex items-center gap-1">
-		{#if isTauri()}
-			<VenueToggle />
-		{/if}
-
 		<button
 			id="chrome-notifications-trigger"
 			type="button"

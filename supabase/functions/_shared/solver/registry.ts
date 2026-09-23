@@ -17,7 +17,9 @@ const REGISTRY: Record<SolveMethod, Partial<Record<SolveEngine, SolverEngine>>> 
 	}
 };
 
+/** LP calc default = native; cloud one-shot passes library explicitly. */
 export function defaultEngine(method: SolveMethod): SolveEngine {
+	if (method === 'lp') return 'native';
 	const slot = REGISTRY[method];
 	if (slot.library) return 'library';
 	return 'native';

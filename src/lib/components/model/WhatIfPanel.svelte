@@ -2,7 +2,7 @@
 	import { t } from '$lib/i18n';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
-	import { formatPlanNumber } from './format-plan-number';
+	import WhatIfTableBody from './WhatIfTableBody.svelte';
 	import type { WhatIfRow } from './solve-session.svelte';
 
 	let {
@@ -14,13 +14,10 @@
 		archiveHint
 	}: {
 		rows: WhatIfRow[];
-		/** 0-based; pager shown when generationCount > 1 */
 		generationIndex?: number;
 		generationCount?: number;
 		onGenerationChange?: (index: number) => void;
-		/** Shown when viewing the latest generation */
 		activeHint?: string;
-		/** Shown for archived generations (already localized) */
 		archiveHint?: string;
 	} = $props();
 
@@ -31,6 +28,18 @@
 				? (activeHint ?? t('generationActiveHint'))
 				: (archiveHint ?? '')
 			: null
+	);
+
+	/** Remount body when the row set / generation changes → clears multi-expand. */
+	const rowsFingerprint = $derived(
+		`${generationIndex}|` +
+			rows
+				.map((r, i) =>
+					r.mutation
+						? `${r.mutation.kind}:${r.mutation.target}:${r.mutation.delta}`
+						: `i:${i}:${r.title}`
+				)
+				.join(';')
 	);
 </script>
 
@@ -59,25 +68,9 @@
 		{#if hint}
 			<p class="mb-3 text-xs text-text-soft">{hint}</p>
 		{/if}
-		<div class="overflow-x-auto">
-			<table class="w-full text-left text-sm">
-				<thead>
-					<tr class="border-b border-border text-text-muted">
-						<th class="py-2 pr-3">{t('mutation')}</th>
-						<th class="py-2 text-right">Z</th>
-					</tr>
-				</thead>
-				<tbody>
-					{#each rows as row, i (`${row.title}-${i}`)}
-						<tr class="border-b border-border-soft">
-							<td class="py-2 pr-3">{row.title}</td>
-							<td class="py-2 text-right font-mono tabular-nums">
-								{Number.isFinite(row.Z) ? formatPlanNumber(row.Z) : '—'}
-							</td>
-						</tr>
-					{/each}
-				</tbody>
-			</table>
-		</div>
+
+		{#key rowsFingerprint}
+			<WhatIfTableBody {rows} />
+		{/key}
 	</Card>
 {/if}

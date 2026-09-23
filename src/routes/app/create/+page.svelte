@@ -16,6 +16,7 @@
 	} from '$lib/db/task-draft';
 	import { recordPublicTemplateUse } from '$lib/db/template-uses';
 	import { solveModel, runMutations } from '$lib/api/solve';
+	import { logSolverMismatches } from '$lib/db/solver-mismatch';
 	import { cloneModel, type Model } from '$lib/domain';
 	import { t } from '$lib/i18n';
 	import SolveWorkspace from '$lib/components/model/SolveWorkspace.svelte';
@@ -24,6 +25,7 @@
 		createSolveSession,
 		type SolveTransport
 	} from '$lib/components/model/solve-session.svelte';
+	import type { VerifyReport } from '$lib/solver/verify';
 
 	let title = $state(t('newTask'));
 	let draftHint = $state(true);
@@ -31,8 +33,14 @@
 	const session = createSolveSession();
 
 	const cloudTransport: SolveTransport = {
-		solve: (model, method) => solveModel(model, method),
-		runMutations: (model, mutations, method) => runMutations(model, mutations, method)
+		solve: (model, method, opts) =>
+			solveModel(model, { method, engine: opts?.engine, cloud: opts?.cloud }),
+		runMutations: (model, mutations, method, opts) =>
+			runMutations(model, mutations, {
+				method,
+				engine: opts?.engine,
+				cloud: opts?.cloud
+			})
 	};
 
 	function persistLocal() {
@@ -127,9 +135,10 @@
 		persistLocal();
 	}
 
-	async function doSolve() {
+	async function doSolve(cloud = false) {
 		let createdId: string | null = null;
 		const cycle = await session.runSolveCycle(cloudTransport, {
+			cloud,
 			afterSolve: async ({ model, result, response }) => {
 				const created = await createSolveNode(model, title.trim() || t('newTask'), {
 					result: result ?? null,
@@ -142,6 +151,32 @@
 				}
 				createdId = created.id;
 				return true;
+			},
+			onVerify: async (report: VerifyReport) => {
+				if (!report.anyMismatch || !createdId) return;
+				const rows = [];
+				if (report.root && !report.root.diff.match) {
+					rows.push({
+						solve_node_id: createdId,
+						method: 'lp',
+						label: 'root',
+						native_z: report.root.native.result?.Z ?? null,
+						library_z: report.root.library.result?.Z ?? null,
+						max_abs_dx: report.root.diff.maxAbsDx
+					});
+				}
+				for (const item of report.items) {
+					if (item.diff.match) continue;
+					rows.push({
+						solve_node_id: createdId,
+						method: 'lp',
+						label: item.label,
+						native_z: item.native.result?.Z ?? null,
+						library_z: item.library.result?.Z ?? null,
+						max_abs_dx: item.diff.maxAbsDx
+					});
+				}
+				await logSolverMismatches(rows);
 			}
 		});
 		if (!cycle || !createdId) return;
@@ -184,9 +219,11 @@
 
 		<SolveWorkspace
 			{session}
+			showCloudSplit
 			{onModelChange}
 			{onWhatIfChange}
-			onSolve={doSolve}
+			onSolve={() => void doSolve(false)}
+			onSolveCloud={() => void doSolve(true)}
 		>
 			{#snippet matrixFooter()}
 				<p class="mt-3 text-xs text-text-soft">{t('draftPersistOnSolve')}</p>
