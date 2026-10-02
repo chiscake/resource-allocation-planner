@@ -3,6 +3,7 @@ import {
 	type SolveEngine,
 	type SolveMethod
 } from '../_shared/solver/types.ts';
+import { parseSolveRunOptions } from '../_shared/solver/parseOptions.ts';
 import { runSolve } from '../_shared/solver/run.ts';
 
 const cors: Record<string, string> = {
@@ -33,11 +34,13 @@ Deno.serve(async (req) => {
 			model?: Model;
 			method?: unknown;
 			engine?: unknown;
+			options?: unknown;
 		};
 		if (!body.model) return json({ error: 'model required' }, 400);
 		const method: SolveMethod = isMethod(body.method) ? body.method : 'lp';
 		const engine = isEngine(body.engine) ? body.engine : undefined;
-		return json(runSolve(body.model, method, engine));
+		const options = parseSolveRunOptions(body.options);
+		return json(runSolve(body.model, method, engine, options));
 	} catch (e) {
 		return json({ error: e instanceof Error ? e.message : 'error' }, 500);
 	}

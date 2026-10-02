@@ -51,9 +51,14 @@ function captureFrame(
   leaving?: string,
 ): void {
   if (tab.frames.length >= MAX_FRAMES) return;
-  const { T, m, ncols, basis, colLabels, problem, phase } = tab;
+  const { T, m, ncols, basis, colLabels, problem, phase, nDecision } = tab;
   const Z = roundEps(T[m][ncols]);
   const reducedCosts = T[m].slice(0, ncols).map(roundEps);
+  const x = new Array(nDecision).fill(0);
+  for (let i = 0; i < m; i++) {
+    const bi = basis[i];
+    if (bi < nDecision) x[bi] = roundEps(T[i][ncols]);
+  }
   tab.frames.push({
     matrix: cloneMatrix(T).map((row) => row.map(roundEps)),
     reducedCosts,
@@ -69,6 +74,7 @@ function captureFrame(
     entering,
     leaving,
     problem,
+    x,
   });
 }
 

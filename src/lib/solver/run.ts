@@ -5,6 +5,7 @@ import {
   type SolveEngine,
   type SolveMethod,
   type SolveResponse,
+  type SolveRunOptions,
 } from "$lib/domain";
 import type { ResolvedVenue } from "$lib/domain/types";
 import {
@@ -54,7 +55,7 @@ function wrapOutcome(
       outcome.fail.hint,
     );
   }
-  const { result, trace, gap_vs_lp, hint } = outcome.value;
+  const { result, trace, gap_vs_lp, hint, provenance } = outcome.value;
   return {
     status: "done",
     result,
@@ -67,6 +68,9 @@ function wrapOutcome(
       duration_ms: performance.now() - started,
       gap_vs_lp,
       hint,
+      provenance:
+        provenance ??
+        ({ method, engine } as import("$lib/domain").SolveRunProvenance),
     },
   };
 }
@@ -79,6 +83,7 @@ function runEngine(
   engine: SolveEngine | undefined,
   started: number,
   stream?: TraceSink,
+  options?: SolveRunOptions,
 ): SolveResponse {
   assertSchemaVersion(model);
 
@@ -107,15 +112,15 @@ function runEngine(
     let outcome: EngineOutcome;
     if (stream) {
       if (resolved.solveStreaming) {
-        outcome = resolved.solveStreaming(model, stream);
+        outcome = resolved.solveStreaming(model, stream, options);
       } else {
-        outcome = resolved.solve(model);
+        outcome = resolved.solve(model, options);
         if (outcome.ok && outcome.value.trace) {
           stream(outcome.value.trace);
         }
       }
     } else {
-      outcome = resolved.solve(model);
+      outcome = resolved.solve(model, options);
     }
 
     if (performance.now() > deadline) {
@@ -139,6 +144,7 @@ export function solveLocal(
   bodyBytes = 0,
   method: SolveMethod = "lp",
   engine?: SolveEngine,
+  options?: SolveRunOptions,
 ): SolveResponse {
   return runEngine(
     model,
@@ -147,6 +153,8 @@ export function solveLocal(
     method,
     engine,
     performance.now(),
+    undefined,
+    options,
   );
 }
 
@@ -159,6 +167,7 @@ export function solveLocalStreaming(
     method?: SolveMethod;
     engine?: SolveEngine;
     onTrace?: TraceSink;
+    options?: SolveRunOptions;
   } = {},
 ): SolveResponse {
   const method = opts.method ?? "lp";
@@ -171,5 +180,6 @@ export function solveLocalStreaming(
     engine,
     performance.now(),
     opts.onTrace,
+    opts.options,
   );
 }

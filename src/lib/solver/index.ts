@@ -7,6 +7,8 @@ export * from "./mutations";
 export * from "./venue";
 export * from "./mode";
 export * from "./verify";
+export * from "./regenerate";
+export * from "./compare";
 export * from "./shared/resultBuild";
 export * from "./shared/lpDuals";
 export * from "./methods/lp";

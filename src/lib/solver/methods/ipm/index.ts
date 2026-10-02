@@ -10,6 +10,9 @@ export const ipmNativeEngine: SolverEngine = {
   solve(model) {
     const result = solveIpmModel(model);
     if (!result) return engineFail("ipm_failed");
-    return engineOk({ result });
+    return engineOk({
+      result,
+      provenance: { method: "ipm", engine: "native" },
+    });
   },
 };

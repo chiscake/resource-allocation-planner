@@ -12,6 +12,7 @@
 		class: className = '',
 		title,
 		'aria-label': ariaLabel,
+		'aria-expanded': ariaExpanded,
 		children
 	}: {
 		variant?: Variant;
@@ -22,6 +23,7 @@
 		class?: string;
 		title?: string;
 		'aria-label'?: string;
+		'aria-expanded'?: boolean | 'true' | 'false';
 		children?: Snippet;
 	} = $props();
 
@@ -42,11 +44,26 @@
 </script>
 
 {#if href}
-	<a {href} class={classes} {onclick} {title} aria-label={ariaLabel}>
+	<a
+		{href}
+		class={classes}
+		{onclick}
+		{title}
+		aria-label={ariaLabel}
+		aria-expanded={ariaExpanded}
+	>
 		{@render children?.()}
 	</a>
 {:else}
-	<button {type} {disabled} class={classes} {onclick} {title} aria-label={ariaLabel}>
+	<button
+		{type}
+		{disabled}
+		class={classes}
+		{onclick}
+		{title}
+		aria-label={ariaLabel}
+		aria-expanded={ariaExpanded}
+	>
 		{@render children?.()}
 	</button>
 {/if}

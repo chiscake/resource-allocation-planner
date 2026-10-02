@@ -8,17 +8,17 @@ Purpose: fast orientation for coding agents. Prefer pointers over copying rules 
 
 ## Read first
 
-| If you need…                                         | Open                                               |
-| ---------------------------------------------------- | -------------------------------------------------- |
-| Hard rules / overrides / migrations / schema_version | [`../AGENTS.md`](../AGENTS.md) (schema rule at **top**) |
-| Commit / push / Vercel / Supabase cloud workflow     | [`COMMIT_WORKFLOW.md`](COMMIT_WORKFLOW.md)         |
-| Tables, org/share/trash, RLS intent                  | [`data-model.md`](data-model.md)                   |
-| Design tokens / Cartesia UI                          | [`DESIGN.md`](DESIGN.md)                           |
-| Shipped status / scope + tree                        | [`../ROADMAP.md`](../ROADMAP.md)                   |
-| Post-MVP / deferred backlog                          | [`TODO-later.md`](TODO-later.md)                   |
+| If you need…                                         | Open                                                         |
+| ---------------------------------------------------- | ------------------------------------------------------------ |
+| Hard rules / overrides / migrations / schema_version | [`../AGENTS.md`](../AGENTS.md) (schema rule at **top**)      |
+| Commit / push / Vercel / Supabase cloud workflow     | [`COMMIT_WORKFLOW.md`](COMMIT_WORKFLOW.md)                   |
+| Tables, org/share/trash, RLS intent                  | [`data-model.md`](data-model.md)                             |
+| Design tokens / Cartesia UI                          | [`DESIGN.md`](DESIGN.md)                                     |
+| Shipped status / scope + tree                        | [`../ROADMAP.md`](../ROADMAP.md)                             |
+| Post-MVP / deferred backlog                          | [`TODO-later.md`](TODO-later.md)                             |
 | UI copy tone (RU end-user)                           | [`../AGENTS.md`](../AGENTS.md) + `.cursor/rules/ui-copy.mdc` |
-| Task 13 text                                         | [`course/assignment.md`](course/assignment.md)     |
-| Course formal requirements                           | [`course/requirements.md`](course/requirements.md) |
+| Task 13 text                                         | [`course/assignment.md`](course/assignment.md)               |
+| Course formal requirements                           | [`course/requirements.md`](course/requirements.md)           |
 
 Scratch only (not canon): `.tmp/task13_*.py/json`, `LP4DVisualizer.jsx`. Design canon: **`docs/DESIGN.md`**.
 
@@ -60,6 +60,7 @@ resource-allocation-planner/
 │           ├── task/[id]/      # solve (lp|ipm|ga), what-if ←i/N→, share/fork/org
 │           ├── templates/, public-templates/
 │           ├── compare/, trash/, org/, notifications/, admin/
+│           ├── test/            # scratch sandboxes (viz-3d, …); not product UX
 ├── supabase/
 │   ├── migrations/000…080       # 041_template_uses; 070_share_notify_rpc; 080_purge_cron
 │   ├── functions/               # solve, run_mutations, admin-create-user
@@ -104,51 +105,55 @@ resource-allocation-planner/
 | `/app/org`           | Org ids + feed; org_owner can hide others                               |
 | `/app/compare`       | Side-by-side Z/plan/duals; saved comparisons hard-delete                |
 | `/app/admin`         | List/create users (Edge); edit system template titles                   |
+| `/app/test`          | Scratch hub for control sandboxes (not product UX)                      |
+| `/app/test/viz-3d`   | 3D SceneCanvas sandbox (cube-as-ОДР demos, …)                           |
 | `/share/[token]`     | Public share (non-revoked link)                                         |
 
 ---
 
 ## Entrypoints
 
-| Concern     | Path / command                                                       |
-| ----------- | -------------------------------------------------------------------- |
-| Dev         | `pnpm dev` :5400                                                     |
-| Test        | `pnpm test`                                                          |
-| Check       | `pnpm check`                                                         |
-| Preflight   | `pnpm preflight` / `preflight:main` — before commit / promote        |
+| Concern     | Path / command                                                                             |
+| ----------- | ------------------------------------------------------------------------------------------ |
+| Dev         | `pnpm dev` :5400                                                                           |
+| Test        | `pnpm test`                                                                                |
+| Check       | `pnpm check`                                                                               |
+| Preflight   | `pnpm preflight` / `preflight:main` — before commit / promote                              |
 | Seed        | `pnpm seed:users` — admin@example.com, demo1/2/3@example.com / password123 (demo3: no org) |
-| Quick login | Bottom bar under `/app` (`DevQuickLoginBar`); flag `PUBLIC_DEV_QUICK_LOGIN` |
-| Cloud seed  | `pnpm seed:users:cloud` — same users against linked RAP project      |
-| Local stack | `pnpm db:reset` — start + reset + seed + Edge serve                  |
-| Installer   | `pnpm tauri:build` — desktop bundle (local only)                     |
-| Edge        | `solve`, `run_mutations`, `admin-create-user`                        |
-| Venue       | Web = cloud when online (fallback local); Tauri UI toggle            |
+| Quick login | Bottom bar under `/app` (`DevQuickLoginBar`); flag `PUBLIC_DEV_QUICK_LOGIN`                |
+| Cloud seed  | `pnpm seed:users:cloud` — same users against linked RAP project                            |
+| Local stack | `pnpm db:reset` — start + reset + seed + Edge serve                                        |
+| Installer   | `pnpm tauri:build` — desktop bundle (local only)                                           |
+| Edge        | `solve`, `run_mutations`, `admin-create-user`                                              |
+| Venue       | Web = cloud when online (fallback local); Tauri UI toggle                                  |
 
 ---
 
 ## Domain map
 
-| Concept                   | Where                     |
-| ------------------------- | ------------------------- |
-| LP model + schema_version | `src/lib/domain/`         |
-| solve / run_mutations     | `src/lib/solver/` + Edge  |
-| Methods `lp` / `ipm` / `ga` × `engine` | `src/lib/solver/` (`contract`, `registry`, `run`, `methods/*`); Edge `_shared/solver/` |
-| Native LP (two-phase simplex + traces) | `src/lib/solver/methods/lp/simplex.ts` + `native.ts` (Edge mirror under `_shared/solver/methods/lp/`) |
-| Plan rounding (UI post)   | `src/lib/display/roundPlan.ts` + `roundPref.ts` |
-| Compute venue             | `src/lib/solver/venue.ts` |
-| Guest slot                | `src/lib/db/guest.ts`     |
-| Audit writes              | `src/lib/db/audit.ts`     |
-| Soft-delete / restore     | `src/lib/db/soft-delete.ts` (+ toast undo: `src/lib/ui/toast-undo.ts`, optimistic list: `src/lib/ui/optimistic-delete.ts`) |
-| Task / template cards     | `TaskPreviewCard`, `TemplatePreviewCard`, `ScenarioCardGrid` |
-| Task org / share panels   | `OrgAttachPanel`, `SharePanel` |
-| Inline alerts             | `src/lib/components/ui/InlineAlert.svelte` |
-| Task draft (pre-solve)    | `src/lib/db/task-draft.ts` + `/app/create`                            |
-| Public template uses      | `src/lib/db/template-uses.ts`                                         |
-| Create / open solve node  | `src/lib/db/create-solve-node.ts`                                     |
-| UI kit (prefer these)     | `src/lib/components/ui/` — Button, Card, Input, Select, Modal, Tabs, Badge, PageHeader, EmptyState, CardIconButton, `matrix/` |
-| Model solve controls      | `src/lib/components/model/` — LpModelMatrix, PlanSolveControls, SolveResultPanel, SolveWorkspace, WhatIfPanel, `solve-session.svelte.ts` |
-| Toasts (`svelte-sonner`)  | `<Toaster />` in `src/routes/+layout.svelte` |
-| Cartesia tokens           | `src/app.css` `@theme`    |
+| Concept                                | Where                                                                                                                                    |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| LP model + schema_version              | `src/lib/domain/`                                                                                                                        |
+| solve / run_mutations                  | `src/lib/solver/` + Edge                                                                                                                 |
+| Methods `lp` / `ipm` / `ga` × `engine` | `src/lib/solver/` (`contract`, `registry`, `run`, `methods/*`); Edge `_shared/solver/`                                                   |
+| Native LP (two-phase simplex + traces) | `src/lib/solver/methods/lp/simplex.ts` + `native.ts` (Edge mirror under `_shared/solver/methods/lp/`)                                    |
+| Plan rounding (UI post)                | `src/lib/display/roundPlan.ts` + `roundPref.ts`                                                                                          |
+| Compute venue                          | `src/lib/solver/venue.ts`                                                                                                                |
+| Guest slot                             | `src/lib/db/guest.ts`                                                                                                                    |
+| Audit writes                           | `src/lib/db/audit.ts`                                                                                                                    |
+| Soft-delete / restore                  | `src/lib/db/soft-delete.ts` (+ toast undo: `src/lib/ui/toast-undo.ts`, optimistic list: `src/lib/ui/optimistic-delete.ts`)               |
+| Task / template cards                  | `TaskPreviewCard`, `TemplatePreviewCard`, `ScenarioCardGrid`                                                                             |
+| Task org / share panels                | `OrgAttachPanel`, `SharePanel`                                                                                                           |
+| Inline alerts                          | `src/lib/components/ui/InlineAlert.svelte`                                                                                               |
+| Task draft (pre-solve)                 | `src/lib/db/task-draft.ts` + `/app/create`                                                                                               |
+| Public template uses                   | `src/lib/db/template-uses.ts`                                                                                                            |
+| Create / open solve node               | `src/lib/db/create-solve-node.ts`                                                                                                        |
+| UI kit (prefer these)                  | `src/lib/components/ui/` — Button, Card, Input, Select, Modal, Tabs, Badge, PageHeader, EmptyState, CardIconButton, `matrix/`            |
+| Model solve controls                   | `src/lib/components/model/` — LpModelMatrix, PlanSolveControls, SolveResultPanel, SolveWorkspace, WhatIfPanel, `solve-session.svelte.ts` |
+| Geometry / GA details                  | `src/lib/components/model/visualization/` (GeometryPanel, SceneCanvas, ViewGizmo, adapters); `GaStepsPanel`, `MethodComparisonPanel`     |
+| GA presets / compare                   | `src/lib/solver/methods/ga/presets.ts`, `src/lib/solver/compare.ts`, `src/lib/solver/regenerate.ts`                                      |
+| Toasts (`svelte-sonner`)               | `<Toaster />` in `src/routes/+layout.svelte`                                                                                             |
+| Cartesia tokens                        | `src/app.css` `@theme`                                                                                                                   |
 
 ---
 

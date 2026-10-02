@@ -19,6 +19,7 @@ export type SolveCallOpts = {
 	engine?: SolveEngine;
 	/** One-shot Edge solve when true (requires session + online). */
 	cloud?: boolean;
+	options?: import('$lib/domain').SolveRunOptions;
 };
 
 async function edgePost<T>(path: string, body: unknown): Promise<T> {
@@ -69,11 +70,16 @@ export async function solveModel(
 	const m = normalizeMethod(opts.method);
 	const e = normalizeEngine(opts.engine);
 	const venue = venueFor(opts.cloud);
-	if (venue === 'local') return solveLocal(model, 'local', 0, m, e);
+	if (venue === 'local') return solveLocal(model, 'local', 0, m, e, opts.options);
 	try {
-		return await edgePost<SolveResponse>('solve', { model, method: m, engine: e });
+		return await edgePost<SolveResponse>('solve', {
+			model,
+			method: m,
+			engine: e,
+			options: opts.options
+		});
 	} catch {
-		return solveLocal(model, 'local', 0, m, e);
+		return solveLocal(model, 'local', 0, m, e, opts.options);
 	}
 }
 
@@ -91,15 +97,17 @@ export async function runMutations(
 	const m = normalizeMethod(opts.method);
 	const e = normalizeEngine(opts.engine);
 	const venue = venueFor(opts.cloud);
-	if (venue === 'local') return runMutationsLocal(model, mutations, 'local', m, e);
+	if (venue === 'local')
+		return runMutationsLocal(model, mutations, 'local', m, e, opts.options);
 	try {
 		return await edgePost<RunMutationsResponse>('run_mutations', {
 			model,
 			mutations,
 			method: m,
-			engine: e
+			engine: e,
+			options: opts.options
 		});
 	} catch {
-		return runMutationsLocal(model, mutations, 'local', m, e);
+		return runMutationsLocal(model, mutations, 'local', m, e, opts.options);
 	}
 }

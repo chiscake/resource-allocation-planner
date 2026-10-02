@@ -6,6 +6,7 @@ import {
   type RunMutationsResponse,
   type SolveEngine,
   type SolveMethod,
+  type SolveRunOptions,
 } from "$lib/domain";
 import type { ResolvedVenue } from "$lib/domain/types";
 import { SOLVE_LIMITS } from "./limits";
@@ -18,6 +19,7 @@ export function runMutationsLocal(
   venue: ResolvedVenue = "local",
   method: SolveMethod = "lp",
   engine?: SolveEngine,
+  options?: SolveRunOptions,
 ): RunMutationsResponse {
   const started = performance.now();
   const eng = engine ?? defaultEngine(method);
@@ -54,7 +56,7 @@ export function runMutationsLocal(
       };
     }
     const model = applyMutation(base, mutation);
-    const response = solveLocal(model, venue, 0, method, eng);
+    const response = solveLocal(model, venue, 0, method, eng, options);
     items.push({ mutation, model, response });
     if (response.status === "rejected_too_large") {
       return {

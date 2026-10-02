@@ -1,4 +1,12 @@
-import type { Model, SolveEngine, SolveMethod, SolveResult, SolveTrace } from './types.ts';
+import type {
+	Model,
+	SolveEngine,
+	SolveMethod,
+	SolveResult,
+	SolveRunOptions,
+	SolveRunProvenance,
+	SolveTrace
+} from './types.ts';
 
 export type TraceSink = (trace: SolveTrace) => void;
 
@@ -7,6 +15,7 @@ export type EngineOk = {
 	trace?: SolveTrace;
 	gap_vs_lp?: number;
 	hint?: string;
+	provenance?: SolveRunProvenance;
 };
 
 export type EngineFail = {
@@ -21,8 +30,12 @@ export type EngineOutcome =
 export interface SolverEngine {
 	readonly method: SolveMethod;
 	readonly engine: SolveEngine;
-	solve(model: Model): EngineOutcome;
-	solveStreaming?(model: Model, onFrame: TraceSink): EngineOutcome;
+	solve(model: Model, options?: SolveRunOptions): EngineOutcome;
+	solveStreaming?(
+		model: Model,
+		onFrame: TraceSink,
+		options?: SolveRunOptions
+	): EngineOutcome;
 }
 
 export function engineOk(value: EngineOk): EngineOutcome {

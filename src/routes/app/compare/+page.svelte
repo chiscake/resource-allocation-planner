@@ -9,6 +9,7 @@
 	import Card from '$lib/components/ui/Card.svelte';
 	import Select from '$lib/components/ui/Select.svelte';
 	import EmptyState from '$lib/components/ui/EmptyState.svelte';
+	import RoundPlanToggle from '$lib/components/model/RoundPlanToggle.svelte';
 	import SolveResultPanel from '$lib/components/model/SolveResultPanel.svelte';
 
 	type NodeView = { title: string; result: SolveResult | null; model: Model | null };
@@ -126,6 +127,8 @@
 	</Card>
 
 	{#if left && right}
+		<RoundPlanToggle bind:roundPlan />
+
 		<div class="grid gap-4 md:grid-cols-2">
 			{#each [left, right] as side, i (i)}
 				{@const disp = shown(side)}
@@ -134,8 +137,7 @@
 					{#if disp}
 						<SolveResultPanel
 							result={disp}
-							bind:roundPlan
-							showRoundToggle={i === 0}
+							{roundPlan}
 							productOrder={side.model?.products}
 							resourceOrder={side.model?.resources}
 						/>

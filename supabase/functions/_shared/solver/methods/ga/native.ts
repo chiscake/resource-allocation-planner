@@ -8,9 +8,28 @@
  *
  * Acceptance (AGENTS): feasibility + gap vs LP — not equality to simplex.
  */
-import type { Model, SolveResult } from '../../types.ts';
-import { buildSolveResult, usageViolation, variableBounds } from '../../shared/resultBuild.ts';
-import { solveLocalLpDuals } from '../../shared/lpDuals.ts';
+import type {
+  GaGenerationSnapshot,
+  GaIndividualSnapshot,
+  GaRunConfig,
+  GaStopReason,
+  GaTraceMeta,
+  Model,
+  SolveResult,
+  SolveTrace,
+} from "../../types.ts";
+import {
+  buildSolveResult,
+  usageViolation,
+  variableBounds,
+} from "../../shared/resultBuild.ts";
+import { solveLocalLpDuals } from "../../shared/lpDuals.ts";
+import {
+  GA_TRACE_MAX_INDIVIDUALS,
+  GA_TRACE_MAX_POP_PER_GEN,
+  hyperToRunConfig,
+  type GaPresetId,
+} from "./presets.ts";
 
 export type SelectionMethod = "roulette" | "rank" | "tournament" | "elitism";
 export type CrossoverType = "uniform" | "one-point";
@@ -258,55 +277,214 @@ export interface GaSolveMeta {
   bestRawFitness: number;
   feasible: boolean;
   gapToLp?: number;
+  stopReason: GaStopReason;
+  config: GaRunConfig;
+  populationSampled: boolean;
 }
+
+function toSnapshot(ind: Individual): GaIndividualSnapshot {
+  return {
+    genes: [...ind.genes],
+    rawFitness: ind.rawFitness,
+    fitness: ind.fitness,
+    penalty: ind.penalty,
+    feasible: ind.feasible,
+  };
+}
+
+function samplePopulation(
+  population: Individual[],
+  maxKeep: number,
+  rng: () => number,
+): Individual[] {
+  if (population.length <= maxKeep) return population;
+  const indexed = population.map((ind, i) => ({ ind, i }));
+  // Keep best always, then reservoir-sample the rest.
+  indexed.sort((a, b) => b.ind.fitness - a.ind.fitness);
+  const kept = [indexed[0]];
+  const rest = indexed.slice(1);
+  for (let i = rest.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    const tmp = rest[i];
+    rest[i] = rest[j];
+    rest[j] = tmp;
+  }
+  kept.push(...rest.slice(0, maxKeep - 1));
+  return kept.map((e) => e.ind);
+}
+
+function buildGenerationSnapshot(
+  generation: number,
+  population: Individual[],
+  bestEver: Individual,
+  maxPop: number,
+  rng: () => number,
+): { snap: GaGenerationSnapshot; sampled: boolean } {
+  let sampled = false;
+  let pop = population;
+  if (pop.length > maxPop) {
+    pop = samplePopulation(population, maxPop, rng);
+    sampled = true;
+  }
+  let bestIndex = 0;
+  let bestFitness = -Infinity;
+  let worstFitness = Infinity;
+  let sum = 0;
+  let feasibleCount = 0;
+  for (let i = 0; i < pop.length; i++) {
+    const f = pop[i].fitness;
+    sum += f;
+    if (f > bestFitness) {
+      bestFitness = f;
+      bestIndex = i;
+    }
+    if (f < worstFitness) worstFitness = f;
+    if (pop[i].feasible) feasibleCount++;
+  }
+  return {
+    sampled,
+    snap: {
+      generation,
+      population: pop.map(toSnapshot),
+      bestIndex,
+      bestEver: toSnapshot(bestEver),
+      bestFitness,
+      meanFitness: pop.length ? sum / pop.length : 0,
+      worstFitness: Number.isFinite(worstFitness) ? worstFitness : 0,
+      feasibleCount,
+    },
+  };
+}
+
+export type GaSolveRawResult = {
+  x: number[];
+  meta: GaSolveMeta;
+  trace: SolveTrace;
+};
 
 export function solveGaRaw(
   model: Model,
   hyper: Partial<GaHyperparameters> = {},
-): { x: number[]; meta: GaSolveMeta } {
-  const hyperparameters: GaHyperparameters = { ...DEFAULT_GA_HYPERPARAMS, ...hyper };
+  opts?: { preset?: GaPresetId; collectTrace?: boolean },
+): GaSolveRawResult {
+  const hyperparameters: GaHyperparameters = {
+    ...DEFAULT_GA_HYPERPARAMS,
+    ...hyper,
+  };
+  // Materialize random seed so provenance is reproducible.
+  const concreteSeed =
+    hyperparameters.seed == null
+      ? (Math.floor(Math.random() * 0xffffffff) >>> 0)
+      : hyperparameters.seed;
+  const runHyper: GaHyperparameters = { ...hyperparameters, seed: concreteSeed };
+  const preset = opts?.preset ?? "custom";
+  const config = hyperToRunConfig(runHyper, preset);
+  const collectTrace = opts?.collectTrace !== false;
+
   const ctx: GaContext = {
     model,
     bounds: variableBounds(model),
-    hyperparameters,
-    rng: createRng(hyperparameters.seed),
+    hyperparameters: runHyper,
+    rng: createRng(concreteSeed),
   };
 
   let population = initPopulation(ctx);
   let best = population.reduce((a, b) => (a.fitness >= b.fitness ? a : b));
   let stagnation = 0;
+  let stopReason: GaStopReason = "maxGenerations";
+  let generationsRun = 0;
+  let populationSampled = false;
 
-  for (let generation = 1; generation <= hyperparameters.maxGenerations; generation++) {
+  const generations: GaGenerationSnapshot[] = [];
+  const maxTotal = GA_TRACE_MAX_INDIVIDUALS;
+  const maxPerGen = Math.min(
+    GA_TRACE_MAX_POP_PER_GEN,
+    runHyper.populationSize,
+  );
+  // Reserve budget across expected generations (pessimistic).
+  const expectedGens = runHyper.maxGenerations + 1;
+  const budgetPerGen = Math.max(
+    8,
+    Math.min(maxPerGen, Math.floor(maxTotal / Math.max(1, expectedGens))),
+  );
+
+  if (collectTrace) {
+    const { snap, sampled } = buildGenerationSnapshot(
+      0,
+      population,
+      best,
+      budgetPerGen,
+      ctx.rng,
+    );
+    generations.push(snap);
+    populationSampled = populationSampled || sampled;
+  }
+
+  for (let generation = 1; generation <= runHyper.maxGenerations; generation++) {
     population = nextGeneration(population, ctx);
-    const genBest = population.reduce((a, b) => (a.fitness >= b.fitness ? a : b));
+    generationsRun = generation;
+    const genBest = population.reduce((a, b) =>
+      a.fitness >= b.fitness ? a : b,
+    );
     if (genBest.fitness > best.fitness + 1e-12) {
       best = genBest;
       stagnation = 0;
     } else {
       stagnation++;
     }
-    if (hyperparameters.useStagnation && stagnation >= hyperparameters.stagnationGenerations) {
+
+    if (collectTrace) {
+      const { snap, sampled } = buildGenerationSnapshot(
+        generation,
+        population,
+        best,
+        budgetPerGen,
+        ctx.rng,
+      );
+      generations.push(snap);
+      populationSampled = populationSampled || sampled;
+    }
+
+    if (
+      runHyper.useStagnation &&
+      stagnation >= runHyper.stagnationGenerations
+    ) {
+      stopReason = "stagnation";
       break;
     }
   }
 
+  const meta: GaSolveMeta = {
+    generations: generationsRun,
+    bestRawFitness: best.rawFitness,
+    feasible: best.feasible,
+    stopReason,
+    config,
+    populationSampled,
+  };
+
+  const traceMeta: GaTraceMeta = {
+    stopReason,
+    generationsRun,
+    populationSampled,
+    config,
+  };
+
   return {
     x: best.genes,
-    meta: {
-      generations: hyperparameters.maxGenerations,
-      bestRawFitness: best.rawFitness,
-      feasible: best.feasible,
-    },
+    meta,
+    trace: { method: "ga", generations, meta: traceMeta },
   };
 }
 
 export function solveGaModel(
   model: Model,
   hyper: Partial<GaHyperparameters> = {},
-): SolveResult & { ga_meta: GaSolveMeta } {
-  const { x, meta } = solveGaRaw(model, hyper);
+  opts?: { preset?: GaPresetId; collectTrace?: boolean },
+): SolveResult & { ga_meta: GaSolveMeta; trace: SolveTrace } {
+  const { x, meta, trace } = solveGaRaw(model, hyper, opts);
   // Duals from LP dual (contract requires shadow prices; GA itself is primal heuristic).
   const y = solveLocalLpDuals(model);
   const result = buildSolveResult(model, x, y, meta.feasible);
-  return { ...result, ga_meta: meta };
+  return { ...result, ga_meta: meta, trace };
 }

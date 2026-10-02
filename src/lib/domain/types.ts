@@ -88,6 +88,44 @@ export interface SolveResult {
   feasible: boolean;
 }
 
+/** Persisted run config for reproducible local trace regeneration (not the full trace). */
+export type GaRunConfig = {
+  populationSize: number;
+  crossoverProbability: number;
+  mutationProbability: number;
+  mutationSigma: number;
+  selectionMethod: "roulette" | "rank" | "tournament" | "elitism";
+  tournamentProbability: number;
+  tournamentSize: number;
+  eliteFraction: number;
+  crossoverType: "uniform" | "one-point";
+  uniformBias: number;
+  penaltyM: number;
+  /** null = random seed at run time (stored as the concrete seed that was used). */
+  seed: number | null;
+  initInFeasibleRegion: boolean;
+  maxGenerations: number;
+  stagnationGenerations: number;
+  useStagnation: boolean;
+  /** UI preset id when launched from a preset. */
+  preset?: "fast" | "balanced" | "precise" | "custom";
+};
+
+export type GaStopReason = "maxGenerations" | "stagnation";
+
+export type SolveRunProvenance =
+  | { method: "lp"; engine: SolveEngine }
+  | { method: "ipm"; engine: SolveEngine }
+  | {
+      method: "ga";
+      engine: SolveEngine;
+      config: GaRunConfig;
+      stopReason?: GaStopReason;
+      generationsRun?: number;
+      /** True when population was subsampled for the in-memory trace. */
+      populationSampled?: boolean;
+    };
+
 export interface SolverMeta {
   venue: ResolvedVenue;
   /** Package + venue, e.g. `javascript-lp-solver@local`, `simplex-native@cloud`. */
@@ -103,6 +141,8 @@ export interface SolverMeta {
   engine?: SolveEngine;
   /** GA-only: optimality gap vs LP Z when LP reference available. */
   gap_vs_lp?: number;
+  /** Run config / stop metadata for reproducible «Подробнее» regeneration. */
+  provenance?: SolveRunProvenance;
 }
 
 /** Flexible per-method viz payload (in-memory only; not persisted). */
@@ -119,20 +159,41 @@ export type SimplexTraceFrame = {
   entering?: string;
   leaving?: string;
   problem?: "primal" | "dual";
+  /** Primal solution vector at this frame (product order). */
+  x?: number[];
+};
+
+export type GaIndividualSnapshot = {
+  genes: number[];
+  rawFitness: number;
+  fitness: number;
+  penalty: number;
+  feasible: boolean;
 };
 
 export type GaGenerationSnapshot = {
   generation: number;
-  bestFitness?: number;
-  meanFitness?: number;
-  /** Optional 2D scatter when n=2. */
-  points?: { x: number; y: number; fitness?: number }[];
+  population: GaIndividualSnapshot[];
+  bestIndex: number;
+  bestEver: GaIndividualSnapshot;
+  bestFitness: number;
+  meanFitness: number;
+  worstFitness: number;
+  feasibleCount: number;
+};
+
+export type GaTraceMeta = {
+  stopReason: GaStopReason;
+  generationsRun: number;
+  populationSampled: boolean;
+  config: GaRunConfig;
 };
 
 export type IpmTraceFrame = {
   iteration: number;
   dualityGap?: number;
   note?: string;
+  x?: number[];
 };
 
 export type SolveTrace =
@@ -143,14 +204,24 @@ export type SolveTrace =
       /** Dual simplex frames (shadow-price solve). */
       dual_frames?: SimplexTraceFrame[];
     }
-  | { method: "ga"; generations: GaGenerationSnapshot[] }
+  | {
+      method: "ga";
+      generations: GaGenerationSnapshot[];
+      meta?: GaTraceMeta;
+    }
   | { method: "ipm"; frames: IpmTraceFrame[] };
+
+/** Optional run options passed into engines (GA hyperparameters today). */
+export type SolveRunOptions = {
+  ga?: Partial<GaRunConfig>;
+};
 
 export interface SolveRequest {
   model: Model;
   method?: SolveMethod;
   /** Omit → registry default (library if registered, else native). */
   engine?: SolveEngine;
+  options?: SolveRunOptions;
 }
 
 export interface SolveResponse {

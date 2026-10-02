@@ -18,7 +18,11 @@ export const lpNativeEngine: SolverEngine = {
       if (!result.feasible) {
         return engineFail("infeasible");
       }
-      return engineOk({ result, trace });
+      return engineOk({
+        result,
+        trace,
+        provenance: { method: "lp", engine: "native" },
+      });
     } catch (e) {
       return engineFail(e instanceof Error ? e.message : "error");
     }
@@ -48,7 +52,11 @@ export const lpNativeEngine: SolverEngine = {
       if (!result.feasible) {
         return engineFail("infeasible");
       }
-      return engineOk({ result, trace });
+      return engineOk({
+        result,
+        trace,
+        provenance: { method: "lp", engine: "native" },
+      });
     } catch (e) {
       return engineFail(e instanceof Error ? e.message : "error");
     }

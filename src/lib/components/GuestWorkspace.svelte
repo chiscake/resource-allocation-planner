@@ -62,9 +62,16 @@
 
 	const localTransport: SolveTransport = {
 		solve: async (model, method, opts) =>
-			solveLocal(model, 'local', 0, method, opts?.engine),
+			solveLocal(model, 'local', 0, method, opts?.engine, opts?.options),
 		runMutations: async (model, mutations, method, opts) =>
-			runMutationsLocal(model, mutations, 'local', method, opts?.engine)
+			runMutationsLocal(
+				model,
+				mutations,
+				'local',
+				method,
+				opts?.engine,
+				opts?.options
+			)
 	};
 
 	function persist() {

@@ -5,6 +5,7 @@ import {
 	type SolveEngine,
 	type SolveMethod
 } from '../_shared/solver/types.ts';
+import { parseSolveRunOptions } from '../_shared/solver/parseOptions.ts';
 import { defaultEngine, runSolve } from '../_shared/solver/run.ts';
 
 const cors: Record<string, string> = {
@@ -53,10 +54,12 @@ Deno.serve(async (req) => {
 			mutations?: Mutation[];
 			method?: unknown;
 			engine?: unknown;
+			options?: unknown;
 		};
 		if (!body.model || !body.mutations) return json({ error: 'model and mutations required' }, 400);
 		const method: SolveMethod = isMethod(body.method) ? body.method : 'lp';
 		const engine = isEngine(body.engine) ? body.engine : defaultEngine(method);
+		const options = parseSolveRunOptions(body.options);
 		if (body.mutations.length > LIMITS.mutationMaxK) {
 			return json({
 				status: 'rejected_too_large',
@@ -75,7 +78,7 @@ Deno.serve(async (req) => {
 		const items = [];
 		for (const mutation of body.mutations) {
 			const model = applyMutation(body.model, mutation);
-			const response = runSolve(model, method, engine);
+			const response = runSolve(model, method, engine, options);
 			items.push({ mutation, model, response });
 		}
 		return json({

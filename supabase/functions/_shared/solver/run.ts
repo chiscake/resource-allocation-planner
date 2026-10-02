@@ -4,7 +4,8 @@ import {
 	SCHEMA_VERSION,
 	type Model,
 	type SolveEngine,
-	type SolveMethod
+	type SolveMethod,
+	type SolveRunOptions
 } from './types.ts';
 import { engineFail, type EngineOutcome } from './contract.ts';
 import { defaultEngine, resolveEngine } from './registry.ts';
@@ -22,6 +23,7 @@ export type SolveResponse = {
 		rejected_reason?: string;
 		hint?: string;
 		gap_vs_lp?: number;
+		provenance?: unknown;
 	};
 };
 
@@ -55,7 +57,7 @@ function wrap(
 	if (!outcome.ok) {
 		return rejected(method, engine, started, outcome.fail.reason, outcome.fail.hint);
 	}
-	const { result, trace, gap_vs_lp, hint } = outcome.value;
+	const { result, trace, gap_vs_lp, hint, provenance } = outcome.value;
 	return {
 		status: 'done',
 		result,
@@ -67,7 +69,8 @@ function wrap(
 			engine,
 			duration_ms: performance.now() - started,
 			gap_vs_lp,
-			hint
+			hint,
+			provenance: provenance ?? { method, engine }
 		}
 	};
 }
@@ -75,7 +78,8 @@ function wrap(
 export function runSolve(
 	model: Model,
 	method: SolveMethod = 'lp',
-	engine?: SolveEngine
+	engine?: SolveEngine,
+	options?: SolveRunOptions
 ): SolveResponse {
 	const started = performance.now();
 	const resolved = resolveEngine(method, engine);
@@ -91,7 +95,7 @@ export function runSolve(
 	}
 
 	try {
-		const outcome = resolved.solve(model);
+		const outcome = resolved.solve(model, options);
 		if (performance.now() - started > LIMITS.singleSolveMs) {
 			return rejected(method, eng, started, 'timeout');
 		}

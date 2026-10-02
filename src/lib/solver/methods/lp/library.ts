@@ -76,7 +76,10 @@ export const lpLibraryEngine: SolverEngine = {
   engine: "library",
   solve(model) {
     try {
-      return engineOk({ result: solveLpLibrary(model) });
+      return engineOk({
+        result: solveLpLibrary(model),
+        provenance: { method: "lp", engine: "library" },
+      });
     } catch (e) {
       return engineFail(e instanceof Error ? e.message : "error");
     }

@@ -35,11 +35,76 @@ export type SimplexTraceFrame = {
 	entering?: string;
 	leaving?: string;
 	problem?: 'primal' | 'dual';
+	x?: number[];
+};
+
+export type GaRunConfig = {
+	populationSize: number;
+	crossoverProbability: number;
+	mutationProbability: number;
+	mutationSigma: number;
+	selectionMethod: 'roulette' | 'rank' | 'tournament' | 'elitism';
+	tournamentProbability: number;
+	tournamentSize: number;
+	eliteFraction: number;
+	crossoverType: 'uniform' | 'one-point';
+	uniformBias: number;
+	penaltyM: number;
+	seed: number | null;
+	initInFeasibleRegion: boolean;
+	maxGenerations: number;
+	stagnationGenerations: number;
+	useStagnation: boolean;
+	preset?: 'fast' | 'balanced' | 'precise' | 'custom';
+};
+
+export type GaStopReason = 'maxGenerations' | 'stagnation';
+
+export type GaIndividualSnapshot = {
+	genes: number[];
+	rawFitness: number;
+	fitness: number;
+	penalty: number;
+	feasible: boolean;
+};
+
+export type GaGenerationSnapshot = {
+	generation: number;
+	population: GaIndividualSnapshot[];
+	bestIndex: number;
+	bestEver: GaIndividualSnapshot;
+	bestFitness: number;
+	meanFitness: number;
+	worstFitness: number;
+	feasibleCount: number;
+};
+
+export type GaTraceMeta = {
+	stopReason: GaStopReason;
+	generationsRun: number;
+	populationSampled: boolean;
+	config: GaRunConfig;
+};
+
+export type SolveRunProvenance =
+	| { method: 'lp'; engine: SolveEngine }
+	| { method: 'ipm'; engine: SolveEngine }
+	| {
+			method: 'ga';
+			engine: SolveEngine;
+			config: GaRunConfig;
+			stopReason?: GaStopReason;
+			generationsRun?: number;
+			populationSampled?: boolean;
+	  };
+
+export type SolveRunOptions = {
+	ga?: Partial<GaRunConfig>;
 };
 
 export type SolveTrace =
 	| { method: 'lp'; frames: SimplexTraceFrame[]; dual_frames?: SimplexTraceFrame[] }
-	| { method: 'ga'; generations: unknown[] }
+	| { method: 'ga'; generations: GaGenerationSnapshot[]; meta?: GaTraceMeta }
 	| { method: 'ipm'; frames: unknown[] };
 
 export function libraryPackageId(method: SolveMethod, engine: SolveEngine): string {
