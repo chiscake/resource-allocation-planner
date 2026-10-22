@@ -7,8 +7,18 @@
 
 	const lpTrace = $derived(trace?.method === 'lp' ? trace : null);
 
+	const EPS = 1e-9;
+
 	function frameKey(frame: SimplexTraceFrame, i: number): string {
 		return `${frame.phase ?? ''}-${frame.entering ?? ''}-${frame.leaving ?? ''}-${i}`;
+	}
+
+	/** Min-ratio b/a when the enter column is eligible for that constraint row. */
+	function minRatio(b: number, a: number): number | null {
+		if (a <= EPS) return null;
+		const ratio = b / a;
+		if (ratio < -EPS) return null;
+		return ratio;
 	}
 </script>
 
@@ -21,7 +31,7 @@
 				<h3 class="mb-2 text-sm font-medium text-text">{t('solveDetailsPrimal')}</h3>
 				<div class="flex flex-col gap-4">
 					{#each lpTrace.frames as frame, i (frameKey(frame, i))}
-						{@render frameBlock(frame, i)}
+						{@render frameBlock(frame, i, lpTrace.frames[i + 1]?.entering)}
 					{/each}
 				</div>
 			</section>
@@ -32,7 +42,7 @@
 				<h3 class="mb-2 text-sm font-medium text-text">{t('solveDetailsDual')}</h3>
 				<div class="flex flex-col gap-4">
 					{#each lpTrace.dual_frames as frame, i (frameKey(frame, i))}
-						{@render frameBlock(frame, i)}
+						{@render frameBlock(frame, i, lpTrace.dual_frames[i + 1]?.entering)}
 					{/each}
 				</div>
 			</section>
@@ -44,7 +54,11 @@
 	</div>
 {/if}
 
-{#snippet frameBlock(frame: SimplexTraceFrame, i: number)}
+{#snippet frameBlock(frame: SimplexTraceFrame, i: number, nextEntering?: string)}
+	{@const enterCol =
+		nextEntering && frame.colLabels ? frame.colLabels.indexOf(nextEntering) : -1}
+	{@const rhsCol = frame.matrix?.[0] ? frame.matrix[0].length - 1 : -1}
+	{@const lastRow = frame.matrix ? frame.matrix.length - 1 : -1}
 	<div class="rounded-[8px] border border-border-soft bg-bg-soft/40 p-3">
 		<div class="mb-2 flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm text-text">
 			<span class="font-medium text-text-muted">#{i + 1}</span>
@@ -85,7 +99,19 @@
 									{frame.rowLabels?.[ri] ?? ''}
 								</td>
 								{#each row as cell, ci (`${ri}-${ci}`)}
-									<td class="px-2 py-1 text-right text-text">{formatPlanNumber(cell)}</td>
+									<td class="px-2 py-1 text-right text-text">
+										{#if ri < lastRow && ci === rhsCol && enterCol >= 0}
+											{@const ratio = minRatio(row[rhsCol], row[enterCol])}
+											{#if ratio != null}
+												{formatPlanNumber(cell)}
+												<span class="text-text-muted">({formatPlanNumber(ratio)})</span>
+											{:else}
+												{formatPlanNumber(cell)}
+											{/if}
+										{:else}
+											{formatPlanNumber(cell)}
+										{/if}
+									</td>
 								{/each}
 							</tr>
 						{/each}

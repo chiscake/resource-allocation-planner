@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  DEFAULT_ANGLES4,
   applyOrbit4,
   defaultRot4,
   dragAxisTip4,
@@ -7,11 +8,13 @@ import {
   mat4Arc,
   mat4ArcMat,
   mat4Col,
+  mat4FromAngles4,
   mat4Identity,
   mat4Mul,
   mat4Orthonormalize,
   mat4PlaneRot,
   mat4Rotate,
+  rotate4D,
   snapAxisTowardCamera4,
 } from "./math";
 
@@ -72,5 +75,14 @@ describe("mat4 4D rotations", () => {
     const I = mat4Identity();
     expect(mat4Mul(I, I)).toEqual(I);
     expect(mat4Orthonormalize(I)).toEqual(I);
+  });
+
+  it("mat4FromAngles4 matches rotate4D", () => {
+    const p = [0.4, -0.2, 0.7, 0.3];
+    const viaMat = mat4Apply(mat4FromAngles4(DEFAULT_ANGLES4), p);
+    const viaFn = rotate4D(p, DEFAULT_ANGLES4);
+    for (let i = 0; i < 4; i++) {
+      expect(viaMat[i]).toBeCloseTo(viaFn[i]!, 5);
+    }
   });
 });

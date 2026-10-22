@@ -23,6 +23,8 @@
     rot4 = $bindable<Mat4 | undefined>(undefined),
     onSnap,
     onInteract,
+    /** Background orbit; when set, parent owns angles (tip-drag still updates rot4). */
+    onOrbit4,
   }: {
     quat: Quat;
     /** Disc diameter for 3D; 4D adds a w-readout strip below. */
@@ -32,6 +34,7 @@
     onSnap: (next: Quat, id: ViewSnapId) => void;
     /** Fired when the user starts interacting (stop auto-rotate). */
     onInteract?: () => void;
+    onOrbit4?: (dx: number, dy: number, shift: boolean) => void;
   } = $props();
 
   let canvasEl: HTMLCanvasElement | undefined = $state();
@@ -463,6 +466,8 @@
         e.shiftKey,
         layout.gr,
       );
+    } else if (onOrbit4) {
+      onOrbit4(dx, dy, e.shiftKey);
     } else {
       rot4 = applyOrbit4(rot4, dx, dy, e.shiftKey);
     }

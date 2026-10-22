@@ -10,23 +10,15 @@
   }
 </script>
 
-<div>
-  <label class="flex items-center gap-2 text-sm text-text">
-    <input
-      type="checkbox"
-      checked={roundPlan}
-      onchange={(e) => onRoundToggle(e.currentTarget.checked)}
-    />
-    {t("roundPlan")}
-  </label>
-  <details class="mt-1.5">
-    <summary
-      class="cursor-pointer list-none text-xs text-text-soft underline-offset-2 hover:underline [&::-webkit-details-marker]:hidden"
-    >
-      {t("roundPlanHintToggle")}
-    </summary>
-    <p class="mt-1.5 text-xs leading-relaxed text-text-soft">
-      {t("roundPlanHint")}
-    </p>
-  </details>
-</div>
+<label
+  class="flex items-center gap-2 text-sm text-text"
+  title={t("roundPlanHint")}
+>
+  <input
+    type="checkbox"
+    checked={roundPlan}
+    aria-label="{t('roundPlan')}. {t('roundPlanHint')}"
+    onchange={(e) => onRoundToggle(e.currentTarget.checked)}
+  />
+  {t("roundPlan")}
+</label>

@@ -120,6 +120,25 @@ export function project4to3(p: VecN, d4: number): VecN {
 export type Angles3 = { xy: number; xz: number; yz: number };
 export type Angles4 = Angles3 & { xw: number; yw: number; zw: number };
 
+/** Default mild 4D tilt for project4d / gizmo. */
+export const DEFAULT_ANGLES4: Angles4 = {
+  xy: 0.3,
+  xz: 0.5,
+  xw: 0.4,
+  yz: 0.2,
+  yw: 0.6,
+  zw: 0.35,
+};
+
+export const ANGLES4_KEYS: (keyof Angles4)[] = [
+  "xy",
+  "xz",
+  "yz",
+  "xw",
+  "yw",
+  "zw",
+];
+
 function cs(theta: number) {
   return { c: Math.cos(theta), s: Math.sin(theta) };
 }
@@ -665,14 +684,24 @@ export function mat4ArcMat(arc: Arc4, f = 1): Mat4 {
   return M;
 }
 
-/** Default 4D view: mild xyz + xw/yw tilt (matches Gizmo4D.jsx). */
-export function defaultRot4(): Mat4 {
+/**
+ * Build view←world Mat4 matching {@link rotate4D} plane order
+ * (xy → xz → xw → yz → yw → zw).
+ */
+export function mat4FromAngles4(ang: Angles4): Mat4 {
   return [
-    mat4PlaneRot(2, 0, 0.6),
-    mat4PlaneRot(2, 1, -0.4),
-    mat4PlaneRot(0, 3, 0.55),
-    mat4PlaneRot(1, 3, 0.25),
+    mat4PlaneRot(0, 1, ang.xy),
+    mat4PlaneRot(0, 2, ang.xz),
+    mat4PlaneRot(0, 3, ang.xw),
+    mat4PlaneRot(1, 2, ang.yz),
+    mat4PlaneRot(1, 3, ang.yw),
+    mat4PlaneRot(2, 3, ang.zw),
   ].reduce((acc, m) => mat4Mul(m, acc), mat4Identity());
+}
+
+/** Default 4D view from {@link DEFAULT_ANGLES4}. */
+export function defaultRot4(): Mat4 {
+  return mat4FromAngles4(DEFAULT_ANGLES4);
 }
 
 /** Left-multiply G onto R and re-orthonormalize. */

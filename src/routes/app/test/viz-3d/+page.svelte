@@ -2,8 +2,13 @@
   import PageHeader from "$lib/components/ui/PageHeader.svelte";
   import Button from "$lib/components/ui/Button.svelte";
   import Card from "$lib/components/ui/Card.svelte";
+  import Angles4Controls from "$lib/components/model/visualization/Angles4Controls.svelte";
   import SceneCanvas from "$lib/components/model/visualization/SceneCanvas.svelte";
   import { buildLpScene } from "$lib/components/model/visualization/lp-adapter";
+  import {
+    DEFAULT_ANGLES4,
+    type Angles4,
+  } from "$lib/components/model/visualization/math";
   import { SCHEMA_VERSION, type Model } from "$lib/domain";
   import type {
     OptimizationScene,
@@ -14,6 +19,7 @@
 
   let active = $state<DemoId | null>(null);
   let autoRotate = $state(true);
+  let angles4 = $state<Angles4>({ ...DEFAULT_ANGLES4 });
   let viewDebug = $state<SceneViewDebug | null>(null);
   let copyStatus = $state<string | null>(null);
 
@@ -189,12 +195,23 @@
         />
         Автоповорот
       </label>
+      {#if active === "cutTesseract"}
+        <div class="mt-2 rounded-[6px] border border-border bg-bg-soft p-2">
+          <Angles4Controls
+            bind:angles4
+            onChange={() => {
+              autoRotate = false;
+            }}
+          />
+        </div>
+      {/if}
       <Button
         variant="ghost"
         class="w-full justify-start"
         onclick={() => {
           active = null;
           viewDebug = null;
+          angles4 = { ...DEFAULT_ANGLES4 };
         }}
       >
         Очистить
@@ -210,6 +227,7 @@
             {scene}
             stepIndex={0}
             bind:autoRotate
+            bind:angles4
             bind:viewDebug
             fill
             plotClass="min-h-[400px] flex-1"

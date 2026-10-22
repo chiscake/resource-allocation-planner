@@ -2,7 +2,6 @@
   import { t } from "$lib/i18n";
   import { mutationKindOrder } from "$lib/domain";
   import Button from "$lib/components/ui/Button.svelte";
-  import Badge from "$lib/components/ui/Badge.svelte";
   import { formatPlanNumber } from "./format-plan-number";
   import LpModelMatrix from "./LpModelMatrix.svelte";
   import type { WhatIfRow } from "./solve-session.svelte";
@@ -222,10 +221,7 @@
                 </p>
                 <ul class="mb-4 flex flex-wrap gap-2">
                   {#each row.criticalResources as name (name)}
-                    <li class="inline-flex items-center gap-1.5 text-sm">
-                      <span>{name}</span>
-                      <Badge variant="warning">{t("criticalBadge")}</Badge>
-                    </li>
+                    <li class="text-sm text-text">{name}</li>
                   {/each}
                 </ul>
               {/if}

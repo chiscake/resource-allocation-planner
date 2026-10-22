@@ -4,8 +4,10 @@
   import Select from "$lib/components/ui/Select.svelte";
   import { buildGaScene } from "./ga-adapter";
   import { buildLpScene } from "./lp-adapter";
+  import Angles4Controls from "./Angles4Controls.svelte";
   import SceneCanvas from "./SceneCanvas.svelte";
   import StepTimeline from "./StepTimeline.svelte";
+  import { DEFAULT_ANGLES4, type Angles4 } from "./math";
   import type { ProjectionMode } from "./types";
   import { t } from "$lib/i18n";
 
@@ -35,6 +37,7 @@
   let playing = $state(false);
   let expanded = $state(false);
   let autoRotate = $state(false);
+  let angles4 = $state<Angles4>({ ...DEFAULT_ANGLES4 });
   let metricsOpen = $state(false);
 
   $effect(() => {
@@ -241,6 +244,14 @@
           {t("vizAutoRotate")}
         </label>
       {/if}
+      {#if mode === "project4d" && dim >= 4}
+        <Angles4Controls
+          bind:angles4
+          onChange={() => {
+            autoRotate = false;
+          }}
+        />
+      {/if}
     </div>
 
     <StepTimeline
@@ -257,6 +268,7 @@
       {stepIndex}
       objectiveCoefficients={model.c}
       bind:autoRotate
+      bind:angles4
       fill={expanded}
       plotClass={expanded
         ? "min-h-[200px] flex-1"

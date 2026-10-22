@@ -18,19 +18,17 @@
     rotateByQuat,
     selectAxes,
     arcballDelta,
-    applyOrbit4,
     applyTrackballOrbit,
     applyTurntableOrbit,
-    defaultRot4,
+    DEFAULT_ANGLES4,
     mat4Apply,
     mat4Col,
-    mat4Mul,
-    mat4PlaneRot,
-    mat4Rotate,
+    mat4FromAngles4,
     quatConjugate,
     quatForViewFrom,
     quatSlerp,
     VIEW_TOWARD_CAMERA,
+    type Angles4,
     type Mat4,
     type Quat,
   } from "./math";
@@ -47,6 +45,7 @@
     scene,
     stepIndex = 0,
     autoRotate = $bindable(false),
+    angles4 = $bindable<Angles4>({ ...DEFAULT_ANGLES4 }),
     objectiveCoefficients = [],
     onPointClick,
     viewDebug = $bindable(null),
@@ -58,6 +57,8 @@
     scene: OptimizationScene;
     stepIndex?: number;
     autoRotate?: boolean;
+    /** 4D plane angles (project4d); sliders + orbit update these. */
+    angles4?: Angles4;
     objectiveCoefficients?: number[];
     onPointClick?: (p: ScenePoint) => void;
     /** Live view metadata for sandboxes / debugging (optional). */
@@ -83,11 +84,37 @@
   let rotationMode = $state<VizRotationMode>(getVizRotationMode());
   /** Single view orientation (Blender-style); orbit method only changes mouse mapping. */
   let quat = $state<Quat>([...DEFAULT_QUAT] as Quat);
-  /** 4D view←world matrix (project4d); gizmo + orbit drive this. */
-  let rot4 = $state<Mat4>(defaultRot4());
+  /** 4D view←world; rebuilt from angles4, tip-drag may override until next angle change. */
+  let rot4 = $state<Mat4>(mat4FromAngles4(DEFAULT_ANGLES4));
   let snapRaf = 0;
   /** Shift+drag on the main canvas orbits xw/yw when in 4D. */
   let orbitShift = false;
+
+  function setAngles4(next: Angles4) {
+    angles4 = next;
+    rot4 = mat4FromAngles4(next);
+  }
+
+  function orbitAngles4(dx: number, dy: number, shift: boolean, k = 0.01) {
+    if (shift) {
+      setAngles4({
+        ...angles4,
+        xw: angles4.xw + dx * k,
+        yw: angles4.yw - dy * k,
+      });
+    } else {
+      setAngles4({
+        ...angles4,
+        xz: angles4.xz + dx * k,
+        yz: angles4.yz - dy * k,
+      });
+    }
+  }
+
+  // Keep rot4 in sync when parent/sliders change angles4.
+  $effect(() => {
+    rot4 = mat4FromAngles4(angles4);
+  });
   const MIN_ZOOM = 0.2;
   const OBJECTIVE_LEVEL_BOUNDS_EXTENSION = 0.2;
   type SelectionKey = { type: "point" | "line" | "region"; id: string };
@@ -406,7 +433,7 @@
   function resetView() {
     cancelSnapAnim();
     quat = [...DEFAULT_QUAT] as Quat;
-    rot4 = defaultRot4();
+    setAngles4({ ...DEFAULT_ANGLES4 });
     zoom = 1;
     panX = 0;
     panY = 0;
@@ -589,16 +616,17 @@
     if (!autoRotate) return;
     cancelSnapAnim();
     let raf = 0;
+    // Local accumulators — avoid stale closure over $state.
+    let a4 = { ...angles4 };
     const loop = () => {
       if (is4dMode) {
-        // Spin through planes that involve W, plus a slow xyz yaw.
-        rot4 = mat4Rotate(
-          rot4,
-          mat4Mul(
-            mat4PlaneRot(0, 3, 0.006),
-            mat4Mul(mat4PlaneRot(1, 3, 0.004), mat4PlaneRot(2, 0, 0.003)),
-          ),
-        );
+        a4 = {
+          ...a4,
+          xw: a4.xw + 0.006,
+          yw: a4.yw + 0.004,
+          xz: a4.xz + 0.003,
+        };
+        setAngles4(a4);
       } else {
         // Auto-spin around world Z (same yaw as turntable).
         quat = applyTurntableOrbit(quat, 1, 0, 0.008);
@@ -624,14 +652,7 @@
       zoom,
       panX,
       panY,
-      angles4: {
-        xy: 0,
-        xz: 0,
-        yz: 0,
-        xw: axisW.x,
-        yw: axisW.y,
-        zw: axisW.z,
-      },
+      angles4: { ...angles4 },
       rot4: is4dMode ? [...rot4] : undefined,
       axisW: is4dMode ? axisW : undefined,
       projection: is4dMode ? "perspective4d" : "viewOrtho",
@@ -1144,7 +1165,7 @@
 
     cancelSnapAnim();
     if (is4dMode) {
-      rot4 = applyOrbit4(rot4, dx, dy, orbitShift || e.shiftKey);
+      orbitAngles4(dx, dy, orbitShift || e.shiftKey);
       return;
     }
     if (rotationMode === "trackball") {
@@ -1293,6 +1314,10 @@
           bind:rot4
           onSnap={onGizmoSnap}
           onInteract={onGizmoInteract}
+          onOrbit4={(dx, dy, shift) => {
+            onGizmoInteract();
+            orbitAngles4(dx, dy, shift);
+          }}
         />
       {:else if is3dMode}
         <ViewGizmo
