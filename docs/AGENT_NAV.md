@@ -22,6 +22,8 @@ Purpose: fast orientation for coding agents. Prefer pointers over copying rules 
 
 Scratch only (not canon): `.tmp/task13_*.py/json`, `LP4DVisualizer.jsx`. Design canon: **`docs/DESIGN.md`**.
 
+**Developer tools:** `tools/md-review/` — multi-LLM Markdown document review via `cursor-agent` CLI (see `tools/md-review/README.md`).
+
 ---
 
 ## Repo layout
