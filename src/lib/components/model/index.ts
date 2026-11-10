@@ -26,6 +26,7 @@ export {
 	isLpEditableCell,
 	isLpNameHeader,
 	isLpNumericCell,
+	isLpUnitCell,
 	loadLpMatrixModel,
 	LP_DIM_MAX_PRODUCTS,
 	LP_DIM_MAX_RESOURCES,

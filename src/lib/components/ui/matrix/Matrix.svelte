@@ -37,6 +37,13 @@
 		 * Use for LP name headers, non-square layouts, etc.
 		 */
 		canEditCell,
+		/**
+		 * Body cells holding free text (e.g. units): skip the draft validator,
+		 * may be committed empty, excluded from Tab navigation.
+		 */
+		isTextCell,
+		/** Faint hint shown in an empty cell (display only). */
+		cellPlaceholder,
 		class: className = '',
 		maxHeight = '24rem'
 	}: {
@@ -51,6 +58,8 @@
 		validateInput?: CellInputValidator;
 		integerOnly?: boolean;
 		canEditCell?: (row: number, col: number) => boolean;
+		isTextCell?: (row: number, col: number) => boolean;
+		cellPlaceholder?: (row: number, col: number) => string | undefined;
 		class?: string;
 		/** Max height of the scroll container (CSS length). */
 		maxHeight?: string;
@@ -78,8 +87,13 @@
 	let headerRowHeightPx = $state(MIN_ROW_PX);
 	let bodyRowHeightPx = $state(MIN_ROW_PX);
 
+	function isFreeText(row: number, col: number): boolean {
+		return row > 0 && col > 0 && (isTextCell?.(row, col) ?? false);
+	}
+
 	const editingIsHeader = $derived(
-		editing != null && (editing.row === 0 || editing.col === 0)
+		editing != null &&
+			(editing.row === 0 || editing.col === 0 || isFreeText(editing.row, editing.col))
 	);
 
 	const numericInputMode = $derived(
@@ -107,7 +121,7 @@
 	function canTabTo(row: number, col: number): boolean {
 		if (!canEdit(row, col)) return false;
 		if (row === 0 || col === 0) return false;
-		return true;
+		return !isFreeText(row, col);
 	}
 
 	/** Next/prev editable data cell: left→right, wrap to next/prev row (skip locked diagonal). */
@@ -145,7 +159,7 @@
 	}
 
 	function acceptsDraft(raw: string, row: number, col: number): boolean {
-		if (isHeaderCell(row, col)) return true;
+		if (isHeaderCell(row, col) || isFreeText(row, col)) return true;
 		const validator = resolvedValidator;
 		if (!validator) return true;
 		return validator(raw, { row, col });
@@ -158,6 +172,7 @@
 	 */
 	function acceptsCommit(raw: string, row: number, col: number): boolean {
 		if (isHeaderCell(row, col)) return raw.trim().length > 0;
+		if (isFreeText(row, col)) return true;
 		if (raw === '' || raw === '-' || raw === '.' || raw === '-.') return false;
 		return acceptsDraft(raw, row, col);
 	}
@@ -233,7 +248,7 @@
 		if (!editing) return;
 		const { row, col } = editing;
 		if (canEdit(row, col) && acceptsCommit(draft, row, col)) {
-			const value = isHeaderCell(row, col) ? draft.trim() : draft;
+			const value = isHeaderCell(row, col) || isFreeText(row, col) ? draft.trim() : draft;
 			model.setValue(row, col, value);
 		}
 		// Invalid or empty draft → leave cell at last committed value (no write).
@@ -248,7 +263,7 @@
 		if (!editing) return;
 		const { row, col } = editing;
 		if (canEdit(row, col) && acceptsCommit(draft, row, col)) {
-			const value = isHeaderCell(row, col) ? draft.trim() : draft;
+			const value = isHeaderCell(row, col) || isFreeText(row, col) ? draft.trim() : draft;
 			model.setValue(row, col, value);
 		}
 		const next = findNeighbor(row, col, dir);
@@ -355,6 +370,15 @@
 			for (let c = 1; c < cols; c++) {
 				maxDataLine = Math.max(maxDataLine, measureLine(cells[0]?.[c] ?? ''));
 			}
+			if (isTextCell) {
+				for (let r = 1; r < rows; r++) {
+					for (let c = 1; c < cols; c++) {
+						if (isTextCell(r, c)) {
+							maxDataLine = Math.max(maxDataLine, measureLine(cells[r]?.[c] ?? ''));
+						}
+					}
+				}
+			}
 			// Numeric floor so short headers don't crush Aij / stock values.
 			const dataW = clamp(
 				Math.max(maxDataLine + CELL_BOX_SLACK_PX, MIN_DATA_PX),
@@ -434,7 +458,12 @@
 									onclick={(e) => e.stopPropagation()}
 								/>
 							{:else}
-								<span class="matrix-display">{value}</span>
+								{@const hint = value === '' ? cellPlaceholder?.(r, c) : undefined}
+								{#if hint}
+									<span class="matrix-display text-text-faint">{hint}</span>
+								{:else}
+									<span class="matrix-display">{value}</span>
+								{/if}
 							{/if}
 						</td>
 					{/each}

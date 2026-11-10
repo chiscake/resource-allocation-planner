@@ -264,6 +264,10 @@ const ru = {
   matrixStock: "Запас",
   /** Objective row header (former «c»). */
   matrixPrice: "Цена",
+  /** Units row / column header in the LP tableau. */
+  matrixUnit: "Ед. изм.",
+  /** Faint hint in an empty unit cell. */
+  matrixUnitPlaceholder: "—",
   /** Dimension control: resource row count. */
   matrixResources: "Ресурсы",
   /** Dimension control: product column count. */

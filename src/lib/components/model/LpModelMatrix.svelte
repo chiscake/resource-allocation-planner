@@ -10,6 +10,7 @@
 		clampLpDimensions,
 		createLpMatrixModel,
 		isLpEditableCell,
+		isLpUnitCell,
 		loadLpMatrixModel,
 		LP_DIM_MAX_PRODUCTS,
 		LP_DIM_MAX_RESOURCES,
@@ -95,6 +96,14 @@
 		const m = model.resources?.length ?? 0;
 		const n = model.products?.length ?? 0;
 		return isLpEditableCell(row, col, m, n);
+	}
+
+	function isUnitCell(row: number, col: number): boolean {
+		return isLpUnitCell(row, col, model.resources?.length ?? 0, model.products?.length ?? 0);
+	}
+
+	function unitPlaceholder(row: number, col: number): string | undefined {
+		return !readonly && isUnitCell(row, col) ? t('matrixUnitPlaceholder') : undefined;
 	}
 
 	function parseDimInput(raw: string | number, fallback: number): number {
@@ -189,6 +198,8 @@
 			lockDiagonal={false}
 			{maxHeight}
 			{canEditCell}
+			isTextCell={isUnitCell}
+			cellPlaceholder={unitPlaceholder}
 		/>
 	</div>
 </div>

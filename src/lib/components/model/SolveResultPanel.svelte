@@ -81,6 +81,16 @@
       .map((k) => [k, slack[k] ?? 0] as [string, number]);
   });
 
+  function unitOf(names: string[] | undefined, units: string[] | undefined, name: string): string {
+    const idx = names?.indexOf(name) ?? -1;
+    return idx >= 0 ? (units?.[idx] ?? "").trim() : "";
+  }
+
+  const productUnit = (name: string) =>
+    unitOf(model?.products, model?.product_units, name);
+  const resourceUnit = (name: string) =>
+    unitOf(model?.resources, model?.resource_units, name);
+
   function isZeroPlan(v: number): boolean {
     return !Number.isFinite(v) || Math.abs(v) < ZERO_EPS;
   }
@@ -155,6 +165,9 @@
             <td class="py-1.5 text-right font-mono tabular-nums">
               {formatPlanNumber(value)}
             </td>
+            <td class="w-0 whitespace-nowrap py-1.5 pl-2 text-xs text-text-soft">
+              {productUnit(name)}
+            </td>
           </tr>
         {/each}
       </tbody>
@@ -211,6 +224,9 @@
               <td class="py-1.5 pr-3 text-text-muted">{name}</td>
               <td class="py-1.5 text-right font-mono tabular-nums text-text">
                 {formatPlanNumber(value)}
+              </td>
+              <td class="w-0 whitespace-nowrap py-1.5 pl-2 text-xs text-text-soft">
+                {resourceUnit(name)}
               </td>
             </tr>
           {/each}
