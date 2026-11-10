@@ -10,6 +10,7 @@
   import SolveResultPanel from "./SolveResultPanel.svelte";
   import WhatIfPanel from "./WhatIfPanel.svelte";
   import MethodComparisonPanel from "./MethodComparisonPanel.svelte";
+  import ModelCsvActions from "./ModelCsvActions.svelte";
   import InlineAlert from "$lib/components/ui/InlineAlert.svelte";
   import type { SolveSession, WhatIfRow } from "./solve-session.svelte";
   import { DEFAULT_GA_HYPERPARAMS } from "$lib/solver/methods/ga";
@@ -19,6 +20,7 @@
 
   let {
     session,
+    title = "",
     showLoginCta = false,
     showCloudSplit = false,
     compact = false,
@@ -39,6 +41,8 @@
     onSolveCloud,
   }: {
     session: SolveSession;
+    /** Task title — used for downloaded file names and export headers. */
+    title?: string;
     showLoginCta?: boolean;
     showCloudSplit?: boolean;
     compact?: boolean;
@@ -104,7 +108,15 @@
     {/if}
 
     <Card>
-      <p class="mb-2 text-sm font-medium">{t("modelMatrix")}</p>
+      <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <p class="text-sm font-medium">{t("modelMatrix")}</p>
+        <ModelCsvActions
+          {model}
+          {title}
+          disabled={session.busy}
+          onimport={onModelChange}
+        />
+      </div>
       <LpModelMatrix {model} onchange={onModelChange} />
       <div class="mt-4">
         <PlanSolveControls

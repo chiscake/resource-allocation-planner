@@ -866,6 +866,7 @@
     {#if session.model}
       <SolveWorkspace
         {session}
+        title={node.title}
         {solverLibrary}
         showCloudSplit
         {whatIfRows}

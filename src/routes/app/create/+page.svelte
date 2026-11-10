@@ -229,6 +229,7 @@
 
     <SolveWorkspace
       {session}
+      {title}
       showCloudSplit
       {onModelChange}
       {onWhatIfChange}

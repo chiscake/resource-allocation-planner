@@ -268,6 +268,27 @@ const ru = {
   matrixUnit: "Ед. изм.",
   /** Faint hint in an empty unit cell. */
   matrixUnitPlaceholder: "—",
+  csvImport: "Импорт CSV",
+  csvTemplate: "Шаблон CSV",
+  csvExportModel: "Скачать CSV",
+  csvImportHint:
+    "Загрузите таблицу в том же виде, что и матрица модели: продукция по столбцам, ресурсы по строкам, затем запас, единицы и строка цен. Подходят файлы из Excel с разделителем «;» или «,».",
+  csvImportConfirmTitle: "Заменить модель?",
+  csvImportConfirmBody:
+    "Файл «{file}»: {m} ресурсов × {n} продуктов. Текущая матрица будет заменена.",
+  csvImportApply: "Заменить",
+  cancel: "Отмена",
+  csvImported: "Модель загружена из файла",
+  csvReadFailed: "Не удалось прочитать файл",
+  csvTooFewRows:
+    "В файле должно быть не меньше трёх строк: заголовок, хотя бы один ресурс и строка цен.",
+  csvNoProducts:
+    "В заголовке не найдены продукты: первая строка — названия продукции, затем «Запас».",
+  csvNoResources: "Не найдено ни одного ресурса между заголовком и строкой цен.",
+  csvMissingPrice: "Не найдена строка «Цена» после строк ресурсов.",
+  csvBadNumber: "Строка {row}, столбец {col}: «{value}» — не число.",
+  csvTooLarge:
+    "Задача {m} × {n} слишком велика: допускается не более {maxM} ресурсов и {maxN} продуктов.",
   /** Dimension control: resource row count. */
   matrixResources: "Ресурсы",
   /** Dimension control: product column count. */
