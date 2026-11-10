@@ -1,6 +1,8 @@
 <script lang="ts">
   import { page } from "$app/state";
   import { afterNavigate, goto } from "$app/navigation";
+  import { env } from "$env/dynamic/public";
+  import { isOrgsUiEnabled } from "$lib/features";
   import { supabase } from "$lib/db/supabase";
   import { writeAudit } from "$lib/db/audit";
   import { softDeleteSolveNode } from "$lib/db/soft-delete";
@@ -78,6 +80,7 @@
   let userOrgs = $state<OrgOption[]>([]);
   let hasActiveShare = $state(false);
   const session = createSolveSession();
+  const showOrgs = isOrgsUiEnabled(env.PUBLIC_SHOW_ORGS);
 
   const id = $derived(page.params.id!);
   const solverLibrary = $derived(
@@ -175,6 +178,10 @@
   }
 
   async function loadUserOrgs() {
+    if (!showOrgs) {
+      userOrgs = [];
+      return;
+    }
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) {
       userOrgs = [];
@@ -499,7 +506,7 @@
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) return;
-    if (node.org_id) {
+    if (showOrgs && node.org_id) {
       shareMsg = t("shareOrgWarning");
     }
     const tok = token();
@@ -886,14 +893,16 @@
       </Card>
     {/if}
 
-    <OrgAttachPanel
-      bind:orgId
-      bind:makePublic
-      orgOptions={orgSelectOptions}
-      attachedOrgId={node.org_id}
-      onAttach={attachOrg}
-      onSetVisibility={setOrgVisibility}
-    />
+    {#if showOrgs}
+      <OrgAttachPanel
+        bind:orgId
+        bind:makePublic
+        orgOptions={orgSelectOptions}
+        attachedOrgId={node.org_id}
+        onAttach={attachOrg}
+        onSetVisibility={setOrgVisibility}
+      />
+    {/if}
 
     <SharePanel
       {shareUrl}
@@ -901,7 +910,7 @@
       busy={session.busy}
       bind:grantValue={grantEmail}
       message={shareMsg}
-      showOrgWarning={Boolean(node.org_id)}
+      showOrgWarning={showOrgs && Boolean(node.org_id)}
       onCreateLink={createShareLink}
       onRevokeLink={revokeShare}
       onCancelSharing={cancelSharing}

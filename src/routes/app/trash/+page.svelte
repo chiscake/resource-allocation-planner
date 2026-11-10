@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { env } from '$env/dynamic/public';
+	import { isOrgsUiEnabled } from '$lib/features';
 	import { supabase } from '$lib/db/supabase';
 	import { writeAudit } from '$lib/db/audit';
 	import { restoreSolveNode } from '$lib/db/soft-delete';
@@ -21,6 +23,7 @@
 	let mine = $state<Row[]>([]);
 	let orgTrash = $state<Row[]>([]);
 	let isOrgOwner = $state(false);
+	const showOrgs = isOrgsUiEnabled(env.PUBLIC_SHOW_ORGS);
 
 	async function load() {
 		const { data } = await supabase
@@ -30,6 +33,7 @@
 			.not('deleted_at', 'is', null)
 			.order('deleted_at', { ascending: false });
 		mine = (data ?? []) as Row[];
+		if (!showOrgs) return;
 
 		const { data: memberships } = await supabase
 			.from('organization_members')
@@ -79,7 +83,7 @@
 					<Card padding={false} class="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
 						<div>
 							<p class="font-medium">{r.title}</p>
-							{#if r.deleted_by_org_owner}
+							{#if showOrgs && r.deleted_by_org_owner}
 								<p class="text-xs text-warning-text">{t('deletedByOrg')}</p>
 							{/if}
 						</div>
@@ -95,7 +99,7 @@
 		{/if}
 	</div>
 
-	{#if isOrgOwner}
+	{#if showOrgs && isOrgOwner}
 		<div>
 			<h2 class="mb-2 text-lg font-medium">{t('trashOrgTitle')}</h2>
 			<p class="mb-3 text-xs text-text-soft">{t('trashOrgHint')}</p>

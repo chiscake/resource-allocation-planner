@@ -17,3 +17,11 @@ function parsePublicBool(flag: string | undefined): boolean | null {
 export function isDlnUiEnabled(flag: string | undefined): boolean {
   return parsePublicBool(flag) === true;
 }
+
+/**
+ * `PUBLIC_SHOW_ORGS` — show org nav, attach panel, org trash / feed.
+ * Unset → hidden. DB columns, RLS, and seed orgs remain.
+ */
+export function isOrgsUiEnabled(flag: string | undefined): boolean {
+  return parsePublicBool(flag) === true;
+}

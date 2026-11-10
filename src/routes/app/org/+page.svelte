@@ -1,5 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
+	import { env } from '$env/dynamic/public';
+	import { isOrgsUiEnabled } from '$lib/features';
 	import { supabase } from '$lib/db/supabase';
 	import { writeAudit } from '$lib/db/audit';
 	import { t } from '$lib/i18n';
@@ -45,6 +48,10 @@
 	}
 
 	onMount(() => {
+		if (!isOrgsUiEnabled(env.PUBLIC_SHOW_ORGS)) {
+			void goto('/app', { replaceState: true });
+			return;
+		}
 		void load();
 	});
 

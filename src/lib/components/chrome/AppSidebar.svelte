@@ -13,8 +13,10 @@
     Shield,
     Lock,
   } from "@lucide/svelte";
+  import { env } from "$env/dynamic/public";
   import { t, type RuKey } from "$lib/i18n";
   import { chrome, closeMobileNav } from "$lib/chrome/chrome.svelte";
+  import { isOrgsUiEnabled } from "$lib/features";
 
   let {
     isAdmin = false,
@@ -57,14 +59,24 @@
     { href: "/app/admin", label: "admin", icon: Shield, adminOnly: true },
   ];
 
+  const showOrgs = isOrgsUiEnabled(env.PUBLIC_SHOW_ORGS);
+
+  function visible(item: NavItem): boolean {
+    return showOrgs || item.href !== "/app/org";
+  }
+
   const primary = $derived(
     signedIn
-      ? signedInPrimary.filter((item) => !item.adminOnly || isAdmin)
+      ? signedInPrimary.filter(
+          (item) => visible(item) && (!item.adminOnly || isAdmin),
+        )
       : publicItems,
   );
 
   const locked = $derived(
-    signedIn ? [] : authOnlyItems.filter((item) => !item.adminOnly),
+    signedIn
+      ? []
+      : authOnlyItems.filter((item) => visible(item) && !item.adminOnly),
   );
 
   function isActive(href: string) {
