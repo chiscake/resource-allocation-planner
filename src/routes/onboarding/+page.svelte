@@ -9,10 +9,10 @@
 
 	let step = $state(0);
 	const steps = [
-		'Планировщик распределения ресурсов — планы выпуска и what-if.',
-		'Без входа: один локальный сценарий на устройстве.',
-		'С аккаунтом: история, org, шаринг, сравнение.',
-		'Регистрация отключена — вход по выданным учётным данным.'
+		t('onboardingStep1'),
+		t('onboardingStep2'),
+		t('onboardingStep3'),
+		t('onboardingStep4')
 	];
 
 	onMount(() => {
@@ -35,7 +35,7 @@
 		<p class="text-text-muted">{steps[step]}</p>
 		<p class="mt-3 font-mono text-xs text-text-soft">{step + 1}/{steps.length}</p>
 		<Button class="mt-6 w-full" onclick={next}>
-			{step < steps.length - 1 ? 'Далее' : t('continue')}
+			{step < steps.length - 1 ? t('next') : t('continue')}
 		</Button>
 	</Card>
 </main>
