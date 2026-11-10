@@ -16,7 +16,8 @@ Course project: client-server **Resource Allocation Planner** (UI: «Плани�
 - Auth (no public signup); guest local slot → upload on login; draft create → persist on first solve.
 - Domain DB + RLS shelves `000`–`080` (incl. template uses, share notify RPC, `pg_cron` purge).
 - Solver: LP (simplex) + IPM + GA + DLN locally and on Edge; what-if children; plan rounding UI; venue cloud/local.
-- Product surfaces: home, tasks, task editor, templates / public catalog, compare, trash, notifications (poll 60s), admin, share-by-token.
+- Product surfaces: home, tasks, task editor, templates / public catalog (+ mod queue), compare, trash, notifications (poll 60s), admin, share-by-token.
+- App roles: `admin` \| `mod` \| `user`; public catalog publish workflow (`publish_status` pending → approved).
 - Data I/O: CSV model import (tableau layout, `;`/`,`, units) + model CSV download/template; Excel / PDF result export (plan, resources, what-if).
 - Units of measure: editable units row/column in the LP matrix; shown in results and exports.
 - UI flags (`src/lib/features.ts`): `PUBLIC_SHOW_DLN`, `PUBLIC_SHOW_ORGS` — both off by default; organizations remain in schema/RLS but are hidden in the UI.
@@ -58,7 +59,7 @@ resource-allocation-planner/
 │       └── app/                 # authenticated shell
 │           ├── create/, tasks/, task/[id]/
 │           ├── templates/, public-templates/
-│           ├── compare/, trash/, org/ (flagged), notifications/, admin/
+│           ├── compare/, trash/, org/ (flagged), notifications/, moderation/, admin/
 ├── supabase/
 │   ├── migrations/000…080
 │   ├── functions/               # solve, run_mutations, admin-create-user

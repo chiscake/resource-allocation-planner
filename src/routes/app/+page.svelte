@@ -84,6 +84,7 @@
 				.select('id, title, model, updated_at')
 				.in('id', publicIds)
 				.eq('system_kind', 'public_repo')
+				.eq('publish_status', 'approved')
 				.is('deleted_at', null);
 			publics = (data ?? []) as typeof publics;
 		}

@@ -12,12 +12,22 @@ const CORNER_LABEL = 'Ресурсы \\ Продукция';
 const STOCK_LABEL = 'Запас';
 const PRICE_LABEL = 'Цена';
 const UNIT_LABEL = 'Ед. изм.';
+const OBJECTIVE_UNIT_LABEL = 'Ед. прибыли';
 
 const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
 
 const STOCK_HEADERS = new Set(['запас', 'запасы', 'rhs', 'stock']);
 const PRICE_HEADERS = new Set(['цена', 'цены', 'прибыль', 'price', 'objective']);
 const UNIT_HEADERS = new Set(['ед. изм.', 'ед.изм.', 'ед. изм', 'ед.', 'ед', 'единицы', 'unit', 'units']);
+const OBJECTIVE_UNIT_HEADERS = new Set([
+	'ед. прибыли',
+	'ед. цели',
+	'ед прибыли',
+	'ед цели',
+	'objective unit',
+	'objective_unit',
+	'profit unit'
+]);
 
 /** Count delimiters outside quotes on the first non-empty line; tie → `;` (RU Excel). */
 export function detectCsvDelimiter(text: string): CsvDelimiter {
@@ -85,17 +95,31 @@ function isNumeric(raw: string): boolean {
  * Parse an LP tableau CSV (same layout as the on-screen matrix):
  *
  * ```
+ * Ед. прибыли;у.е.
  * Ресурсы \ Продукция;Продукт 1;Продукт 2;Запас;Ед. изм.
  * Ед. изм.;шт;шт;;
  * Ресурс 1;1;2;10;кг
  * Цена;3;4;;
  * ```
  *
- * The units row and units column are optional. Empty numeric cells read as 0.
+ * The objective-unit meta line, units row and units column are optional.
+ * Empty numeric cells read as 0.
  */
 export function parseModelCsv(text: string, delimiter?: CsvDelimiter): CsvParseResult {
 	const delim = delimiter ?? detectCsvDelimiter(text);
-	const rows = splitRows(text, delim);
+	const allRows = splitRows(text, delim);
+
+	let objectiveUnit = '';
+	let tableStart = 0;
+	if (
+		allRows.length > 0 &&
+		OBJECTIVE_UNIT_HEADERS.has(norm(allRows[0]![0] ?? ''))
+	) {
+		objectiveUnit = (allRows[0]![1] ?? '').trim();
+		tableStart = 1;
+	}
+
+	const rows = allRows.slice(tableStart);
 	if (rows.length < 3) return { ok: false, error: 'csvTooFewRows' };
 
 	const header = [...rows[0]!];
@@ -190,7 +214,8 @@ export function parseModelCsv(text: string, delimiter?: CsvDelimiter): CsvParseR
 		b,
 		c,
 		resource_units: resourceUnits,
-		product_units: productUnits ?? products.map(() => '')
+		product_units: productUnits ?? products.map(() => ''),
+		objective_unit: objectiveUnit
 	};
 	return { ok: true, model, delimiter: delim };
 }
@@ -209,6 +234,7 @@ export function serializeModelCsv(model: Model, delimiter: CsvDelimiter = ';'): 
 	const line = (cells: (string | number)[]) => cells.map(esc).join(delimiter);
 
 	const lines = [
+		line([OBJECTIVE_UNIT_LABEL, model.objective_unit ?? '']),
 		line([CORNER_LABEL, ...model.products, STOCK_LABEL, UNIT_LABEL]),
 		line([UNIT_LABEL, ...productUnits, '', '']),
 		...model.resources.map((name, i) =>
@@ -233,7 +259,8 @@ export function csvModelTemplate(delimiter: CsvDelimiter = ';'): string {
 			b: [100, 150],
 			c: [4, 5, 3],
 			resource_units: ['кг', 'ч'],
-			product_units: ['шт', 'шт', 'шт']
+			product_units: ['шт', 'шт', 'шт'],
+			objective_unit: 'у.е.'
 		},
 		delimiter
 	);

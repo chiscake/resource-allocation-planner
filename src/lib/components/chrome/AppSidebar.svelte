@@ -11,6 +11,7 @@
     Trash2,
     Building2,
     Shield,
+    ClipboardCheck,
     Lock,
   } from "@lucide/svelte";
   import { env } from "$env/dynamic/public";
@@ -20,9 +21,11 @@
 
   let {
     isAdmin = false,
+    isMod = false,
     signedIn = false,
   }: {
     isAdmin?: boolean;
+    isMod?: boolean;
     signedIn?: boolean;
   } = $props();
 
@@ -31,6 +34,7 @@
     label: RuKey;
     icon: Component;
     adminOnly?: boolean;
+    modStaff?: boolean;
   };
 
   const publicItems: NavItem[] = [
@@ -47,6 +51,12 @@
     { href: "/app/compare", label: "compare", icon: GitCompareArrows },
     { href: "/app/trash", label: "trash", icon: Trash2 },
     { href: "/app/org", label: "org", icon: Building2 },
+    {
+      href: "/app/moderation",
+      label: "moderation",
+      icon: ClipboardCheck,
+      modStaff: true,
+    },
     { href: "/app/admin", label: "admin", icon: Shield, adminOnly: true },
   ];
 
@@ -56,27 +66,40 @@
     { href: "/app/compare", label: "compare", icon: GitCompareArrows },
     { href: "/app/trash", label: "trash", icon: Trash2 },
     { href: "/app/org", label: "org", icon: Building2 },
+    {
+      href: "/app/moderation",
+      label: "moderation",
+      icon: ClipboardCheck,
+      modStaff: true,
+    },
     { href: "/app/admin", label: "admin", icon: Shield, adminOnly: true },
   ];
 
   const showOrgs = isOrgsUiEnabled(env.PUBLIC_SHOW_ORGS);
+  const isStaff = $derived(isAdmin || isMod);
 
   function visible(item: NavItem): boolean {
     return showOrgs || item.href !== "/app/org";
   }
 
+  function staffVisible(item: NavItem): boolean {
+    if (item.adminOnly && !isAdmin) return false;
+    if (item.modStaff && !isStaff) return false;
+    return true;
+  }
+
   const primary = $derived(
     signedIn
-      ? signedInPrimary.filter(
-          (item) => visible(item) && (!item.adminOnly || isAdmin),
-        )
+      ? signedInPrimary.filter((item) => visible(item) && staffVisible(item))
       : publicItems,
   );
 
   const locked = $derived(
     signedIn
       ? []
-      : authOnlyItems.filter((item) => visible(item) && !item.adminOnly),
+      : authOnlyItems.filter(
+          (item) => visible(item) && !item.adminOnly && !item.modStaff,
+        ),
   );
 
   function isActive(href: string) {

@@ -1,3 +1,4 @@
+import { labeledName } from "$lib/display/units";
 import type { Model, Mutation } from "./types";
 import { SCHEMA_VERSION } from "./types";
 
@@ -8,16 +9,34 @@ export function formatMutationDeltaPct(delta: number): string {
   return `${sign}${pct}%`;
 }
 
+function mutationTargetLabel(mutation: Mutation, model?: Model): string {
+  if (!model) return mutation.target;
+  if (mutation.kind === "resource_change") {
+    const i = model.resources.indexOf(mutation.target);
+    return labeledName(
+      mutation.target,
+      i >= 0 ? model.resource_units?.[i] : "",
+    );
+  }
+  // modernization + price_change target a product
+  const j = model.products.indexOf(mutation.target);
+  return labeledName(
+    mutation.target,
+    j >= 0 ? model.product_units?.[j] : "",
+  );
+}
+
 /** End-user mutation title (RU). Kept here so DB titles match the sensitivity table. */
-export function formatMutationLabel(mutation: Mutation): string {
+export function formatMutationLabel(mutation: Mutation, model?: Model): string {
   const d = formatMutationDeltaPct(mutation.delta);
+  const target = mutationTargetLabel(mutation, model);
   switch (mutation.kind) {
     case "resource_change":
-      return `Запас: ${mutation.target} ${d}`;
+      return `Запас: ${target} ${d}`;
     case "modernization":
-      return `Расход: ${mutation.target} ${d}`;
+      return `Расход: ${target} ${d}`;
     case "price_change":
-      return `Цена: ${mutation.target} ${d}`;
+      return `Цена: ${target} ${d}`;
     default:
       return mutation.label ?? mutation.kind;
   }
@@ -98,8 +117,8 @@ export function buildDefaultMutations(model: Model): Mutation[] {
         target: r,
         delta: -rp,
       };
-      out.push({ ...plus, label: formatMutationLabel(plus) });
-      out.push({ ...minus, label: formatMutationLabel(minus) });
+      out.push({ ...plus, label: formatMutationLabel(plus, model) });
+      out.push({ ...minus, label: formatMutationLabel(minus, model) });
     }
   }
   if (activePct(mp)) {
@@ -109,7 +128,7 @@ export function buildDefaultMutations(model: Model): Mutation[] {
         target: p,
         delta: -mp,
       };
-      out.push({ ...m, label: formatMutationLabel(m) });
+      out.push({ ...m, label: formatMutationLabel(m, model) });
     }
   }
   if (activePct(pp)) {
@@ -124,8 +143,8 @@ export function buildDefaultMutations(model: Model): Mutation[] {
         target: p,
         delta: -pp,
       };
-      out.push({ ...plus, label: formatMutationLabel(plus) });
-      out.push({ ...minus, label: formatMutationLabel(minus) });
+      out.push({ ...plus, label: formatMutationLabel(plus, model) });
+      out.push({ ...minus, label: formatMutationLabel(minus, model) });
     }
   }
   return out;

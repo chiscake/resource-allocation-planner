@@ -2,6 +2,13 @@ import ExcelJS from 'exceljs';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import type { Model, SolveMethod, SolveResult, WhatIfRowData } from '$lib/domain';
+import {
+	labeledProduct,
+	labeledResource,
+	objectiveUnit,
+	priceUnit,
+	shadowUnit
+} from '$lib/display/units';
 import { t, type RuKey } from '$lib/i18n';
 import { safeFilename } from './download';
 
@@ -43,20 +50,24 @@ function text(v: Cell): string {
 	return typeof v === 'number' ? ruNumber.format(v) : v;
 }
 
-function unit(list: string[] | undefined, i: number): string {
-	return (list?.[i] ?? '').trim();
+function withUnitHeader(label: string, unit: string): string {
+	return unit ? `${label}, ${unit}` : label;
 }
 
 function summaryRows(p: ExportPayload): [string, Cell][] {
+	const obj = objectiveUnit(p.model);
 	const rows: [string, Cell][] = [
 		[t('exportTask'), p.title || t('newTask')],
 		[t('exportMethod'), t(METHOD_KEY[p.method])],
 		[t('exportDate'), (p.solvedAt ?? new Date()).toLocaleString('ru-RU')],
 		[t('zMax'), num(p.result.Z)],
+		...(obj ? ([[t('objectiveUnit'), obj]] as [string, Cell][]) : []),
 		[t('compareFeasible'), p.result.feasible ? t('compareYes') : t('compareNo')],
 		[
 			t('criticalResources'),
-			p.result.critical_resources.length ? p.result.critical_resources.join(', ') : '—'
+			p.result.critical_resources.length
+				? p.result.critical_resources.map((name) => labeledResource(p.model, name)).join(', ')
+				: '—'
 		]
 	];
 	if (p.roundPlan) rows.push([t('roundPlan'), t('compareYes')]);
@@ -67,12 +78,12 @@ function summaryRows(p: ExportPayload): [string, Cell][] {
 export function planTable(p: ExportPayload): Table {
 	const { model, result } = p;
 	return {
-		head: [t('exportProduct'), t('exportQuantity'), t('matrixUnit'), t('matrixPrice')],
+		head: [t('exportProduct'), t('exportQuantity'), t('matrixPrice'), t('exportPriceUnit')],
 		body: model.products.map((name, j) => [
-			name,
+			labeledProduct(model, j),
 			num(result.x[name] ?? 0),
-			unit(model.product_units, j),
-			num(model.c[j])
+			num(model.c[j]),
+			priceUnit(model, j)
 		])
 	};
 }
@@ -86,30 +97,31 @@ export function resourceTable(p: ExportPayload): Table {
 			t('exportUsage'),
 			t('matrixStock'),
 			t('exportSlack'),
-			t('matrixUnit'),
 			t('shadowPrices'),
+			t('exportShadowUnit'),
 			t('exportCritical')
 		],
 		body: model.resources.map((name, i) => [
-			name,
+			labeledResource(model, i),
 			num(result.resource_usage?.[name]),
 			num(model.b[i]),
 			num(result.resource_slack?.[name]),
-			unit(model.resource_units, i),
 			num(result.shadow_prices?.[name]),
+			shadowUnit(model, i),
 			critical.has(name) ? t('compareYes') : t('compareNo')
 		])
 	};
 }
 
 export function whatIfTable(p: ExportPayload): Table {
+	const obj = objectiveUnit(p.model);
 	return {
 		head: [
 			t('exportScenario'),
 			t('mutationBefore'),
 			t('mutationAfter'),
-			t('zMax'),
-			t('whatIfDeltaZ'),
+			withUnitHeader(t('zMax'), obj),
+			withUnitHeader(t('whatIfDeltaZ'), obj),
 			t('whatIfShadowCol')
 		],
 		body: (p.whatIfRows ?? []).map((r) => [
@@ -234,7 +246,16 @@ export function buildPdfBlob(p: ExportPayload, fonts: PdfFonts): { blob: Blob; f
 	doc.setFont(PDF_FONT, 'bold');
 	doc.setFontSize(22);
 	doc.setTextColor(...BRAND);
-	doc.text(text(num(p.result.Z)), margin, y + 24);
+	const zText = text(num(p.result.Z));
+	doc.text(zText, margin, y + 24);
+	const obj = objectiveUnit(p.model);
+	if (obj) {
+		const zWidth = doc.getTextWidth(zText);
+		doc.setFont(PDF_FONT, 'normal');
+		doc.setFontSize(11);
+		doc.setTextColor(...MUTED);
+		doc.text(obj, margin + zWidth + 8, y + 24);
+	}
 	y += 44;
 
 	const tableStyles = {

@@ -82,6 +82,9 @@ Established product lexicon may stay (e.g. «Форкнуть», «Z max») — 
 | `020`  | auth / profiles / admin helpers        |
 | `030`  | organizations + membership             |
 | `040`  | domain (`templates`, `solve_nodes`, …) |
+| `011`  | RLS helpers (`is_mod`, `is_admin_or_mod`) |
+| `021`  | profiles role `mod`                    |
+| `042`  | template publish_status + moderation RPCs |
 | `050`  | sharing + notifications + audit        |
 | `060`  | trash / `pg_cron` purge                |
 | `070+` | spare                                  |

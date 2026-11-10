@@ -11,6 +11,12 @@
     WhatIfRowData,
   } from "$lib/domain";
   import type { VerifyReport } from "$lib/solver/verify";
+  import {
+    labeledProduct,
+    labeledResource,
+    objectiveUnit,
+    shadowUnit,
+  } from "$lib/display/units";
   import { t } from "$lib/i18n";
   import Card from "$lib/components/ui/Card.svelte";
   import { formatPlanNumber } from "./format-plan-number";
@@ -88,15 +94,7 @@
       .map((k) => [k, slack[k] ?? 0] as [string, number]);
   });
 
-  function unitOf(names: string[] | undefined, units: string[] | undefined, name: string): string {
-    const idx = names?.indexOf(name) ?? -1;
-    return idx >= 0 ? (units?.[idx] ?? "").trim() : "";
-  }
-
-  const productUnit = (name: string) =>
-    unitOf(model?.products, model?.product_units, name);
-  const resourceUnit = (name: string) =>
-    unitOf(model?.resources, model?.resource_units, name);
+  const zUnit = $derived(objectiveUnit(model));
 
   function isZeroPlan(v: number): boolean {
     return !Number.isFinite(v) || Math.abs(v) < ZERO_EPS;
@@ -146,6 +144,9 @@
       >
         {formatPlanNumber(result.Z)}
       </span>
+      {#if zUnit}
+        <span class="text-sm text-text-soft">{zUnit}</span>
+      {/if}
     </div>
     {#if model && exportTitle != null}
       <ResultExportActions
@@ -181,12 +182,9 @@
               ? 'text-text-faint'
               : 'text-text'}"
           >
-            <td class="py-1.5 pr-3">{name}</td>
+            <td class="py-1.5 pr-3">{labeledProduct(model, name)}</td>
             <td class="py-1.5 text-right font-mono tabular-nums">
               {formatPlanNumber(value)}
-            </td>
-            <td class="w-0 whitespace-nowrap py-1.5 pl-2 text-xs text-text-soft">
-              {productUnit(name)}
             </td>
           </tr>
         {/each}
@@ -199,7 +197,7 @@
       <p class="mb-2 text-sm font-medium text-text">{t("criticalResources")}</p>
       <ul class="flex flex-col gap-1.5">
         {#each result.critical_resources as name (name)}
-          <li class="text-sm text-text">{name}</li>
+          <li class="text-sm text-text">{labeledResource(model, name)}</li>
         {/each}
       </ul>
     </div>
@@ -222,10 +220,13 @@
                   ? 'text-text'
                   : 'text-text-muted'}"
               >
-                {name}
+                {labeledResource(model, name)}
               </td>
               <td class="py-1.5 text-right font-mono tabular-nums text-text">
                 {formatPlanNumber(value)}
+              </td>
+              <td class="w-0 whitespace-nowrap py-1.5 pl-2 text-xs text-text-soft">
+                {shadowUnit(model, name)}
               </td>
             </tr>
           {/each}
@@ -241,12 +242,11 @@
         <tbody>
           {#each slackEntries as [name, value] (name)}
             <tr class="border-b border-border-soft last:border-0">
-              <td class="py-1.5 pr-3 text-text-muted">{name}</td>
+              <td class="py-1.5 pr-3 text-text-muted">
+                {labeledResource(model, name)}
+              </td>
               <td class="py-1.5 text-right font-mono tabular-nums text-text">
                 {formatPlanNumber(value)}
-              </td>
-              <td class="w-0 whitespace-nowrap py-1.5 pl-2 text-xs text-text-soft">
-                {resourceUnit(name)}
               </td>
             </tr>
           {/each}

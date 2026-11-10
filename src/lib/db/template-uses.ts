@@ -14,6 +14,7 @@ export async function recordPublicTemplateUse(templateId: string): Promise<void>
 		.is('deleted_at', null)
 		.maybeSingle();
 	if (!tpl || tpl.system_kind !== 'public_repo') return;
+	// catalog visibility also requires publish_status=approved (enforced in queries / RLS)
 
 	const now = new Date().toISOString();
 	await supabase.from('template_uses').upsert(

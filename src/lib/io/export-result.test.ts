@@ -56,9 +56,10 @@ describe("export-result", () => {
     const p = await task13Payload();
     const plan = planTable(p);
     expect(plan.body).toHaveLength(p.model.products.length);
-    expect(plan.body[0]![2]).toBe(p.model.product_units![0]);
+    expect(String(plan.body[0]![0])).toContain(p.model.product_units![0]!);
+    expect(String(plan.body[0]![3])).toContain(p.model.product_units![0]!);
     const res = resourceTable(p);
-    expect(res.body[0]![4]).toBe(p.model.resource_units![0]);
+    expect(String(res.body[0]![0])).toContain(p.model.resource_units![0]!);
     expect(res.body[0]![2]).toBe(p.model.b[0]);
     expect(whatIfTable(p).body).toHaveLength(3);
   });

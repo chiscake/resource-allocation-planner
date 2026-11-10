@@ -28,7 +28,7 @@ MVP still delivers: dual solver, what-if children, share/trash/audit, notificati
 
 ## Roles & public catalog
 
-- [ ] App role / flow **`mod`** — user-driven public repo + moderation
+- [x] App role / flow **`mod`** — user-driven public repo + moderation
 - [ ] Org role **`org_mod`**
 - [ ] Notification type **`org_invite`**
 - [ ] Richer audit UI filters (app-`admin` / `org_owner`)

@@ -4,6 +4,7 @@
  *
  * Default accounts (password from SEED_PASSWORD or password123):
  *   admin@example.com  — app_metadata.role=admin (no org)
+ *   mod@example.com    — app_metadata.role=mod (public catalog moderation)
  *   demo1@example.com  — org_owner of Demo Org
  *   demo2@example.com  — member of Demo Org
  *   demo3@example.com  — user, no organization_members row
@@ -61,6 +62,9 @@ const TASK13_MODEL = {
   ],
   b: [80, 480, 130],
   c: [3, 4, 3, 1],
+  resource_units: ["чел./дней", "кг", "станков/ч"],
+  product_units: ["шт", "шт", "шт", "шт"],
+  objective_unit: "у.е.",
   what_if_defaults: {
     resource_pct: 0.1,
     modernization_pct: 0.1,
@@ -122,6 +126,7 @@ async function ensureTemplates() {
     const { error } = await admin.from("templates").insert({
       title: "Задача 13",
       system_kind: "public_repo",
+      publish_status: "approved",
       model: TASK13_MODEL,
       what_if: WHAT_IF,
       owner_id: null,
@@ -130,13 +135,20 @@ async function ensureTemplates() {
     console.log("inserted public_repo template");
   } else {
     // Strip legacy «(публичный каталог)» suffix without full reset.
-    const { error } = await admin
+    const { error: titleErr } = await admin
       .from("templates")
       .update({ title: "Задача 13" })
       .eq("system_kind", "public_repo")
       .is("deleted_at", null)
       .neq("title", "Задача 13");
-    if (error) throw error;
+    if (titleErr) throw titleErr;
+    const { error: statusErr } = await admin
+      .from("templates")
+      .update({ publish_status: "approved" })
+      .eq("system_kind", "public_repo")
+      .is("deleted_at", null)
+      .is("publish_status", null);
+    if (statusErr) throw statusErr;
   }
 }
 
@@ -165,6 +177,7 @@ async function copySignupSeedToUser(userId) {
 }
 
 const adminId = await ensureUser("admin@example.com", "admin");
+const modId = await ensureUser("mod@example.com", "mod");
 const d1 = await ensureUser("demo1@example.com", "user");
 const d2 = await ensureUser("demo2@example.com", "user");
 const d3 = await ensureUser("demo3@example.com", "user");
@@ -195,4 +208,4 @@ if (!orgId) {
   console.log("created Demo Org", orgId);
 }
 
-console.log("seed done", { adminId, d1, d2, d3, orgId });
+console.log("seed done", { adminId, modId, d1, d2, d3, orgId });

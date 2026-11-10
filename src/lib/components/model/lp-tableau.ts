@@ -217,7 +217,8 @@ export function modelSourceKey(model: Model): string {
 		resources: model.resources,
 		products: model.products,
 		resource_units: alignUnits(model.resource_units, model.resources?.length ?? 0),
-		product_units: alignUnits(model.product_units, model.products?.length ?? 0)
+		product_units: alignUnits(model.product_units, model.products?.length ?? 0),
+		objective_unit: (model.objective_unit ?? '').trim()
 	});
 }
 

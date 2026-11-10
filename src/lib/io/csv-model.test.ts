@@ -33,6 +33,8 @@ describe("csv-model", () => {
     expect(res.model.c).toEqual(model.c);
     expect(res.model.resource_units).toEqual(model.resource_units);
     expect(res.model.product_units).toEqual(model.product_units);
+    expect(res.model.objective_unit).toBe(model.objective_unit);
+    expect(csv.startsWith("Ед. прибыли;у.е.")).toBe(true);
   });
 
   it("round-trips through , CSV with decimals", () => {
@@ -65,6 +67,15 @@ describe("csv-model", () => {
     expect(model.c).toEqual([5, 4]);
     expect(model.resource_units).toEqual(["", ""]);
     expect(model.product_units).toEqual(["", ""]);
+    expect(model.objective_unit).toBe("");
+  });
+
+  it("parses the objective-unit meta line and aliases", () => {
+    const text =
+      "Ед. цели;тыс. руб.\r\nРесурсы;A;B;Запас;Ед. изм.\r\nЕд. изм.;шт;шт;;\r\nСталь;1;2;10;кг\r\nЦена;5;4;;\r\n";
+    const { model } = expectOk(text);
+    expect(model.objective_unit).toBe("тыс. руб.");
+    expect(model.products).toEqual(["A", "B"]);
   });
 
   it("treats a header without a stock label as last column = stock", () => {
@@ -122,5 +133,6 @@ describe("csv-model", () => {
     expect(model.resources).toHaveLength(2);
     expect(model.products).toHaveLength(3);
     expect(model.resource_units).toEqual(["кг", "ч"]);
+    expect(model.objective_unit).toBe("у.е.");
   });
 });

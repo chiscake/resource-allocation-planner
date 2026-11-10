@@ -16,6 +16,7 @@ export function createTask13Model(): Model {
     c: [3, 4, 3, 1],
     resource_units: ["чел./дней", "кг", "станков/ч"],
     product_units: ["шт", "шт", "шт", "шт"],
+    objective_unit: "у.е.",
     what_if_defaults: {
       resource_pct: 0.1,
       modernization_pct: 0.1,

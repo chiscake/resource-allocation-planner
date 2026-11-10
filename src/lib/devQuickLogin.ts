@@ -3,7 +3,7 @@ export interface DevQuickAccount {
 	label: string;
 	email: string;
 	password: string;
-	role: 'admin' | 'user';
+	role: 'admin' | 'mod' | 'user';
 }
 
 /** Shared seed password (must match scripts/seed-users.mjs / SEED_PASSWORD default). */
@@ -15,6 +15,12 @@ export const DEV_QUICK_ACCOUNTS: readonly DevQuickAccount[] = [
 		email: 'admin@example.com',
 		password: DEV_QUICK_PASSWORD,
 		role: 'admin'
+	},
+	{
+		label: 'Mod',
+		email: 'mod@example.com',
+		password: DEV_QUICK_PASSWORD,
+		role: 'mod'
 	},
 	{
 		label: 'Demo 1',

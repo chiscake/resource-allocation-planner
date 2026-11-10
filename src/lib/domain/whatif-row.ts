@@ -69,7 +69,7 @@ export function buildWhatIfRowData(input: {
   }
 
   return {
-    title: formatMutationLabel(mutation),
+    title: formatMutationLabel(mutation, base),
     Z,
     baseZ,
     deltaZ,

@@ -59,6 +59,8 @@ export interface Model {
   c: number[];
   resource_units?: string[];
   product_units?: string[];
+  /** Unit of the objective / profit (e.g. «у.е.»). Display-only. */
+  objective_unit?: string;
   what_if_defaults?: WhatIfDefaults;
 }
 

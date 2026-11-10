@@ -8,14 +8,15 @@
 
 | Термин          | Где                     | Смысл                                                                  |
 | --------------- | ----------------------- | ---------------------------------------------------------------------- |
-| **`admin`**     | уровень **приложения**  | Системные шаблоны, пользователи платформы и т.п.                       |
+| **`admin`**     | уровень **приложения**  | Пользователи платформы, системные шаблоны, каталог + модерация         |
+| **`mod`**       | уровень **приложения**  | Публичный каталог шаблонов + очередь модерации (без create-user)       |
 | **`org_owner`** | уровень **организации** | Привилегии org (корзина org, hide чужих публичных задач, audit org, …) |
 | **`member`**    | организация             | Обычный участник                                                       |
-| **`mod`**       | later                   | Модератор user/public repo                                             |
 | **`org_mod`**   | later                   | Модератор внутри org                                                   |
 
+В MVP в `profiles.role` / JWT `app_metadata.role`: **`admin` \| `mod` \| `user`**.  
 В MVP в `organization_members.role`: **`org_owner` \| `member`**. Отдельной org-роли `admin` нет (`org_owner` закрывает этот контур).  
-App-`admin` ≠ `org_owner`.
+App-`admin` ≠ `org_owner`. App-`mod` делит с admin управление публичным каталогом.
 
 ---
 
@@ -110,7 +111,18 @@ Write/delete: владелец узла; `org_owner` — hide чужих public 
 ## `templates`
 
 Без `source_id`. `system_kind`: `signup_seed` \| `public_repo` \| null.  
-App-`admin` правит системные. `owner_id` / `org_id` для user/org копий.
+`publish_status`: `null` \| `pending` \| `approved`.
+
+| Состояние | `system_kind` | `publish_status` | Кто видит в каталоге |
+| --------- | ------------- | ---------------- | -------------------- |
+| Личный | `null` | `null` | — |
+| Заявка | `null` | `pending` | очередь admin/mod |
+| В каталоге | `public_repo` | `approved` | все (+ anon) |
+| `signup_seed` | `signup_seed` | `null` | seed / admin |
+
+Переходы (RPC): `request_template_publish` → pending; `withdraw` / reject → личный; `moderate … approve` / `publish_template_direct` → каталог; `unpublish_template` (user-owned) → личный. Platform (`owner_id` null) из каталога — soft-delete admin/mod.  
+Правка model: личный и pending; approved — сначала unpublish.  
+App-`admin` и app-`mod` управляют каталогом. `owner_id` / `org_id` для user/org копий.
 
 ### `template_uses`
 
@@ -217,11 +229,14 @@ App-`admin` — по политике платформы (шире), отдел�
 
 ## `notifications`
 
-| type (MVP+)              | Когда                                        |
-| ------------------------ | -------------------------------------------- |
-| `share_incoming`         | grant                                        |
-| `org_owner_deleted_node` | org_owner soft-delete чужого сценария        |
-| `org_invite`             | later (см. [`TODO-later.md`](TODO-later.md)) |
+| type (MVP+)                   | Когда                                        |
+| ----------------------------- | -------------------------------------------- |
+| `share_incoming`              | grant                                        |
+| `template_publish_pending`    | user отправил шаблон на модерацию (всем admin/mod) |
+| `template_publish_approved`   | модератор одобрил заявку (автору)            |
+| `template_publish_rejected`   | модератор отклонил заявку (автору)           |
+| `org_owner_deleted_node`      | org_owner soft-delete чужого сценария        |
+| `org_invite`                  | later (см. [`TODO-later.md`](TODO-later.md)) |
 
 **Доставка в UI (закреплено):**
 
@@ -234,7 +249,7 @@ App-`admin` — по политике платформы (шире), отдел�
 
 ## Auth / admin (app)
 
-Нет self-signup; seed; Edge `admin-create-user`; app-`admin`: users + system templates.
+Нет self-signup; seed (в т.ч. `mod@example.com`); Edge `admin-create-user`; app-`admin`: users; app-`admin`/`mod`: публичный каталог + модерация.
 
 ---
 

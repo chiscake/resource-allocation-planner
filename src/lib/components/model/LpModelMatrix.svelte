@@ -3,9 +3,11 @@
 	import { Undo2 } from '@lucide/svelte';
 	import type { Model } from '$lib/domain';
 	import { cloneModel } from '$lib/domain';
+	import { coeffUnit, priceUnit } from '$lib/display/units';
 	import { t } from '$lib/i18n';
 	import { Matrix } from '$lib/components/ui/matrix';
 	import Button from '$lib/components/ui/Button.svelte';
+	import Input from '$lib/components/ui/Input.svelte';
 	import {
 		clampLpDimensions,
 		createLpMatrixModel,
@@ -45,6 +47,7 @@
 
 	let resourceCount = $state(untrack(() => model.resources?.length ?? LP_DIM_MIN));
 	let productCount = $state(untrack(() => model.products?.length ?? LP_DIM_MIN));
+	let objectiveDraft = $state(untrack(() => model.objective_unit ?? ''));
 
 	/**
 	 * In-memory undo for dimension changes only (not localStorage).
@@ -74,6 +77,7 @@
 			productCount = n;
 		}
 
+		objectiveDraft = model.objective_unit ?? '';
 		loadLpMatrixModel(matrix, model);
 		applyingExternal = false;
 	});
@@ -104,6 +108,23 @@
 
 	function unitPlaceholder(row: number, col: number): string | undefined {
 		return !readonly && isUnitCell(row, col) ? t('matrixUnitPlaceholder') : undefined;
+	}
+
+	/** Derived unit tooltips: A → ur/up, price row → obj/up. */
+	function derivedUnitTitle(row: number, col: number): string | undefined {
+		const m = model.resources?.length ?? 0;
+		const n = model.products?.length ?? 0;
+		if (col < 1 || col > n) return undefined;
+		const j = col - 1;
+		if (row >= 2 && row <= m + 1) {
+			const title = coeffUnit(model, row - 2, j);
+			return title || undefined;
+		}
+		if (row === m + 2) {
+			const title = priceUnit(model, j);
+			return title || undefined;
+		}
+		return undefined;
 	}
 
 	function parseDimInput(raw: string | number, fallback: number): number {
@@ -151,11 +172,23 @@
 		applyingDimensions = true;
 		onchange?.(restored);
 	}
+
+	function commitObjectiveUnit() {
+		if (readonly) return;
+		const v = objectiveDraft.trim();
+		if ((model.objective_unit ?? '') === v) {
+			objectiveDraft = v;
+			return;
+		}
+		const next = cloneModel(model);
+		next.objective_unit = v;
+		onchange?.(next);
+	}
 </script>
 
 <div class="lp-model-matrix w-full min-w-0 {className}">
-	{#if !readonly}
-		<div class="mb-3 flex flex-wrap items-end gap-3">
+	<div class="mb-3 flex flex-wrap items-end gap-3">
+		{#if !readonly}
 			<label class="flex flex-col gap-1">
 				<span class="text-sm text-text-muted">{t('matrixResources')}</span>
 				<input
@@ -189,8 +222,22 @@
 					<Undo2 size={18} strokeWidth={1.75} aria-hidden="true" />
 				</Button>
 			{/if}
-		</div>
-	{/if}
+		{/if}
+		<label class="flex min-w-[8rem] flex-col gap-1">
+			<span class="text-sm text-text-muted">{t('objectiveUnit')}</span>
+			{#if readonly}
+				<span class="py-2 text-[15px] text-text">{objectiveDraft.trim() || '—'}</span>
+			{:else}
+				<Input
+					class="w-28 px-2.5 py-2"
+					bind:value={objectiveDraft}
+					placeholder={t('objectiveUnitPlaceholder')}
+					onblur={commitObjectiveUnit}
+					onchange={commitObjectiveUnit}
+				/>
+			{/if}
+		</label>
+	</div>
 	<div class="w-full min-w-0 overflow-x-auto">
 		<Matrix
 			model={matrix}
@@ -200,6 +247,7 @@
 			{canEditCell}
 			isTextCell={isUnitCell}
 			cellPlaceholder={unitPlaceholder}
+			cellTitle={derivedUnitTitle}
 		/>
 	</div>
 </div>

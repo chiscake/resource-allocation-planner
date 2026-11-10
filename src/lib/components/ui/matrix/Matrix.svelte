@@ -44,6 +44,8 @@
 		isTextCell,
 		/** Faint hint shown in an empty cell (display only). */
 		cellPlaceholder,
+		/** Native `title` tooltip for a cell (e.g. derived units). */
+		cellTitle,
 		class: className = '',
 		maxHeight = '24rem'
 	}: {
@@ -60,6 +62,7 @@
 		canEditCell?: (row: number, col: number) => boolean;
 		isTextCell?: (row: number, col: number) => boolean;
 		cellPlaceholder?: (row: number, col: number) => string | undefined;
+		cellTitle?: (row: number, col: number) => string | undefined;
 		class?: string;
 		/** Max height of the scroll container (CSS length). */
 		maxHeight?: string;
@@ -441,9 +444,11 @@
 				<tr>
 					{#each row as value, c (`${r}-${c}`)}
 						{@const style = model.getResolvedStyle(r, c)}
+						{@const title = cellTitle?.(r, c)}
 						<td
 							class={cellClass(r, c, style)}
 							style={cellStyleAttr(r, c, style)}
+							title={title || undefined}
 							onclick={() => startEdit(r, c)}
 							ondblclick={() => startEdit(r, c)}
 						>

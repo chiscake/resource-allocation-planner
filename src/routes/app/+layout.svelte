@@ -15,6 +15,7 @@
 	let { children } = $props();
 	let userEmail = $state('');
 	let isAdmin = $state(false);
+	let isMod = $state(false);
 	let signedIn = $state(false);
 
 	const showQuickLogin = isDevQuickLoginEnabled(env.PUBLIC_DEV_QUICK_LOGIN);
@@ -22,7 +23,9 @@
 	function applyUser(user: User | null) {
 		signedIn = !!user;
 		userEmail = user?.email ?? '';
-		isAdmin = user?.app_metadata?.role === 'admin';
+		const role = user?.app_metadata?.role;
+		isAdmin = role === 'admin';
+		isMod = role === 'mod';
 	}
 
 	async function loadAuth() {
@@ -56,7 +59,7 @@
 >
 	<AppHeader {userEmail} onLogout={logout} />
 	<div class="relative flex min-h-0 flex-1 overflow-hidden">
-		<AppSidebar {isAdmin} {signedIn} />
+		<AppSidebar {isAdmin} {isMod} {signedIn} />
 
 		{#if chrome.mobileNavOpen}
 			<button
