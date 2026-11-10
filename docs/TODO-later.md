@@ -2,7 +2,7 @@
 
 **English.** Single backlog of work **not** in MVP. Prefer editing this file over scattering new “later” bullets across START / ROADMAP / data-model.
 
-MVP still delivers: dual solver, what-if children, orgs/share/trash/audit, notifications **table + UI**, guest slot, compare, installer, admin create-user, LP tests.
+MVP still delivers: dual solver, what-if children, share/trash/audit, notifications **table + UI**, guest slot, compare, installer, admin create-user, LP tests, CSV import, Excel/PDF export, units. Organizations stay in schema/RLS but the UI is hidden behind `PUBLIC_SHOW_ORGS` (off by default).
 
 ---
 
@@ -51,8 +51,8 @@ MVP still delivers: dual solver, what-if children, orgs/share/trash/audit, notif
 
 - [ ] SSE / WebSocket streaming for what-if progress (MVP: `solve` then `run_mutations`)
 - [ ] Heavy async job worker (`accepted` / queue) beyond reject gates
-- [ ] Evolutionary / GA solver as real method (MVP: **placeholder** tab only)
-- [ ] Full 4D visualization (MVP: placeholder; demo lives under `.tmp/`)
+- [x] Evolutionary / GA solver as real method — shipped (presets, traces, compare)
+- [ ] Richer 4D visualization beyond the shipped LP geometry panel (2D/3D/4D projections); prototype under `.tmp/`
 
 ---
 
@@ -64,6 +64,9 @@ MVP still delivers: dual solver, what-if children, orgs/share/trash/audit, notif
 ---
 
 ## Product / UX polish
+
+- [ ] Re-enable organizations UI (`PUBLIC_SHOW_ORGS=true`) once org flows are productized (admin org CRUD, invites)
+- [ ] Excel (`.xlsx`) model import — today CSV only
 
 - [ ] Locales beyond **ru** (i18n layout exists; more locales later)
 - [ ] Full Cartesia application to every screen (spec: `DESIGN.md`; apply incrementally)

@@ -46,6 +46,8 @@ resource-allocation-planner/
 │   │   ├── chrome/              # nav/drawer chrome state
 │   │   ├── components/          # chrome/ (AppHeader, DevQuickLoginBar, …) + model/
 │   │   ├── i18n/                # ru
+│   │   ├── io/                  # CSV model import/export, Excel/PDF result export, PDF fonts (OFL)
+│   │   ├── features.ts          # PUBLIC_* UI flags (DLN, orgs)
 │   │   ├── devQuickLogin.ts     # seed accounts for bottom quick-login bar
 │   │   └── platform.ts
 │   └── routes/
@@ -57,7 +59,7 @@ resource-allocation-planner/
 │           ├── +page.svelte     # home: CTA + recent + recent templates
 │           ├── create/          # draft editor; persist on first solve
 │           ├── tasks/           # all owned roots + search
-│           ├── task/[id]/      # solve (lp|ipm|ga|dln), what-if ←i/N→, share/fork/org
+│           ├── task/[id]/      # solve (lp|ipm|ga|dln), what-if ←i/N→, share/fork (+org when flagged)
 │           ├── templates/, public-templates/
 │           ├── compare/, trash/, org/, notifications/, admin/
 │           ├── test/            # scratch sandboxes (viz-3d, …); not product UX
@@ -97,12 +99,12 @@ resource-allocation-planner/
 | `/login`             | Auth (Register disabled); always upload guest slot on success           |
 | `/onboarding`        | Tauri first-run wizard                                                  |
 | `/app`               | Home: new-task CTA, recent (≤6), recent templates mix                   |
-| `/app/create`        | Draft task editor (sessionStorage); DB insert on first solve            |
+| `/app/create`        | Draft editor + CSV import (sessionStorage); DB insert on first solve    |
 | `/app/tasks`         | All owned roots; search by title; updated_at desc                       |
-| `/app/task/[id]`     | Solve, what-if pager, favorite, fork, share link+grant, org attach/hide |
+| `/app/task/[id]`     | Solve, what-if pager, CSV import, Excel/PDF export, share; org if flag  |
 | `/app/notifications` | Inbox; poll 60s + focus; layout unread badge                            |
 | `/app/trash`         | Soft-deleted roots; restore → private; hard delete                      |
-| `/app/org`           | Org ids + feed; org_owner can hide others                               |
+| `/app/org`           | Org ids + feed; redirects to `/app` unless `PUBLIC_SHOW_ORGS` is on     |
 | `/app/compare`       | Side-by-side Z/plan/duals; saved comparisons hard-delete                |
 | `/app/admin`         | List/create users (Edge); edit system template titles                   |
 | `/app/test`          | Scratch hub for control sandboxes (not product UX)                      |
@@ -122,6 +124,7 @@ resource-allocation-planner/
 | Seed        | `pnpm seed:users` — admin@example.com, demo1/2/3@example.com / password123 (demo3: no org)  |
 | Quick login | Bottom bar under `/app` (`DevQuickLoginBar`); flag `PUBLIC_DEV_QUICK_LOGIN`                 |
 | DLN UI      | Method tab + compare configs; flag `PUBLIC_SHOW_DLN` (UI only; Edge/local still accept dln) |
+| Orgs UI     | Sidebar, task attach, org trash, `/app/org`; flag `PUBLIC_SHOW_ORGS` (UI only; schema/RLS/seed orgs stay) |
 | Cloud seed  | `pnpm seed:users:cloud` — same users against linked RAP project                             |
 | Local stack | `pnpm db:reset` — start + reset + seed + Edge serve                                         |
 | Installer   | `pnpm tauri:build` — desktop bundle (local only)                                            |
@@ -155,6 +158,9 @@ resource-allocation-planner/
 | GA presets / compare                   | `src/lib/solver/methods/ga/presets.ts`, `src/lib/solver/compare.ts`, `src/lib/solver/regenerate.ts`                                      |
 | Toasts (`svelte-sonner`)               | `<Toaster />` in `src/routes/+layout.svelte`                                                                                             |
 | Cartesia tokens                        | `src/app.css` `@theme`                                                                                                                   |
+| Units of measure                       | `model.resource_units` / `product_units`; tableau units row + column in `lp-tableau.ts`; `Matrix` `isTextCell`                         |
+| CSV import / template                  | `src/lib/io/csv-model.ts` (tableau layout, `;`/`,` autodetect) + `ModelCsvActions` in `SolveWorkspace`                                   |
+| Excel / PDF export                     | `src/lib/io/export-result.ts` (+ `pdf-fonts.ts`, `fonts/` Noto Sans subset) + `ResultExportActions` in `SolveResultPanel`                |
 
 ---
 

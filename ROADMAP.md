@@ -16,11 +16,14 @@ Course project: client-server **Resource Allocation Planner** (UI: «Плани�
 - Auth (no public signup); guest local slot → upload on login; draft create → persist on first solve.
 - Domain DB + RLS shelves `000`–`080` (incl. template uses, share notify RPC, `pg_cron` purge).
 - Solver: LP (simplex) + IPM + GA + DLN locally and on Edge; what-if children; plan rounding UI; venue cloud/local.
-- Product surfaces: home, tasks, task editor, templates / public catalog, compare, trash, org feed, notifications (poll 60s), admin, share-by-token.
+- Product surfaces: home, tasks, task editor, templates / public catalog, compare, trash, notifications (poll 60s), admin, share-by-token.
+- Data I/O: CSV model import (tableau layout, `;`/`,`, units) + model CSV download/template; Excel / PDF result export (plan, resources, what-if).
+- Units of measure: editable units row/column in the LP matrix; shown in results and exports.
+- UI flags (`src/lib/features.ts`): `PUBLIC_SHOW_DLN`, `PUBLIC_SHOW_ORGS` — both off by default; organizations remain in schema/RLS but are hidden in the UI.
 - UI kit under `src/lib/components/ui/` + model controls (`LpModelMatrix`, `PlanSolveControls`, `SolveResultPanel`).
 - Preflight gates + Cursor hooks for cloud mutate; seed via `pnpm seed:users` / `seed:users:cloud`.
 
-**Not shipped / deferred:** Realtime notifications, 4D graphic method (tab placeholder), full Edge≡local golden parity in CI, desktop installer artifact in CI (`pnpm tauri:build` local). See `docs/TODO-later.md`.
+**Not shipped / deferred:** Realtime notifications, full Edge≡local golden parity in CI, desktop installer artifact in CI (`pnpm tauri:build` local). Geometry panel (2D/3D/4D projections) ships for LP results. See `docs/TODO-later.md`.
 
 **Pre-prod compatibility:** while the `schema_version` rule lives at the top of `AGENTS.md`, breaking changes → `db reset` (no dual readers).
 
@@ -47,6 +50,7 @@ resource-allocation-planner/
 │   │   ├── db/                  # supabase, guest, soft-delete, drafts, …
 │   │   ├── components/          # chrome/, model/, ui/, …
 │   │   ├── i18n/                # ru
+│   │   ├── io/                  # CSV import, Excel/PDF export
 │   │   └── …
 │   └── routes/
 │       ├── +page.svelte         # marketing + guest CTA
@@ -54,7 +58,7 @@ resource-allocation-planner/
 │       └── app/                 # authenticated shell
 │           ├── create/, tasks/, task/[id]/
 │           ├── templates/, public-templates/
-│           ├── compare/, trash/, org/, notifications/, admin/
+│           ├── compare/, trash/, org/ (flagged), notifications/, admin/
 ├── supabase/
 │   ├── migrations/000…080
 │   ├── functions/               # solve, run_mutations, admin-create-user
