@@ -2,6 +2,7 @@ import {
   buildDefaultMutations,
   buildWhatIfRowData,
   cloneModel,
+  type DlnRunConfig,
   type GaRunConfig,
   type Model,
   type Mutation,
@@ -22,9 +23,13 @@ import {
   GA_DEFAULT_SEED,
   type GaPresetId,
 } from "$lib/solver/methods/ga/presets";
+import {
+  DLN_PRESET_DEFS,
+  type DlnPresetId,
+} from "$lib/solver/methods/dln/presets";
 import { t } from "$lib/i18n";
 
-export type SolveTabId = "plan" | "ipm" | "ga";
+export type SolveTabId = "plan" | "ipm" | "ga" | "dln";
 
 /** Sensitivity table row (Task 13 а/б/в fields). */
 export type WhatIfRow = WhatIfRowData;
@@ -40,12 +45,14 @@ export function inputToPct(s: string): number | null {
 export function tabToSolveMethod(tab: string): SolveMethod {
   if (tab === "ipm") return "ipm";
   if (tab === "ga") return "ga";
+  if (tab === "dln") return "dln";
   return "lp";
 }
 
 export function solveMethodToTab(method: SolveMethod): SolveTabId {
   if (method === "ipm") return "ipm";
   if (method === "ga") return "ga";
+  if (method === "dln") return "dln";
   return "plan";
 }
 
@@ -131,10 +138,21 @@ export function createSolveSession(init?: {
   let lastWasCloud = $state(false);
   let gaPreset = $state<GaPresetId>("balanced");
   let gaConfig = $state<Partial<GaRunConfig>>({ seed: GA_DEFAULT_SEED });
+  let dlnPreset = $state<DlnPresetId>("precise");
+  let dlnConfig = $state<Partial<DlnRunConfig>>({
+    lambda: DLN_PRESET_DEFS.precise.lambda,
+    kappa: DLN_PRESET_DEFS.precise.kappa,
+    tol: DLN_PRESET_DEFS.precise.tol,
+    rowScale: DLN_PRESET_DEFS.precise.rowScale,
+    maxIter: DLN_PRESET_DEFS.precise.maxIter,
+  });
 
   const solveMethod = $derived(tabToSolveMethod(activeTab));
   const methodReady = $derived(
-    activeTab === "plan" || activeTab === "ipm" || activeTab === "ga",
+    activeTab === "plan" ||
+      activeTab === "ipm" ||
+      activeTab === "ga" ||
+      activeTab === "dln",
   );
   const displayResult = $derived(
     result && model ? maybeRoundPlan(model, result, roundPlan) : null,
@@ -142,7 +160,10 @@ export function createSolveSession(init?: {
   const stepsAvailable = $derived(
     !lastWasCloud &&
       result != null &&
-      (solveMethod === "lp" || solveMethod === "ga" || solveMethod === "ipm"),
+      (solveMethod === "lp" ||
+        solveMethod === "ga" ||
+        solveMethod === "ipm" ||
+        solveMethod === "dln"),
   );
 
   function gaSeed(): number | null {
@@ -150,18 +171,31 @@ export function createSolveSession(init?: {
   }
 
   function buildRunOptions(method: SolveMethod): SolveRunOptions | undefined {
-    if (method !== "ga") return undefined;
-    // Named presets: send only id + seed so leftover custom fields cannot override.
-    if (gaPreset !== "custom") {
-      return { ga: { preset: gaPreset, seed: gaSeed() } };
+    if (method === "ga") {
+      // Named presets: send only id + seed so leftover custom fields cannot override.
+      if (gaPreset !== "custom") {
+        return { ga: { preset: gaPreset, seed: gaSeed() } };
+      }
+      return {
+        ga: {
+          preset: "custom",
+          seed: gaSeed(),
+          ...gaConfig,
+        },
+      };
     }
-    return {
-      ga: {
-        preset: "custom",
-        seed: gaSeed(),
-        ...gaConfig,
-      },
-    };
+    if (method === "dln") {
+      if (dlnPreset !== "custom") {
+        return { dln: { preset: dlnPreset } };
+      }
+      return {
+        dln: {
+          preset: "custom",
+          ...dlnConfig,
+        },
+      };
+    }
+    return undefined;
   }
 
   function loadRoundPref() {
@@ -298,13 +332,21 @@ export function createSolveSession(init?: {
               response.result ?? null,
             );
           } else {
+            const r = mutationsResponse.solver_meta.rejected_reason;
             error =
-              mutationsResponse.solver_meta.rejected_reason ??
-              mutationsResponse.status;
+              mutationsResponse.solver_meta.hint === "dln_unsupported" ||
+              (r && r.startsWith("dln_unsupported"))
+                ? t("dlnUnsupportedHint")
+                : (r ?? mutationsResponse.status);
           }
         }
       } else if (response.status !== "done") {
-        error = response.solver_meta.rejected_reason ?? response.status;
+        const r = response.solver_meta.rejected_reason;
+        error =
+          response.solver_meta.hint === "dln_unsupported" ||
+          (r && r.startsWith("dln_unsupported"))
+            ? t("dlnUnsupportedHint")
+            : (r ?? response.status);
       }
 
       let report: VerifyReport | null = null;
@@ -431,6 +473,28 @@ export function createSolveSession(init?: {
     },
     set gaConfig(v: Partial<GaRunConfig>) {
       gaConfig = v;
+    },
+    get dlnPreset() {
+      return dlnPreset;
+    },
+    set dlnPreset(v: DlnPresetId) {
+      dlnPreset = v;
+      if (v !== "custom") {
+        const def = DLN_PRESET_DEFS[v];
+        dlnConfig = {
+          lambda: def.lambda,
+          kappa: def.kappa,
+          tol: def.tol,
+          rowScale: def.rowScale,
+          maxIter: def.maxIter,
+        };
+      }
+    },
+    get dlnConfig() {
+      return dlnConfig;
+    },
+    set dlnConfig(v: Partial<DlnRunConfig>) {
+      dlnConfig = v;
     },
     get solveMethod() {
       return solveMethod;

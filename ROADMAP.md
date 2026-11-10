@@ -15,7 +15,7 @@ Course project: client-server **Resource Allocation Planner** (UI: «Плани�
 - SvelteKit + pnpm + Tauri shell; static adapter; Cartesia tokens in `src/app.css`.
 - Auth (no public signup); guest local slot → upload on login; draft create → persist on first solve.
 - Domain DB + RLS shelves `000`–`080` (incl. template uses, share notify RPC, `pg_cron` purge).
-- Solver: LP (simplex) + IPM + GA locally and on Edge; what-if children; plan rounding UI; venue cloud/local.
+- Solver: LP (simplex) + IPM + GA + DLN locally and on Edge; what-if children; plan rounding UI; venue cloud/local.
 - Product surfaces: home, tasks, task editor, templates / public catalog, compare, trash, org feed, notifications (poll 60s), admin, share-by-token.
 - UI kit under `src/lib/components/ui/` + model controls (`LpModelMatrix`, `PlanSolveControls`, `SolveResultPanel`).
 - Preflight gates + Cursor hooks for cloud mutate; seed via `pnpm seed:users` / `seed:users:cloud`.

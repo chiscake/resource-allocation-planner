@@ -14,3 +14,4 @@ export * from "./shared/lpDuals";
 export * from "./methods/lp";
 export * from "./methods/ipm";
 export * from "./methods/ga";
+export * from "./methods/dln";

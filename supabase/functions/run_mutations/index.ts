@@ -23,7 +23,7 @@ function json(body: unknown, status = 200) {
 type Mutation = { kind: string; target: string; delta: number; label?: string };
 
 function isMethod(v: unknown): v is SolveMethod {
-	return v === 'lp' || v === 'ipm' || v === 'ga';
+	return v === 'lp' || v === 'ipm' || v === 'ga' || v === 'dln';
 }
 
 function isEngine(v: unknown): v is SolveEngine {

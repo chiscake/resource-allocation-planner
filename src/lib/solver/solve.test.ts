@@ -1,8 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { createTask13Model } from "$lib/domain";
+import { cloneModel, createTask13Model } from "$lib/domain";
 import { solveLocal } from "./run";
 import { solveIpmRaw } from "./methods/ipm";
 import { solveGaRaw, DEFAULT_GA_HYPERPARAMS } from "./methods/ga";
+import {
+  buildStandardForm,
+  DLN_PRESET_DEFS,
+  solveDlnRaw,
+  sumBound,
+} from "./methods/dln";
 
 const TOL = 1e-3;
 const IPM_TOL = 1e-2;
@@ -101,5 +107,75 @@ describe("ga-evolutionary task13", () => {
     const a = solveGaRaw(model, { ...DEFAULT_GA_HYPERPARAMS, seed: 42 });
     const b = solveGaRaw(model, { ...DEFAULT_GA_HYPERPARAMS, seed: 42 });
     expect(a.x).toEqual(b.x);
+  });
+});
+
+describe("dln-diagonal task13", () => {
+  it("sumBound matches lp-compare illustrative reference (690)", () => {
+    const model = createTask13Model();
+    expect(sumBound(buildStandardForm(model))).toBeCloseTo(690, 10);
+  });
+
+  it("returns feasible plan with bounded gap vs LP, duals, and provenance on precise preset", () => {
+    const model = createTask13Model();
+    const res = solveLocal(model, "local", 0, "dln", "native", {
+      dln: { preset: "precise" },
+    });
+    expect(res.status).toBe("done");
+    expect(res.solver_meta.library).toBe("dln-diagonal@local");
+    expect(res.solver_meta.method).toBe("dln");
+    expect(res.solver_meta.engine).toBe("native");
+    expect(res.result).toBeDefined();
+    expect(res.result!.feasible).toBe(true);
+    expect(res.result!.Z).toBeGreaterThan(150 * 0.9);
+    expect(res.result!.Z).toBeLessThanOrEqual(150 + 1e-2);
+    expect(res.solver_meta.gap_vs_lp).toBeDefined();
+    expect(res.solver_meta.gap_vs_lp!).toBeLessThan(0.1);
+    expect(res.result!.shadow_prices["Труд"]).toBeCloseTo(1.333333, 2);
+    expect(res.result!.shadow_prices["Оборудование"]).toBeCloseTo(0.333333, 2);
+    const prov = res.solver_meta.provenance;
+    expect(prov?.method).toBe("dln");
+    if (prov?.method === "dln") {
+      expect(prov.config.lambda).toBe(DLN_PRESET_DEFS.precise.lambda);
+      expect(prov.config.kappa).toBe(DLN_PRESET_DEFS.precise.kappa);
+      expect(prov.iterations).toBeGreaterThan(0);
+      expect(Number.isFinite(prov.residual)).toBe(true);
+    }
+  });
+
+  it("stops with done and stopReason max_iter when iteration budget is exhausted", () => {
+    const model = createTask13Model();
+    const res = solveLocal(model, "local", 0, "dln", "native", {
+      dln: {
+        preset: "custom",
+        lambda: 0.005,
+        kappa: 3,
+        tol: 1e-12,
+        rowScale: true,
+        maxIter: 25,
+      },
+    });
+    expect(res.status).toBe("done");
+    const prov = res.solver_meta.provenance;
+    expect(prov?.method).toBe("dln");
+    if (prov?.method === "dln") {
+      expect(prov.stopReason).toBe("max_iter");
+      expect(prov.iterations).toBe(25);
+      expect(prov.residual).toBeGreaterThan(0);
+    }
+  });
+
+  it("rejects model with negative A entry as unsupported", () => {
+    const model = cloneModel(createTask13Model());
+    model.A[0][0] = -1;
+    const raw = solveDlnRaw(model);
+    expect(raw.ok).toBe(false);
+    if (!raw.ok) {
+      expect(raw.reason).toBe("dln_unsupported_negative_a");
+    }
+    const res = solveLocal(model, "local", 0, "dln");
+    expect(res.status).toBe("rejected_too_large");
+    expect(res.solver_meta.rejected_reason).toBe("dln_unsupported_negative_a");
+    expect(res.solver_meta.hint).toBe("dln_unsupported");
   });
 });

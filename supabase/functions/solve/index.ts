@@ -19,7 +19,7 @@ function json(body: unknown, status = 200) {
 }
 
 function isMethod(v: unknown): v is SolveMethod {
-	return v === 'lp' || v === 'ipm' || v === 'ga';
+	return v === 'lp' || v === 'ipm' || v === 'ga' || v === 'dln';
 }
 
 function isEngine(v: unknown): v is SolveEngine {

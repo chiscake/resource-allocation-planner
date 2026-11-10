@@ -1,11 +1,12 @@
-import type {
-  Model,
-  SolveEngine,
-  SolveMethod,
-  SolveResponse,
-  SolveResult,
-  SolveRunOptions,
-  SolveTrace,
+import {
+  SOLVE_METHODS,
+  type Model,
+  type SolveEngine,
+  type SolveMethod,
+  type SolveResponse,
+  type SolveResult,
+  type SolveRunOptions,
+  type SolveTrace,
 } from "$lib/domain";
 import { solveLocal } from "./run";
 import { availableEngines } from "./registry";
@@ -18,6 +19,15 @@ import {
   resolveGaFromRunConfig,
   type GaPresetId,
 } from "./methods/ga/presets";
+import {
+  DEFAULT_DLN_HYPERPARAMS,
+  type DlnHyperparameters,
+} from "./methods/dln/native";
+import {
+  dlnHyperToRunConfig,
+  resolveDlnFromRunConfig,
+  type DlnPresetId,
+} from "./methods/dln/presets";
 
 export type CompareConfigId = `${SolveMethod}:${SolveEngine}`;
 
@@ -45,7 +55,7 @@ export type CompareRow = {
 
 export function listCompareConfigs(): CompareConfig[] {
   const out: CompareConfig[] = [];
-  for (const method of ["lp", "ipm", "ga"] as SolveMethod[]) {
+  for (const method of SOLVE_METHODS) {
     for (const engine of availableEngines(method)) {
       const id = `${method}:${engine}` as CompareConfigId;
       out.push({
@@ -78,6 +88,8 @@ export function runMethodComparison(
   opts?: {
     gaHyper?: Partial<GaHyperparameters>;
     gaPreset?: GaPresetId;
+    dlnHyper?: Partial<DlnHyperparameters>;
+    dlnPreset?: DlnPresetId;
   },
 ): CompareRow[] {
   const all = listCompareConfigs();
@@ -98,6 +110,18 @@ export function runMethodComparison(
     ga: hyperToRunConfig(hyper, gaPreset),
   };
 
+  const dlnPreset = opts?.dlnPreset ?? "precise";
+  const { hyper: dlnHyper } = resolveDlnFromRunConfig(
+    {
+      preset: dlnPreset,
+      ...opts?.dlnHyper,
+    },
+    DEFAULT_DLN_HYPERPARAMS,
+  );
+  const dlnOptions: SolveRunOptions = {
+    dln: dlnHyperToRunConfig(dlnHyper, dlnPreset),
+  };
+
   const rows: CompareRow[] = [];
   let baseline: SolveResult | null = null;
 
@@ -110,7 +134,12 @@ export function runMethodComparison(
   for (const config of ordered) {
     const started = performance.now();
     try {
-      const options = config.method === "ga" ? gaOptions : undefined;
+      const options =
+        config.method === "ga"
+          ? gaOptions
+          : config.method === "dln"
+            ? dlnOptions
+            : undefined;
       const response = solveLocal(
         model,
         "local",

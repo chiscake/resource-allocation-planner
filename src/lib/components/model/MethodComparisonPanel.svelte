@@ -1,9 +1,13 @@
 <script lang="ts">
   import { tick } from "svelte";
   import { prefersReducedMotion } from "svelte/motion";
+  import { env } from "$env/dynamic/public";
   import type { Model, SolveTrace } from "$lib/domain";
+  import { isDlnUiEnabled } from "$lib/features";
   import type { GaHyperparameters } from "$lib/solver/methods/ga";
   import type { GaPresetId } from "$lib/solver/methods/ga/presets";
+  import type { DlnHyperparameters } from "$lib/solver/methods/dln";
+  import type { DlnPresetId } from "$lib/solver/methods/dln/presets";
   import {
     listCompareConfigs,
     runMethodComparison,
@@ -22,13 +26,20 @@
     model,
     gaHyper,
     gaPreset = "balanced",
+    dlnHyper,
+    dlnPreset = "precise",
   }: {
     model: Model;
     gaHyper?: Partial<GaHyperparameters>;
     gaPreset?: GaPresetId;
+    dlnHyper?: Partial<DlnHyperparameters>;
+    dlnPreset?: DlnPresetId;
   } = $props();
 
-  const configs = listCompareConfigs();
+  const showDln = isDlnUiEnabled(env.PUBLIC_SHOW_DLN);
+  const configs = listCompareConfigs().filter(
+    (c) => showDln || c.method !== "dln",
+  );
   let selected = $state<CompareConfigId[]>(configs.map((c) => c.id));
   let rows = $state<CompareRow[]>([]);
   let busy = $state(false);
@@ -59,7 +70,12 @@
     await tick();
     await nextFrame();
     try {
-      rows = runMethodComparison(model, selected, { gaHyper, gaPreset });
+      rows = runMethodComparison(model, selected, {
+        gaHyper,
+        gaPreset,
+        dlnHyper,
+        dlnPreset,
+      });
     } finally {
       busy = false;
     }
@@ -163,8 +179,9 @@
                     {/if}
                   </td>
                   {#if !row.ok}
-                    <td class="py-2 pr-3 text-right text-danger-text" colspan="6"
-                      >{t("compareFailed")}: {row.error}</td
+                    <td
+                      class="py-2 pr-3 text-right text-danger-text"
+                      colspan="6">{t("compareFailed")}: {row.error}</td
                     >
                     <td></td>
                   {:else}

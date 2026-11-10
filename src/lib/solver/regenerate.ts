@@ -23,7 +23,9 @@ export function regenerateTrace(
   const options: SolveRunOptions | undefined =
     provenance?.method === "ga"
       ? { ga: provenance.config }
-      : undefined;
+      : provenance?.method === "dln"
+        ? { dln: provenance.config }
+        : undefined;
 
   const response = solveLocal(model, "local", 0, method, engine, options);
   return { response, trace: response.trace ?? null };

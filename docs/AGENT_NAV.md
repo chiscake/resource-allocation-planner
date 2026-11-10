@@ -39,7 +39,7 @@ resource-allocation-planner/
 │   ├── app.css                  # Tailwind v4 + Cartesia @theme
 │   ├── lib/
 │   │   ├── domain/              # Model, mutations, task13
-│   │   ├── solver/              # contract/registry/run + methods/{lp,ipm,ga} × engine
+│   │   ├── solver/              # contract/registry/run + methods/{lp,ipm,ga,dln} × engine
 │   │   ├── display/             # roundPlan / roundPref (UI post-process, not solver)
 │   │   ├── api/solve.ts         # Edge or local transport (+ method + engine + local fallback)
 │   │   ├── db/                  # supabase, guest, audit, soft-delete, task-draft, template-uses
@@ -57,7 +57,7 @@ resource-allocation-planner/
 │           ├── +page.svelte     # home: CTA + recent + recent templates
 │           ├── create/          # draft editor; persist on first solve
 │           ├── tasks/           # all owned roots + search
-│           ├── task/[id]/      # solve (lp|ipm|ga), what-if ←i/N→, share/fork/org
+│           ├── task/[id]/      # solve (lp|ipm|ga|dln), what-if ←i/N→, share/fork/org
 │           ├── templates/, public-templates/
 │           ├── compare/, trash/, org/, notifications/, admin/
 │           ├── test/            # scratch sandboxes (viz-3d, …); not product UX
@@ -113,19 +113,20 @@ resource-allocation-planner/
 
 ## Entrypoints
 
-| Concern     | Path / command                                                                             |
-| ----------- | ------------------------------------------------------------------------------------------ |
-| Dev         | `pnpm dev` :5400                                                                           |
-| Test        | `pnpm test`                                                                                |
-| Check       | `pnpm check`                                                                               |
-| Preflight   | `pnpm preflight` / `preflight:main` — before commit / promote                              |
-| Seed        | `pnpm seed:users` — admin@example.com, demo1/2/3@example.com / password123 (demo3: no org) |
-| Quick login | Bottom bar under `/app` (`DevQuickLoginBar`); flag `PUBLIC_DEV_QUICK_LOGIN`                |
-| Cloud seed  | `pnpm seed:users:cloud` — same users against linked RAP project                            |
-| Local stack | `pnpm db:reset` — start + reset + seed + Edge serve                                        |
-| Installer   | `pnpm tauri:build` — desktop bundle (local only)                                           |
-| Edge        | `solve`, `run_mutations`, `admin-create-user`                                              |
-| Venue       | Web = cloud when online (fallback local); Tauri UI toggle                                  |
+| Concern     | Path / command                                                                              |
+| ----------- | ------------------------------------------------------------------------------------------- |
+| Dev         | `pnpm dev` :5400                                                                            |
+| Test        | `pnpm test`                                                                                 |
+| Check       | `pnpm check`                                                                                |
+| Preflight   | `pnpm preflight` / `preflight:main` — before commit / promote                               |
+| Seed        | `pnpm seed:users` — admin@example.com, demo1/2/3@example.com / password123 (demo3: no org)  |
+| Quick login | Bottom bar under `/app` (`DevQuickLoginBar`); flag `PUBLIC_DEV_QUICK_LOGIN`                 |
+| DLN UI      | Method tab + compare configs; flag `PUBLIC_SHOW_DLN` (UI only; Edge/local still accept dln) |
+| Cloud seed  | `pnpm seed:users:cloud` — same users against linked RAP project                             |
+| Local stack | `pnpm db:reset` — start + reset + seed + Edge serve                                         |
+| Installer   | `pnpm tauri:build` — desktop bundle (local only)                                            |
+| Edge        | `solve`, `run_mutations`, `admin-create-user`                                               |
+| Venue       | Web = cloud when online (fallback local); Tauri UI toggle                                   |
 
 ---
 

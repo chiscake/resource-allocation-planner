@@ -3,6 +3,7 @@ import type { SolverEngine } from './contract.ts';
 import { lpLibraryEngine, lpNativeEngine } from './methods/lp/index.ts';
 import { ipmNativeEngine } from './methods/ipm/index.ts';
 import { gaNativeEngine } from './methods/ga/index.ts';
+import { dlnNativeEngine } from './methods/dln/index.ts';
 
 const REGISTRY: Record<SolveMethod, Partial<Record<SolveEngine, SolverEngine>>> = {
 	lp: {
@@ -14,6 +15,9 @@ const REGISTRY: Record<SolveMethod, Partial<Record<SolveEngine, SolverEngine>>> 
 	},
 	ga: {
 		native: gaNativeEngine
+	},
+	dln: {
+		native: dlnNativeEngine
 	}
 };
 

@@ -3,6 +3,7 @@ import type { SolverEngine } from "./contract";
 import { lpLibraryEngine, lpNativeEngine } from "./methods/lp";
 import { ipmNativeEngine } from "./methods/ipm";
 import { gaNativeEngine } from "./methods/ga";
+import { dlnNativeEngine } from "./methods/dln";
 
 /** Registered engines. Missing library slot ⇒ calc default falls back to native (Q9a). */
 const REGISTRY: Record<
@@ -18,6 +19,9 @@ const REGISTRY: Record<
   },
   ga: {
     native: gaNativeEngine,
+  },
+  dln: {
+    native: dlnNativeEngine,
   },
 };
 

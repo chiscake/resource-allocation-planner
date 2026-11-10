@@ -14,6 +14,8 @@
   import type { SolveSession, WhatIfRow } from "./solve-session.svelte";
   import { DEFAULT_GA_HYPERPARAMS } from "$lib/solver/methods/ga";
   import { resolveGaFromRunConfig } from "$lib/solver/methods/ga/presets";
+  import { DEFAULT_DLN_HYPERPARAMS } from "$lib/solver/methods/dln";
+  import { resolveDlnFromRunConfig } from "$lib/solver/methods/dln/presets";
 
   let {
     session,
@@ -84,6 +86,15 @@
       DEFAULT_GA_HYPERPARAMS,
     ).hyper,
   );
+
+  const dlnHyper = $derived(
+    resolveDlnFromRunConfig(
+      session.dlnPreset === "custom"
+        ? { preset: "custom", ...session.dlnConfig }
+        : { preset: session.dlnPreset },
+      DEFAULT_DLN_HYPERPARAMS,
+    ).hyper,
+  );
 </script>
 
 {#if model}
@@ -107,6 +118,12 @@
           }
           bind:gaPreset={() => session.gaPreset, (v) => (session.gaPreset = v)}
           bind:gaConfig={() => session.gaConfig, (v) => (session.gaConfig = v)}
+          bind:dlnPreset={
+            () => session.dlnPreset, (v) => (session.dlnPreset = v)
+          }
+          bind:dlnConfig={
+            () => session.dlnConfig, (v) => (session.dlnConfig = v)
+          }
           busy={session.busy}
           {showLoginCta}
           {showCloudSplit}
@@ -154,7 +171,13 @@
       {/key}
 
       {#if !compact}
-        <MethodComparisonPanel {model} {gaHyper} gaPreset={session.gaPreset} />
+        <MethodComparisonPanel
+          {model}
+          {gaHyper}
+          gaPreset={session.gaPreset}
+          {dlnHyper}
+          dlnPreset={session.dlnPreset}
+        />
       {/if}
     {/if}
 

@@ -7,16 +7,16 @@ export type VenuePreference = "auto" | "cloud" | "local";
 export type ResolvedVenue = "cloud" | "local";
 
 /** Solve algorithm family (UI tabs). */
-export type SolveMethod = "lp" | "ipm" | "ga";
+export type SolveMethod = "lp" | "ipm" | "ga" | "dln";
 
 /** How the method is implemented: hand-rolled vs third-party library. */
 export type SolveEngine = "native" | "library";
 
-export const SOLVE_METHODS: SolveMethod[] = ["lp", "ipm", "ga"];
+export const SOLVE_METHODS: SolveMethod[] = ["lp", "ipm", "ga", "dln"];
 export const SOLVE_ENGINES: SolveEngine[] = ["native", "library"];
 
 export function isSolveMethod(v: unknown): v is SolveMethod {
-  return v === "lp" || v === "ipm" || v === "ga";
+  return v === "lp" || v === "ipm" || v === "ga" || v === "dln";
 }
 
 export function isSolveEngine(v: unknown): v is SolveEngine {
@@ -33,6 +33,9 @@ export function libraryPackageId(
   }
   if (method === "ipm") {
     return engine === "library" ? "interior-point-lib" : "interior-point";
+  }
+  if (method === "dln") {
+    return engine === "library" ? "dln-diagonal-lib" : "dln-diagonal";
   }
   return engine === "library" ? "ga-evolutionary-lib" : "ga-evolutionary";
 }
@@ -113,6 +116,17 @@ export type GaRunConfig = {
 
 export type GaStopReason = "maxGenerations" | "stagnation";
 
+export type DlnRunConfig = {
+  lambda: number;
+  kappa: number;
+  tol: number;
+  rowScale: boolean;
+  maxIter: number;
+  preset?: "fast" | "precise" | "custom";
+};
+
+export type DlnStopReason = "tol" | "max_iter";
+
 export type SolveRunProvenance =
   | { method: "lp"; engine: SolveEngine }
   | { method: "ipm"; engine: SolveEngine }
@@ -124,6 +138,14 @@ export type SolveRunProvenance =
       generationsRun?: number;
       /** True when population was subsampled for the in-memory trace. */
       populationSampled?: boolean;
+    }
+  | {
+      method: "dln";
+      engine: SolveEngine;
+      config: DlnRunConfig;
+      stopReason?: DlnStopReason;
+      iterations: number;
+      residual: number;
     };
 
 export interface SolverMeta {
@@ -211,9 +233,10 @@ export type SolveTrace =
     }
   | { method: "ipm"; frames: IpmTraceFrame[] };
 
-/** Optional run options passed into engines (GA hyperparameters today). */
+/** Optional run options passed into engines (GA/DLN hyperparameters). */
 export type SolveRunOptions = {
   ga?: Partial<GaRunConfig>;
+  dln?: Partial<DlnRunConfig>;
 };
 
 export interface SolveRequest {

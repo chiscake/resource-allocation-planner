@@ -1,13 +1,25 @@
 <script lang="ts">
-  import type { GaRunConfig, Model, WhatIfDefaults } from "$lib/domain";
+  import type {
+    DlnRunConfig,
+    GaRunConfig,
+    Model,
+    WhatIfDefaults,
+  } from "$lib/domain";
+  import { env } from "$env/dynamic/public";
   import { Cloud } from "@lucide/svelte";
   import { t } from "$lib/i18n";
+  import { isDlnUiEnabled } from "$lib/features";
   import Tabs from "$lib/components/ui/Tabs.svelte";
   import Button from "$lib/components/ui/Button.svelte";
   import Input from "$lib/components/ui/Input.svelte";
   import Select from "$lib/components/ui/Select.svelte";
   import type { GaPresetId } from "$lib/solver/methods/ga/presets";
-  import { GA_DEFAULT_SEED, GA_PRESET_DEFS } from "$lib/solver/methods/ga/presets";
+  import {
+    GA_DEFAULT_SEED,
+    GA_PRESET_DEFS,
+  } from "$lib/solver/methods/ga/presets";
+  import type { DlnPresetId } from "$lib/solver/methods/dln/presets";
+  import { DLN_PRESET_DEFS } from "$lib/solver/methods/dln/presets";
 
   let {
     model,
@@ -15,6 +27,8 @@
     includeSensitivity = $bindable(false),
     gaPreset = $bindable<GaPresetId>("balanced"),
     gaConfig = $bindable<Partial<GaRunConfig>>({}),
+    dlnPreset = $bindable<DlnPresetId>("precise"),
+    dlnConfig = $bindable<Partial<DlnRunConfig>>({}),
     busy = false,
     showLoginCta = false,
     showCloudSplit = false,
@@ -27,6 +41,8 @@
     includeSensitivity?: boolean;
     gaPreset?: GaPresetId;
     gaConfig?: Partial<GaRunConfig>;
+    dlnPreset?: DlnPresetId;
+    dlnConfig?: Partial<DlnRunConfig>;
     busy?: boolean;
     showLoginCta?: boolean;
     showCloudSplit?: boolean;
@@ -36,15 +52,24 @@
   } = $props();
 
   const useCloudSplit = $derived(showCloudSplit && onSolveCloud != null);
+  const showDln = isDlnUiEnabled(env.PUBLIC_SHOW_DLN);
 
   const tabItems = [
     { id: "plan", label: t("tabPlan") },
     { id: "ipm", label: t("tabIpm") },
     { id: "ga", label: t("tabGa") },
+    ...(showDln ? [{ id: "dln", label: t("tabDln") }] : []),
   ];
 
+  $effect(() => {
+    if (!showDln && activeTab === "dln") activeTab = "plan";
+  });
+
   const methodReady = $derived(
-    activeTab === "plan" || activeTab === "ipm" || activeTab === "ga",
+    activeTab === "plan" ||
+      activeTab === "ipm" ||
+      activeTab === "ga" ||
+      (showDln && activeTab === "dln"),
   );
   let randomSeed = $state(false);
 
@@ -53,6 +78,12 @@
     { value: "balanced", label: t("gaPresetBalanced") },
     { value: "precise", label: t("gaPresetPrecise") },
     { value: "custom", label: t("gaPresetCustom") },
+  ];
+
+  const dlnPresetOptions = [
+    { value: "fast", label: t("dlnPresetFast") },
+    { value: "precise", label: t("dlnPresetPrecise") },
+    { value: "custom", label: t("dlnPresetCustom") },
   ];
 
   function pctToInput(v: number | null | undefined): string {
@@ -65,7 +96,13 @@
     gaPreset = "custom";
   }
 
+  function patchDln(partial: Partial<DlnRunConfig>) {
+    dlnConfig = { ...dlnConfig, ...partial };
+    dlnPreset = "custom";
+  }
+
   const customDefaults = GA_PRESET_DEFS.balanced;
+  const dlnCustomDefaults = DLN_PRESET_DEFS.precise;
 </script>
 
 <div>
@@ -155,6 +192,89 @@
         />
       </label>
     </div>
+  {/if}
+{:else if activeTab === "dln"}
+  <p class="mt-3 text-sm text-text-muted">{t("methodDlnHint")}</p>
+  <div class="mt-3">
+    <label for="dln-preset" class="mb-1 block text-sm text-text-muted"
+      >{t("dlnPreset")}</label
+    >
+    <div class="flex flex-wrap items-center gap-3">
+      <div class="min-w-[14rem] flex-1 sm:max-w-xs">
+        <Select
+          id="dln-preset"
+          bind:value={dlnPreset}
+          options={dlnPresetOptions}
+        />
+      </div>
+    </div>
+  </div>
+  {#if dlnPreset === "custom"}
+    <div class="mt-3 grid gap-2 sm:grid-cols-4">
+      <label class="text-sm">
+        <span class="mb-1 block text-text-muted">{t("dlnLambda")}</span>
+        <Input
+          type="number"
+          step="any"
+          min="0.0001"
+          value={String(dlnConfig.lambda ?? dlnCustomDefaults.lambda)}
+          oninput={(e) =>
+            patchDln({
+              lambda: Number(e.currentTarget.value) || dlnCustomDefaults.lambda,
+            })}
+        />
+      </label>
+      <label class="text-sm">
+        <span class="mb-1 block text-text-muted">{t("dlnKappa")}</span>
+        <Input
+          type="number"
+          step="any"
+          min="0.1"
+          value={String(dlnConfig.kappa ?? dlnCustomDefaults.kappa)}
+          oninput={(e) =>
+            patchDln({
+              kappa: Number(e.currentTarget.value) || dlnCustomDefaults.kappa,
+            })}
+        />
+      </label>
+      <label class="text-sm">
+        <span class="mb-1 block text-text-muted">{t("dlnTol")}</span>
+        <Input
+          type="number"
+          step="any"
+          min="0"
+          value={String(dlnConfig.tol ?? dlnCustomDefaults.tol)}
+          oninput={(e) =>
+            patchDln({
+              tol: Number(e.currentTarget.value) || dlnCustomDefaults.tol,
+            })}
+        />
+      </label>
+      <label class="text-sm">
+        <span class="mb-1 block text-text-muted">{t("dlnMaxIter")}</span>
+        <Input
+          type="number"
+          min="1"
+          step="1000"
+          value={String(dlnConfig.maxIter ?? dlnCustomDefaults.maxIter)}
+          oninput={(e) =>
+            patchDln({
+              maxIter:
+                Math.max(1, Math.trunc(Number(e.currentTarget.value))) ||
+                dlnCustomDefaults.maxIter,
+            })}
+        />
+      </label>
+    </div>
+    <label class="mt-3 flex items-center gap-2 text-sm">
+      <input
+        type="checkbox"
+        class="size-4 accent-brand"
+        checked={dlnConfig.rowScale ?? dlnCustomDefaults.rowScale}
+        onchange={(e) => patchDln({ rowScale: e.currentTarget.checked })}
+      />
+      {t("dlnRowScale")}
+    </label>
   {/if}
 {/if}
 

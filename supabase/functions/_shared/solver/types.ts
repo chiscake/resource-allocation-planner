@@ -1,5 +1,5 @@
 /** Shared types for Edge solver mirror (no $lib). */
-export type SolveMethod = 'lp' | 'ipm' | 'ga';
+export type SolveMethod = 'lp' | 'ipm' | 'ga' | 'dln';
 export type SolveEngine = 'native' | 'library';
 export type ResolvedVenue = 'cloud' | 'local';
 
@@ -60,6 +60,17 @@ export type GaRunConfig = {
 
 export type GaStopReason = 'maxGenerations' | 'stagnation';
 
+export type DlnRunConfig = {
+	lambda: number;
+	kappa: number;
+	tol: number;
+	rowScale: boolean;
+	maxIter: number;
+	preset?: 'fast' | 'precise' | 'custom';
+};
+
+export type DlnStopReason = 'tol' | 'max_iter';
+
 export type GaIndividualSnapshot = {
 	genes: number[];
 	rawFitness: number;
@@ -96,10 +107,19 @@ export type SolveRunProvenance =
 			stopReason?: GaStopReason;
 			generationsRun?: number;
 			populationSampled?: boolean;
+	  }
+	| {
+			method: 'dln';
+			engine: SolveEngine;
+			config: DlnRunConfig;
+			stopReason?: DlnStopReason;
+			iterations: number;
+			residual: number;
 	  };
 
 export type SolveRunOptions = {
 	ga?: Partial<GaRunConfig>;
+	dln?: Partial<DlnRunConfig>;
 };
 
 export type SolveTrace =
@@ -113,6 +133,9 @@ export function libraryPackageId(method: SolveMethod, engine: SolveEngine): stri
 	}
 	if (method === 'ipm') {
 		return engine === 'library' ? 'interior-point-lib' : 'interior-point';
+	}
+	if (method === 'dln') {
+		return engine === 'library' ? 'dln-diagonal-lib' : 'dln-diagonal';
 	}
 	return engine === 'library' ? 'ga-evolutionary-lib' : 'ga-evolutionary';
 }
