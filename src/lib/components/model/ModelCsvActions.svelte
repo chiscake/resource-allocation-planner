@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Download, FileUp } from "@lucide/svelte";
+  import { Download, FileSpreadsheet, FileUp } from "@lucide/svelte";
   import type { Model } from "$lib/domain";
   import { t } from "$lib/i18n";
   import Button from "$lib/components/ui/Button.svelte";
@@ -103,7 +103,8 @@
     class="!px-3 !py-1.5 !text-xs"
     onclick={downloadTemplate}
   >
-    {t("csvTemplate")}
+    <FileSpreadsheet size={14} strokeWidth={1.75} aria-hidden="true" />
+    <span class="ml-1.5">{t("csvTemplate")}</span>
   </Button>
   <input
     bind:this={fileInput}
