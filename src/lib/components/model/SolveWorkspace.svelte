@@ -175,6 +175,8 @@
           solveMethod={session.solveMethod}
           gapVsLp={session.lastResponse?.solver_meta.gap_vs_lp ?? null}
           {onRequestSteps}
+          exportTitle={title || t("newTask")}
+          whatIfRows={rows}
         >
           {#if resultExtras}
             {@render resultExtras()}

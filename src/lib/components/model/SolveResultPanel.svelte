@@ -8,6 +8,7 @@
     SolveMethod,
     SolveResult,
     SolveTrace,
+    WhatIfRowData,
   } from "$lib/domain";
   import type { VerifyReport } from "$lib/solver/verify";
   import { t } from "$lib/i18n";
@@ -17,6 +18,7 @@
   import GaStepsPanel from "./GaStepsPanel.svelte";
   import LibraryVerifyPanel from "./LibraryVerifyPanel.svelte";
   import GeometryPanel from "./visualization/GeometryPanel.svelte";
+  import ResultExportActions from "./ResultExportActions.svelte";
 
   const ZERO_EPS = 1e-9;
 
@@ -33,6 +35,8 @@
     solveMethod = "lp",
     gapVsLp = null,
     onRequestSteps,
+    exportTitle = null,
+    whatIfRows = [],
     children,
   }: {
     result: SolveResult;
@@ -47,6 +51,9 @@
     solveMethod?: SolveMethod;
     gapVsLp?: number | null;
     onRequestSteps?: () => void;
+    /** When set (with `model`), shows Excel / PDF export of this result. */
+    exportTitle?: string | null;
+    whatIfRows?: WhatIfRowData[];
     children?: Snippet;
   } = $props();
 
@@ -131,13 +138,26 @@
 </script>
 
 <Card>
-  <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-    <span class="text-sm font-medium text-text-muted">{t("zMax")}</span>
-    <span
-      class="font-mono text-4xl font-semibold tabular-nums tracking-tight text-brand"
-    >
-      {formatPlanNumber(result.Z)}
-    </span>
+  <div class="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+    <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+      <span class="text-sm font-medium text-text-muted">{t("zMax")}</span>
+      <span
+        class="font-mono text-4xl font-semibold tabular-nums tracking-tight text-brand"
+      >
+        {formatPlanNumber(result.Z)}
+      </span>
+    </div>
+    {#if model && exportTitle != null}
+      <ResultExportActions
+        title={exportTitle}
+        method={solveMethod}
+        {result}
+        {model}
+        {whatIfRows}
+        {roundPlan}
+        {solverLibrary}
+      />
+    {/if}
   </div>
 
   {#if solverLibrary}
