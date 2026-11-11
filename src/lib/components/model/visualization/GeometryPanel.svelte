@@ -17,12 +17,15 @@
     method,
     lpOptimum = null,
     compact = false,
+    /** When false, omit the panel h3 (e.g. outer toggle already names the section). */
+    showTitle = true,
   }: {
     model: Model;
     trace: SolveTrace | null;
     method: "lp" | "ga" | "ipm";
     lpOptimum?: SolveResult | null;
     compact?: boolean;
+    showTitle?: boolean;
   } = $props();
 
   const dim = $derived(model.products.length);
@@ -162,8 +165,14 @@
     ? ' fixed inset-4 z-50 overflow-hidden shadow-xl'
     : ''}"
 >
-  <div class="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-2">
-    <h3 class="text-sm font-medium text-text">{t("geometryTitle")}</h3>
+  <div
+    class="mb-3 flex shrink-0 flex-wrap items-center gap-2{showTitle
+      ? ' justify-between'
+      : ' justify-end'}"
+  >
+    {#if showTitle}
+      <h3 class="text-sm font-medium text-text">{t("geometryTitle")}</h3>
+    {/if}
     <button
       type="button"
       class="cursor-pointer text-xs text-brand underline-offset-2 hover:underline"

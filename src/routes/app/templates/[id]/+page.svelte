@@ -20,7 +20,6 @@
   import Button from "$lib/components/ui/Button.svelte";
   import Badge from "$lib/components/ui/Badge.svelte";
   import Card from "$lib/components/ui/Card.svelte";
-  import Input from "$lib/components/ui/Input.svelte";
   import PageHeader from "$lib/components/ui/PageHeader.svelte";
   import InlineAlert from "$lib/components/ui/InlineAlert.svelte";
 
@@ -52,12 +51,12 @@
   const pendingForStaff = $derived(
     isStaff && !isOwner && isPublishPending({ publish_status: publishStatus }),
   );
-  const pageTitle = $derived(
+  const headerDescription = $derived(
     pendingForStaff
-      ? t("moderationReviewTitle")
+      ? t("moderationReviewHint")
       : editing
         ? t("editTemplateTitle")
-        : t("viewTemplateTitle"),
+        : undefined,
   );
 
   $effect(() => {
@@ -158,6 +157,22 @@
     msg = "";
   }
 
+  /** Rename via PageHeader — same pattern as task page (title-only update). */
+  async function renameTemplate(nextTitle: string) {
+    if (!isOwner || !templateId) return;
+    const next = nextTitle.trim();
+    if (!next || next === title) return;
+    const { error: upErr } = await supabase
+      .from("templates")
+      .update({ title: next, updated_at: new Date().toISOString() })
+      .eq("id", templateId);
+    if (upErr) {
+      err = upErr.message || t("titleSaveFailed");
+      return;
+    }
+    title = next;
+  }
+
   async function save() {
     if (!model || saving || !editing) return;
     saving = true;
@@ -166,7 +181,6 @@
     const { error } = await supabase
       .from("templates")
       .update({
-        title: title.trim() || t("templates"),
         model,
         updated_at: new Date().toISOString(),
       })
@@ -260,10 +274,17 @@
     >
   {:else}
     <PageHeader
-      title={pageTitle}
-      description={pendingForStaff ? t("moderationReviewHint") : undefined}
+      {title}
+      description={headerDescription}
+      editable={isOwner}
+      ontitlecommit={renameTemplate}
     >
       {#snippet actions()}
+        {#if isPublishPending({ publish_status: publishStatus })}
+          <Badge variant="warning">{t("publishStatusPending")}</Badge>
+        {:else if isPublishedCatalog( { system_kind: systemKind, publish_status: publishStatus }, )}
+          <Badge variant="success">{t("publishStatusPublic")}</Badge>
+        {/if}
         {#if !editing}
           <Button
             variant="primary"
@@ -288,9 +309,6 @@
           <Button variant="secondary" href="/app/moderation"
             >{t("moderation")}</Button
           >
-        {:else if isOwner}
-          <Button variant="ghost" href="/app/templates">{t("templates")}</Button
-          >
         {/if}
       {/snippet}
     </PageHeader>
@@ -300,22 +318,6 @@
     {/if}
     {#if msg}
       <p class="text-sm text-text-muted">{msg}</p>
-    {/if}
-
-    {#if editing}
-      <label class="flex flex-col gap-1.5">
-        <span class="text-sm font-medium text-text">{t("templateTitle")}</span>
-        <Input bind:value={title} />
-      </label>
-    {:else}
-      <div class="flex items-center gap-3">
-        <p class="min-w-0 flex-1 text-lg font-medium text-text">{title}</p>
-        {#if isPublishPending({ publish_status: publishStatus })}
-          <Badge variant="warning">{t("publishStatusPending")}</Badge>
-        {:else if isPublishedCatalog( { system_kind: systemKind, publish_status: publishStatus }, )}
-          <Badge variant="success">{t("publishStatusPublic")}</Badge>
-        {/if}
-      </div>
     {/if}
 
     <Card>

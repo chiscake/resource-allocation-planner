@@ -69,6 +69,9 @@
   let stepsMounted = $state(false);
   let stepsOpen = $state(false);
 
+  let geometryMounted = $state(false);
+  let geometryOpen = $state(false);
+
   const planEntries = $derived.by(() => {
     const keys = productOrder?.length ? productOrder : Object.keys(result.x);
     return keys.map((k) => [k, result.x[k] ?? 0] as [string, number]);
@@ -104,6 +107,19 @@
     return new Promise((resolve) => {
       requestAnimationFrame(() => resolve());
     });
+  }
+
+  async function onGeometryToggle() {
+    if (geometryOpen) {
+      geometryOpen = false;
+      return;
+    }
+    if (!geometryMounted) {
+      geometryMounted = true;
+      await tick();
+      await nextFrame();
+    }
+    geometryOpen = true;
   }
 
   async function onStepsToggle() {
@@ -257,7 +273,43 @@
 
   {#if model && solveMethod === "lp" && stepsAvailable}
     <div class="mt-6">
-      <GeometryPanel {model} {trace} method="lp" />
+      <div class="flex items-center gap-3">
+        <span class="h-px min-w-4 flex-1 bg-border" aria-hidden="true"></span>
+        <button
+          type="button"
+          class="inline-flex shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-[6px] border border-border bg-bg px-3 py-1.5 text-xs font-medium text-text-soft transition-colors duration-200 hover:bg-bg-soft hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-offset-2 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
+          aria-expanded={geometryOpen}
+          onclick={onGeometryToggle}
+        >
+          <span>
+            {geometryOpen ? t("geometryToggleHide") : t("geometryToggle")}
+          </span>
+          <ChevronDown
+            class={[
+              "size-3.5 shrink-0 transition-transform duration-[320ms] ease-[cubic-bezier(0.16,1,0.3,1)]",
+              geometryOpen && "rotate-180",
+              prefersReducedMotion.current && "transition-none",
+            ]}
+            aria-hidden="true"
+          />
+        </button>
+        <span class="h-px min-w-4 flex-1 bg-border" aria-hidden="true"></span>
+      </div>
+      {#if geometryMounted}
+        <div
+          class={[
+            "grid transition-[grid-template-rows] duration-[320ms] ease-[cubic-bezier(0.16,1,0.3,1)]",
+            prefersReducedMotion.current && "transition-none",
+          ]}
+          style:grid-template-rows={geometryOpen ? "1fr" : "0fr"}
+        >
+          <div class="min-h-0 overflow-hidden">
+            <div class="mt-3">
+              <GeometryPanel {model} {trace} method="lp" showTitle={false} />
+            </div>
+          </div>
+        </div>
+      {/if}
     </div>
   {/if}
 
@@ -276,7 +328,7 @@
             {stepsPreparing
               ? t("loading")
               : stepsOpen
-                ? t("hide")
+                ? t("solveDetailsHide")
                 : t("solveDetails")}
           </span>
           <ChevronDown

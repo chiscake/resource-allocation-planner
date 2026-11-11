@@ -27,6 +27,8 @@ const ru = {
     "Войдите, чтобы хранить несколько сценариев, отмечать избранное, создавать шаблоны и делиться расчётами. Текущий расчёт при входе переносится автоматически.",
   homeLoginUpsellCta: "Войти",
   newTask: "Новая задача",
+  createTask: "Создать задачу",
+  allTasks: "Все задачи",
   myTasks: "Мои задачи",
   myTasksHint: "Все ваши задачи — сначала недавно обновлённые.",
   searchByName: "Поиск",
@@ -46,6 +48,8 @@ const ru = {
   showMore: "Показать больше",
   showLess: "Свернуть",
   templates: "Шаблоны",
+  allTemplates: "Все шаблоны",
+  templatesHint: "Личные шаблоны — создавайте и используйте повторно.",
   myTemplates: "Мои шаблоны",
   publicTemplates: "Публичные шаблоны",
   publicTemplatesHint: "Готовые модели для быстрого старта новой задачи.",
@@ -66,9 +70,11 @@ const ru = {
   moderation: "Модерация",
   moderationHint: "Заявки на публикацию шаблонов в общий каталог.",
   moderationEmpty: "Нет заявок",
-  moderationEmptyHint: "Когда пользователь отправит шаблон на проверку, он появится здесь.",
+  moderationEmptyHint:
+    "Когда пользователь отправит шаблон на проверку, он появится здесь.",
   moderationReviewTitle: "Проверка шаблона",
-  moderationReviewHint: "Просмотрите модель и одобрите или отклоните публикацию в каталог.",
+  moderationReviewHint:
+    "Просмотрите модель и одобрите или отклоните публикацию в каталог.",
   publishSectionTitle: "Публикация",
   publishRequest: "Отправить в каталог",
   publishWithdraw: "Отозвать заявку",
@@ -199,6 +205,8 @@ const ru = {
   methodDlnHint:
     "Градиентный поиск на диагональной линейной сети с энтропийной регуляризацией.",
   geometryTitle: "Геометрия решения",
+  geometryToggle: "Геометрия решения",
+  geometryToggleHide: "Свернуть геометрию",
   geometryExpand: "На весь экран",
   geometryCollapse: "Свернуть",
   vizProjection: "Проекция",
@@ -323,6 +331,8 @@ const ru = {
   exportTask: "Задача",
   exportMethod: "Метод",
   exportDate: "Дата выгрузки",
+  /** PDF hero label above the big Z figure. */
+  exportProfitZMax: "Прибыль (Z max)",
   exportProduct: "Продукция",
   exportQuantity: "Объём выпуска",
   exportResource: "Ресурс",
@@ -360,7 +370,8 @@ const ru = {
     "В файле должно быть не меньше трёх строк: заголовок, хотя бы один ресурс и строка цен.",
   csvNoProducts:
     "В заголовке не найдены продукты: первая строка — названия продукции, затем «Запас».",
-  csvNoResources: "Не найдено ни одного ресурса между заголовком и строкой цен.",
+  csvNoResources:
+    "Не найдено ни одного ресурса между заголовком и строкой цен.",
   csvMissingPrice: "Не найдена строка «Цена» после строк ресурсов.",
   csvBadNumber: "Строка {row}, столбец {col}: «{value}» — не число.",
   csvTooLarge:
@@ -420,7 +431,8 @@ const ru = {
   whatIfSortByKind: "По типу",
   whatIfSortByZ: "По убыванию Z",
   whatIfCollapseAll: "Свернуть все",
-  solveDetails: "Подробнее",
+  solveDetails: "Пошаговый разбор",
+  solveDetailsHide: "Свернуть разбор",
   solveDetailsPrimal: "Прямая задача",
   solveDetailsDual: "Двойственная задача",
   solveDetailsEmpty: "Нет пошаговых кадров — нажмите «Рассчитать» ещё раз.",

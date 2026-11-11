@@ -28,18 +28,18 @@ async function task13Payload(): Promise<ExportPayload> {
   const res = solveLocal(model, "local", 0, "lp", "native");
   const result = res.result!;
   const whatIfRows = buildDefaultMutations(model)
-      .slice(0, 3)
-      .map((mutation) => {
-        const mutatedModel = applyMutation(model, mutation);
-        const r = solveLocal(mutatedModel, "local", 0, "lp", "native");
-        return buildWhatIfRowData({
-          base: model,
-          baseResult: result,
-          mutation,
-          mutatedModel,
-          result: r.result,
-        });
+    .slice(0, 3)
+    .map((mutation) => {
+      const mutatedModel = applyMutation(model, mutation);
+      const r = solveLocal(mutatedModel, "local", 0, "lp", "native");
+      return buildWhatIfRowData({
+        base: model,
+        baseResult: result,
+        mutation,
+        mutatedModel,
+        result: r.result,
       });
+    });
   return {
     title: "Задача 13 / тест",
     method: "lp",

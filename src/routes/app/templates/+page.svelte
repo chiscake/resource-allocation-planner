@@ -113,7 +113,7 @@
 </script>
 
 <section class="mx-auto flex max-w-5xl flex-col gap-6">
-  <PageHeader title={t("templates")}>
+  <PageHeader title={t("templates")} description={t("templatesHint")}>
     {#snippet actions()}
       <Button
         variant="primary"

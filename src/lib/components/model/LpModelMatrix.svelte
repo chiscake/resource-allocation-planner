@@ -223,8 +223,8 @@
 				</Button>
 			{/if}
 		{/if}
-		<label class="flex min-w-[8rem] flex-col gap-1">
-			<span class="text-sm text-text-muted">{t('objectiveUnit')}</span>
+		<label class="flex min-w-[8rem] flex-row items-center gap-2">
+			<span class="text-sm whitespace-nowrap text-text-muted">{t('objectiveUnit')}</span>
 			{#if readonly}
 				<span class="py-2 text-[15px] text-text">{objectiveDraft.trim() || '—'}</span>
 			{:else}

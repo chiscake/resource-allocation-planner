@@ -242,7 +242,7 @@ export function buildPdfBlob(p: ExportPayload, fonts: PdfFonts): { blob: Blob; f
 	doc.setFont(PDF_FONT, 'normal');
 	doc.setFontSize(10);
 	doc.setTextColor(...MUTED);
-	doc.text(t('zMax'), margin, y);
+	doc.text(t('exportProfitZMax'), margin, y);
 	doc.setFont(PDF_FONT, 'bold');
 	doc.setFontSize(22);
 	doc.setTextColor(...BRAND);
@@ -269,18 +269,31 @@ export function buildPdfBlob(p: ExportPayload, fonts: PdfFonts): { blob: Blob; f
 	const headStyles = { fillColor: HEAD_BG, textColor: INK, fontStyle: 'bold' as const };
 	const lastY = () => (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
 
+	const pdfSummarySkip = new Set([
+		t('exportTask'),
+		t('exportMethod'),
+		t('zMax'),
+		t('objectiveUnit'),
+		t('solverLibrary')
+	]);
 	autoTable(doc, {
 		startY: y,
 		body: summaryRows(p)
-			.slice(1)
-			.filter(([label]) => label !== t('zMax'))
+			.filter(([label]) => !pdfSummarySkip.has(label))
 			.map(([label, value]) => [label, text(value)]),
 		theme: 'plain',
 		styles: { ...tableStyles, lineWidth: 0 },
 		columnStyles: { 0: { textColor: MUTED, cellWidth: 150 } },
 		margin: { left: margin, right: margin }
 	});
-	y = lastY() + 18;
+	y = lastY() + 10;
+
+	const methodHint = [t(METHOD_KEY[p.method]), p.solverLibrary].filter(Boolean).join(' · ');
+	doc.setFont(PDF_FONT, 'normal');
+	doc.setFontSize(9);
+	doc.setTextColor(...MUTED);
+	doc.text(methodHint, margin, y);
+	y += 18;
 
 	const section = (label: string, table: Table) => {
 		if (y > doc.internal.pageSize.getHeight() - 120) {
