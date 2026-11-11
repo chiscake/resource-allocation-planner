@@ -246,6 +246,9 @@ $RECYCLE.BIN/
 # Local scratch tracked on `dev` (fixtures/demos); grill log stays private.
 .tmp/START.md
 
+# Course deliverables (Word/Excel reports) — keep local only
+docs/deliverables/
+
 # Supabase local CLI clutter / secrets
 supabase/.temp/
 supabase/.branches/
@@ -256,3 +259,4 @@ src-tauri/target/
 
 # Rust template ignores Cargo.lock; this is an application — keep it
 !src-tauri/Cargo.lock
+.vercel

@@ -1,0 +1,48 @@
+---
+description: Russian UI copy for end users — product vs instrument tone; no developer jargon.
+globs: src/**/*.{svelte,ts,js},src/lib/i18n/**
+alwaysApply: false
+---
+
+# UI copy (Russian) — end user, not developer
+
+Canon summary: `AGENTS.md` → **UI copy**. All user-visible strings via `$lib/i18n` (`ru.ts` + `t()`).
+
+## Audience
+
+Write for someone using the planner. Do **not** narrate the ticket, schema, CLI, or implementation.
+
+## Two tones
+
+1. **Product** (home leads, login upsell, empty CTAs): outcome in plain language.
+2. **Instrument** (method hints, toggle hints, `PageHeader` / `EmptyState` secondary): what this control or page does — short, calm, no marketing fluff.
+
+## Do not put in UI
+
+- CLI / scripts (`pnpm …`, `seed:users`)
+- Code (`Math.round`, `xᵢ` formulas unless the product already shows math elsewhere)
+- Schema / eng-calques aimed at engineers (`soft-delete`, «корневые сценарии», «прогоны» as process jargon)
+- Raw `UUID`, file paths, `/app/...` routes as instructions
+- English Cartesia marketing voice from `docs/DESIGN.md` §11 («Get API key», «Try Sonic», …)
+
+Established lexicon OK: «Форкнуть», «Z max», method names already on tabs.
+
+## Before → after
+
+| Bad (developer-facing) | Good (user-facing) |
+| ---------------------- | ------------------ |
+| Соберите модель «ресурсы → продукция»… без входа. Всё хранится только на этом устройстве. | Постройте модель ресурсов и продукции, подберите метод решения и получите оптимальный план выпуска. |
+| Войдите, чтобы сохранять сценарии в облаке… Локальный расчёт… можно перенести. | Войдите, чтобы хранить несколько сценариев, отмечать избранное, создавать шаблоны и делиться расчётами. Текущий расчёт при входе переносится автоматически. |
+| Все ваши корневые сценарии, сначала недавно обновлённые. | Все ваши задачи — сначала недавно обновлённые. |
+| Каждое xᵢ — к ближайшему целому (Math.round). Z и … от непрерывного ЛП. | Объёмы выпуска округляются до целых; прибыль и загрузка ресурсов пересчитываются. Теневые цены остаются от непрерывного решения. |
+| Укажите UUID пользователя (список в /app/admin). | Введите код пользователя из раздела «Админ». |
+| Запустите pnpm seed:users для демо-данных. | Пока нет организаций. Их создаёт администратор. |
+| С ленты: скрыть чужой org-сценарий (soft-delete + уведомление владельцу). | Скрытые из ленты чужие задачи организации. Владелец получит уведомление. |
+| Обновление раз в 60 с и при фокусе окна. | Новые уведомления подтягиваются автоматически. |
+
+## Checklist before shipping UI text
+
+- [ ] Key in `ru.ts` (or existing key reused)
+- [ ] Reads fine aloud to a non-developer
+- [ ] Secondary line matches instrument tone (or product tone on marketing surfaces)
+- [ ] No CLI / UUID / schema leak

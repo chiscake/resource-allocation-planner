@@ -2,9 +2,25 @@
 
 Agent instructions for this project. **This file overrides** `Labs/AGENTS.md` where they conflict (see [Overrides](#overrides)).
 
-Human product copy / UI strings: Russian. **Agent docs in this repo (`AGENTS.md`, `docs/AGENT_NAV.md`): English only.**
+---
 
-Canonical decisions: `.tmp/START.md` (grill freeze) + [`docs/data-model.md`](docs/data-model.md). Navigation map: [`docs/AGENT_NAV.md`](docs/AGENT_NAV.md) — **update AGENT_NAV when the tree or entrypoints change**.
+## schema_version rule (hard) — find/delete here
+
+`model` JSON documents include `schema_version`.
+
+**While this rule exists in AGENTS.md** (project is pre-prod; full local **and cloud** `db reset` is allowed):
+
+1. Do **not** bump `schema_version`.
+2. Do **not** implement backward-compatible migrations or dual readers for old model shapes.
+3. Breaking schema/model/DB changes → **`supabase db reset`** (local and/or cloud when the user asks) and recreate guest/seed data. Remove or rewrite this rule only when the user explicitly changes compatibility policy.
+
+---
+
+Human product copy / UI strings: Russian (see [UI copy](#ui-copy-russian)). **Agent docs in this repo (`AGENTS.md`, `docs/AGENT_NAV.md`, `ROADMAP.md`, `COMMIT_WORKFLOW.md`): English only.**
+
+Canonical status / shipped scope: [`ROADMAP.md`](ROADMAP.md). Schema: [`docs/data-model.md`](docs/data-model.md). Navigation map: [`docs/AGENT_NAV.md`](docs/AGENT_NAV.md) — **update AGENT_NAV when the tree or entrypoints change**.
+
+**Commits / push / Vercel / Supabase cloud ship:** follow [`docs/COMMIT_WORKFLOW.md`](docs/COMMIT_WORKFLOW.md). Run `pnpm preflight` **after staging** before committing on `dev`; `pnpm preflight:main` before promote/`main`. Default work branch is `dev` (also current Vercel Production).
 
 ---
 
@@ -12,16 +28,14 @@ Canonical decisions: `.tmp/START.md` (grill freeze) + [`docs/data-model.md`](doc
 
 Relative to workspace root `Labs/AGENTS.md`:
 
-| Topic                        | Labs root               | This project                                                                               |
-| ---------------------------- | ----------------------- | ------------------------------------------------------------------------------------------ |
-| Tests                        | Do not run unless asked | **Unit tests are required**; run `pnpm test` after non-trivial solver/domain/RLS changes   |
-| schema / model compatibility | (none)                  | **No backward-compat** while the schema_version rule below exists; breaking → `db reset`   |
-| Ports                        | Discipline formula      | **5400–5409** reserved (Vite/HMR default **5400/5401**) — see root AGENTS reserved table   |
-| App canvas `#f3f3f3`         | Labs default            | **Cartesia** via `docs/DESIGN.md` (bg tokens) when styling UI                              |
-| Write scope                  | Target lab folder       | `resource-allocation-planner/` (+ root AGENTS only when user asks, already done for ports) |
-| Report writing               | —                       | Do **not** write the course report unless the user explicitly asks                         |
-
-Project-specific Cursor hooks / rule packs for Overrides may be added later by the user.
+| Topic                        | Labs root               | This project                                                                                          |
+| ---------------------------- | ----------------------- | ----------------------------------------------------------------------------------------------------- |
+| Tests                        | Do not run unless asked | **Ignore Labs skip-tests.** Run `pnpm test` after non-trivial **solver** changes (see [Testing](#testing)) |
+| schema / model compatibility | (none)                  | **No backward-compat** while the schema_version rule above exists; breaking → `db reset`              |
+| Ports                        | Discipline formula      | **5400–5409** reserved (Vite/HMR default **5400**/**5401**) — see root AGENTS reserved table          |
+| App canvas `#f3f3f3`         | Labs default            | **Cartesia** via `docs/DESIGN.md` (bg tokens) when styling UI                                         |
+| Write scope                  | Target lab folder       | `resource-allocation-planner/` (+ root AGENTS only when user asks, already done for ports)            |
+| Report writing               | —                       | Do **not** write the course report unless the user explicitly asks                                    |
 
 ---
 
@@ -34,15 +48,24 @@ Project-specific Cursor hooks / rule packs for Overrides may be added later by t
 
 ---
 
-## schema_version rule (hard)
+## UI copy (Russian)
 
-`model` JSON documents include `schema_version`.
+All user-visible strings go through `$lib/i18n` (`ru.ts` + `t()`). Do not leave hardcoded Russian (or English) in routes for headers, empty states, hints, or toasts when a key can exist.
 
-**While this rule exists in AGENTS.md:**
+**Audience:** end user of the planner — **never** the developer working the ticket.
 
-1. Do **not** bump `schema_version`.
-2. Do **not** implement backward-compatible migrations or dual readers for old model shapes.
-3. Breaking schema/model/DB changes → **`supabase db reset`** (and recreate local guest data). Remove or rewrite this rule only when the user explicitly changes compatibility policy.
+Two tones:
+
+| Surface | Tone | Examples |
+| ------- | ---- | -------- |
+| Home / marketing leads, login upsell | Product: what the user gets | `homeGuestHint`, `homeLoginUpsellBody` |
+| Method blurbs, control hints, page secondary lines | Instrument: what the control/page does, short | `methodPlanHint`, page `PageHeader` descriptions |
+
+**Forbidden in UI copy:** `pnpm` / CLI, file paths, `Math.*`, schema jargon (`soft-delete`, `корневые`, `прогоны` as eng-calque), raw `UUID`, `/app/...` routes, seed scripts, implementation notes aimed at the assignee.
+
+Established product lexicon may stay (e.g. «Форкнуть», «Z max») — do not invent new EN jargon. Details + before/after: `.cursor/rules/ui-copy.mdc`.
+
+**Visual vs voice:** Cartesia tokens from `docs/DESIGN.md` + `app.css`. **Ignore DESIGN §11 English marketing voice** for app strings. Prefer `src/lib/components/ui/*` over one-off controls.
 
 ---
 
@@ -59,6 +82,9 @@ Project-specific Cursor hooks / rule packs for Overrides may be added later by t
 | `020`  | auth / profiles / admin helpers        |
 | `030`  | organizations + membership             |
 | `040`  | domain (`templates`, `solve_nodes`, …) |
+| `011`  | RLS helpers (`is_mod`, `is_admin_or_mod`) |
+| `021`  | profiles role `mod`                    |
+| `042`  | template publish_status + moderation RPCs |
 | `050`  | sharing + notifications + audit        |
 | `060`  | trash / `pg_cron` purge                |
 | `070+` | spare                                  |
@@ -75,12 +101,13 @@ Follow [`docs/data-model.md`](docs/data-model.md); do not invent parallel owners
 
 ---
 
-## Dev commands (expected after scaffold)
+## Dev commands
 
-Prefer scripts from `package.json` when present. Typical:
+Prefer scripts from `package.json`:
 
 - `pnpm install` / `pnpm dev` / `pnpm check` / `pnpm test` / `pnpm tauri:dev` / `pnpm tauri:build`
-- Supabase: local CLI + Edge Functions as in sibling Labs projects (e.g. ИБМЗКИ lab1 patterns for `admin-create-user`)
+- Local backend one-shot: **`pnpm db:reset`** (`start` + `db reset` + `seed:users` + `db:serve`) — there is no `supabase:local` script
+- Pre-commit gates: `pnpm preflight` · `pnpm preflight:quick` · `pnpm preflight:main` — see [`docs/COMMIT_WORKFLOW.md`](docs/COMMIT_WORKFLOW.md). Secret scan uses the **index**; stage files before `preflight`.
 
 ---
 
@@ -89,11 +116,11 @@ Prefer scripts from `package.json` when present. Typical:
 | Need                                     | Read                 |
 | ---------------------------------------- | -------------------- |
 | Tables, RLS intent, orgs, sharing, trash | `docs/data-model.md` |
+| Post-MVP / deferred backlog              | `docs/TODO-later.md` |
 | Visual design / theme tokens (Cartesia)  | `docs/DESIGN.md`     |
-| Decisions / MVP scope                    | `.tmp/START.md`      |
+| Shipped status / scope                   | `ROADMAP.md`         |
 | Assignment / course requirements         | `docs/course/`       |
 | Where code lives                         | `docs/AGENT_NAV.md`  |
-| Plan / phases / folder tree              | `ROADMAP.md`         |
 
 **Solve contract:** shared TS types; Edge + local dual solver; `solve` then `run_mutations`; statuses `done | rejected_too_large | accepted`.
 
@@ -103,10 +130,12 @@ Prefer scripts from `package.json` when present. Typical:
 
 ## Testing
 
-- Canon: `pnpm test` (Vitest or project equivalent once scaffolded).
-- LP Edge ≡ local LP on golden fixtures (seed from `.tmp/task13_results.json` / `task13_solve.py` when imported).
+- Canon: `pnpm test` (Vitest under `src/**/*.test.ts`).
+- **Required:** new or changed **solver method** ⇒ unit tests for it. After non-trivial solver edits → `pnpm test`.
+- **UI / routes:** `pnpm check` after non-trivial Svelte work (Labs “analyzer” habit applies here as check).
+- **RLS / domain DB / Edge:** no automated suite yet — verify manually or via `pnpm db:reset`; do not invent ad-hoc test harnesses unless asked.
+- **Edge ≡ local parity:** **deferred** — local Vitest only for now; do not claim or implement Edge golden parity until explicitly requested.
 - GA/heuristic: feasibility / gap vs LP — **not** equality to simplex.
-- New solver method in the app ⇒ tests for it.
 
 ---
 

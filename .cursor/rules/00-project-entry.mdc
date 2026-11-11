@@ -7,8 +7,10 @@ alwaysApply: true
 
 Before non-trivial work in this project:
 
-1. Read `resource-allocation-planner/AGENTS.md` (Overrides beat `Labs/AGENTS.md`).
-2. For paths/entrypoints, read `docs/AGENT_NAV.md` and update it when the tree changes.
-3. Schema/ownership: `docs/data-model.md` — do not invent parallel models.
-4. UI/visual work: `docs/DESIGN.md` + `.cursor/rules/design-system.mdc` (Cartesia).
-5. English for agent docs; Russian for UI strings.
+1. Read `resource-allocation-planner/AGENTS.md` (Overrides beat `Labs/AGENTS.md`). **Ignore Labs “skip tests”** — this project runs `pnpm test` after solver changes.
+2. **schema_version (hard):** do not bump; no backward-compat / dual readers; breaking → `db reset` (local and/or cloud when asked). Full rule at top of `AGENTS.md` — remove only when the user says so.
+3. For paths/entrypoints, read `docs/AGENT_NAV.md` and update it when the tree changes. Shipped scope: `ROADMAP.md`.
+4. Schema/ownership: `docs/data-model.md` — do not invent parallel models.
+5. UI/visual work: `docs/DESIGN.md` + `.cursor/rules/design-system.mdc` (Cartesia). Prefer `src/lib/components/ui/*`.
+6. UI strings: Russian for the **end user** (not the developer). Tones + examples: `.cursor/rules/ui-copy.mdc`. Agent docs: English.
+7. Commits / cloud ship: `docs/COMMIT_WORKFLOW.md` + `pnpm preflight` after staging (default branch `dev`).
