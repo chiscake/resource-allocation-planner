@@ -2,7 +2,7 @@
 
 Диаграмма развёртывания клиент-серверного приложения **«Планировщик распределения ресурсов»** (Resource Allocation Planner).
 
-Один файл = один тип UML. Рядом: [`use-case.md`](use-case.md), [`sequence.md`](sequence.md); далее — Classes.
+Один файл = один тип UML. Рядом: [`use-case.md`](use-case.md), [`sequence.md`](sequence.md), [`classes.md`](classes.md).
 
 ---
 
