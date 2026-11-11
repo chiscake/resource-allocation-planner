@@ -17,7 +17,17 @@ const OBJECTIVE_UNIT_LABEL = 'Ед. прибыли';
 const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
 
 const STOCK_HEADERS = new Set(['запас', 'запасы', 'rhs', 'stock']);
-const PRICE_HEADERS = new Set(['цена', 'цены', 'прибыль', 'price', 'objective']);
+const PRICE_HEADERS = new Set([
+	'цена',
+	'цены',
+	'прибыль',
+	'ценность',
+	'доходность',
+	'price',
+	'objective',
+	'value',
+	'return'
+]);
 const UNIT_HEADERS = new Set(['ед. изм.', 'ед.изм.', 'ед. изм', 'ед.', 'ед', 'единицы', 'unit', 'units']);
 const OBJECTIVE_UNIT_HEADERS = new Set([
 	'ед. прибыли',

@@ -51,7 +51,17 @@ const admin = createClient(url, serviceKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
-const TASK13_MODEL = {
+const WHAT_IF = {
+  resource_pct: 0.1,
+  modernization_pct: 0.1,
+  price_pct: 0.15,
+};
+
+function withWhatIfDefaults(model) {
+  return { ...model, what_if_defaults: { ...WHAT_IF } };
+}
+
+const TASK13_MODEL = withWhatIfDefaults({
   schema_version: 1,
   resources: ["Труд", "Сырье", "Оборудование"],
   products: ["Осциллограф", "Частотомер", "Генератор", "Вольтметр"],
@@ -65,18 +75,82 @@ const TASK13_MODEL = {
   resource_units: ["чел./дней", "кг", "станков/ч"],
   product_units: ["шт", "шт", "шт", "шт"],
   objective_unit: "у.е.",
-  what_if_defaults: {
-    resource_pct: 0.1,
-    modernization_pct: 0.1,
-    price_pct: 0.15,
-  },
-};
+});
 
-const WHAT_IF = {
-  resource_pct: 0.1,
-  modernization_pct: 0.1,
-  price_pct: 0.15,
-};
+/** Public catalog examples (from task1–3 CSV fixtures). */
+const PUBLIC_CATALOG = [
+  {
+    title: "Задача 13",
+    model: TASK13_MODEL,
+  },
+  {
+    title: "Столовая",
+    model: withWhatIfDefaults({
+      schema_version: 1,
+      resources: ["Время повара", "Мясо", "Овощи", "Плита (конфорки)"],
+      products: ["Борщ", "Плов", "Котлета с пюре", "Салат"],
+      A: [
+        [6, 9, 8, 3],
+        [40, 120, 100, 0],
+        [150, 60, 200, 250],
+        [3, 4, 3, 0],
+      ],
+      b: [480, 12000, 30000, 240],
+      c: [45, 70, 65, 25],
+      resource_units: ["мин", "г", "г", "конфорко-мин"],
+      product_units: ["порц", "порц", "порц", "порц"],
+      objective_unit: "руб.",
+    }),
+  },
+  {
+    title: "Марсианская экспедиция",
+    model: withWhatIfDefaults({
+      schema_version: 1,
+      resources: ["Масса", "Объём", "Энергопотребление", "Время экипажа"],
+      products: [
+        "Спектрометр",
+        "Буровая установка",
+        "Солнечные панели",
+        "Теплица",
+      ],
+      A: [
+        [40, 120, 60, 90],
+        [2, 5, 8, 6],
+        [5, 30, -10, 15],
+        [4, 12, 3, 20],
+      ],
+      b: [1500, 100, 200, 240],
+      c: [50, 140, 30, 90],
+      resource_units: ["кг", "м³", "кВт·ч", "чел.-ч"],
+      product_units: ["шт", "шт", "шт", "шт"],
+      objective_unit: "баллов",
+    }),
+  },
+  {
+    title: "Инвестиционный портфель",
+    model: withWhatIfDefaults({
+      schema_version: 1,
+      resources: [
+        "Бюджет",
+        "Риск (баллы)",
+        "Ликвидность (дефицит)",
+        "Управленческое время",
+      ],
+      products: ["Облигации", "Акции IT", "Недвижимость", "Золото"],
+      A: [
+        [1, 1, 1, 1],
+        [1, 6, 4, 2],
+        [2, 1, 6, 1],
+        [1, 5, 3, 1],
+      ],
+      b: [1000, 3500, 2800, 2400],
+      c: [5, 12, 9, 4],
+      resource_units: ["тыс. у.е.", "баллов", "баллов", "ч"],
+      product_units: ["тыс. у.е.", "тыс. у.е.", "тыс. у.е.", "тыс. у.е."],
+      objective_unit: "% годовых",
+    }),
+  },
+];
 
 async function ensureUser(email, role) {
   const { data: list } = await admin.auth.admin.listUsers({ perPage: 200 });
@@ -106,12 +180,14 @@ async function ensureUser(email, role) {
 }
 
 async function ensureTemplates() {
-  const { data: existing } = await admin
+  const { data: existing, error: listErr } = await admin
     .from("templates")
-    .select("id, system_kind")
+    .select("id, title, system_kind, owner_id")
     .is("deleted_at", null);
-  const kinds = new Set((existing ?? []).map((t) => t.system_kind));
-  if (!kinds.has("signup_seed")) {
+  if (listErr) throw listErr;
+
+  const hasSignup = (existing ?? []).some((t) => t.system_kind === "signup_seed");
+  if (!hasSignup) {
     const { error } = await admin.from("templates").insert({
       title: "Задача 13 — выпуск СИ",
       system_kind: "signup_seed",
@@ -122,33 +198,38 @@ async function ensureTemplates() {
     if (error) throw error;
     console.log("inserted signup_seed template");
   }
-  if (!kinds.has("public_repo")) {
-    const { error } = await admin.from("templates").insert({
-      title: "Задача 13",
-      system_kind: "public_repo",
-      publish_status: "approved",
-      model: TASK13_MODEL,
-      what_if: WHAT_IF,
-      owner_id: null,
-    });
+
+  const publicByTitle = new Map(
+    (existing ?? [])
+      .filter((t) => t.system_kind === "public_repo" && t.owner_id == null)
+      .map((t) => [t.title, t]),
+  );
+
+  for (const entry of PUBLIC_CATALOG) {
+    const row = publicByTitle.get(entry.title);
+    if (!row) {
+      const { error } = await admin.from("templates").insert({
+        title: entry.title,
+        system_kind: "public_repo",
+        publish_status: "approved",
+        model: entry.model,
+        what_if: WHAT_IF,
+        owner_id: null,
+      });
+      if (error) throw error;
+      console.log("inserted public_repo template:", entry.title);
+      continue;
+    }
+    const { error } = await admin
+      .from("templates")
+      .update({
+        publish_status: "approved",
+        model: entry.model,
+        what_if: WHAT_IF,
+      })
+      .eq("id", row.id);
     if (error) throw error;
-    console.log("inserted public_repo template");
-  } else {
-    // Strip legacy «(публичный каталог)» suffix without full reset.
-    const { error: titleErr } = await admin
-      .from("templates")
-      .update({ title: "Задача 13" })
-      .eq("system_kind", "public_repo")
-      .is("deleted_at", null)
-      .neq("title", "Задача 13");
-    if (titleErr) throw titleErr;
-    const { error: statusErr } = await admin
-      .from("templates")
-      .update({ publish_status: "approved" })
-      .eq("system_kind", "public_repo")
-      .is("deleted_at", null)
-      .is("publish_status", null);
-    if (statusErr) throw statusErr;
+    console.log("updated public_repo template:", entry.title);
   }
 }
 

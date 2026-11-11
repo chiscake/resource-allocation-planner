@@ -78,6 +78,13 @@ describe("csv-model", () => {
     expect(model.products).toEqual(["A", "B"]);
   });
 
+  it("accepts ценность and доходность as the objective row", () => {
+    const value = expectOk("x;A;B;Запас\nr1;1;1;4\nЦенность;5;4\n");
+    expect(value.model.c).toEqual([5, 4]);
+    const ret = expectOk("x;A;B;Запас\nr1;1;1;4\nДоходность;3;7\n");
+    expect(ret.model.c).toEqual([3, 7]);
+  });
+
   it("treats a header without a stock label as last column = stock", () => {
     const { model } = expectOk("x;p1;p2;b\nr1;1;1;4\nЦена;2;3\n");
     expect(model.b).toEqual([4]);
