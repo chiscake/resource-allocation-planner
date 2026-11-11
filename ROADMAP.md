@@ -65,7 +65,7 @@ resource-allocation-planner/
 │   ├── functions/               # solve, run_mutations, admin-create-user
 │   └── seed.sql                 # noop; users via seed:users
 ├── src-tauri/
-└── docs/                        # AGENT_NAV, data-model, DESIGN, COMMIT_WORKFLOW, TODO-later, course/
+└── docs/                        # AGENT_NAV, data-model, DESIGN, COMMIT_WORKFLOW, TODO-later, course/, uml/
 ```
 
 Local backend one-shot: **`pnpm db:reset`**.

@@ -19,6 +19,7 @@ Purpose: fast orientation for coding agents. Prefer pointers over copying rules 
 | UI copy tone (RU end-user)                           | [`../AGENTS.md`](../AGENTS.md) + `.cursor/rules/ui-copy.mdc` |
 | Task 13 text                                         | [`course/assignment.md`](course/assignment.md)               |
 | Course formal requirements                           | [`course/requirements.md`](course/requirements.md)           |
+| UML diagrams (course graphic part)                   | [`uml/`](uml/) — one `.md` per diagram type                  |
 
 Scratch only (not canon): `.tmp/task13_*.py/json`, `LP4DVisualizer.jsx`. Design canon: **`docs/DESIGN.md`**.
 
@@ -68,7 +69,8 @@ resource-allocation-planner/
 │   ├── functions/               # solve, run_mutations, admin-create-user
 │   │   └── _shared/solver/      # Edge mirror: registry + methods (keep ↔ src/lib/solver)
 │   └── seed.sql                 # noop; users via seed:users
-└── src-tauri/
+├── src-tauri/
+└── docs/uml/                    # course UML: deployment, use-case, sequence, classes
 ```
 
 **Dev:** `pnpm dev` → http://127.0.0.1:5400 (HMR 5401).  
