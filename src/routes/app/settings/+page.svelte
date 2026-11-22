@@ -4,6 +4,7 @@
   import { mfaErrorMessage } from "$lib/db/mfa-errors";
   import { supabase } from "$lib/db/supabase";
   import { t } from "$lib/i18n";
+  import { copyToClipboard } from "$lib/ui/clipboard";
   import PageHeader from "$lib/components/ui/PageHeader.svelte";
   import Button from "$lib/components/ui/Button.svelte";
   import Input from "$lib/components/ui/Input.svelte";
@@ -16,14 +17,29 @@
     secret: string;
   };
 
+  type AccountInfo = {
+    id: string;
+    email: string;
+    displayName: string;
+    roleLabel: string;
+  };
+
   let ready = $state(false);
   let signedIn = $state(false);
+  let account = $state<AccountInfo | null>(null);
   let verifiedFactor = $state<Factor | null>(null);
   let enroll = $state<EnrollDraft | null>(null);
   let code = $state("");
   let error = $state("");
   let info = $state("");
   let busy = $state(false);
+
+  function roleLabel(role: string | undefined): string {
+    const r = (role ?? "user").trim().toLowerCase();
+    if (r === "admin") return t("roleBadgeAdmin");
+    if (r === "mod") return t("roleBadgeMod");
+    return t("adminRoleUser");
+  }
 
   function qrToSrc(qr: string): string {
     const trimmed = qr.trim();
@@ -52,12 +68,42 @@
     }
   }
 
+  async function loadAccount() {
+    const { data } = await supabase.auth.getUser();
+    const user = data.user;
+    if (!user) {
+      account = null;
+      return;
+    }
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("display_name, role")
+      .eq("id", user.id)
+      .maybeSingle();
+    const metaName =
+      typeof user.user_metadata?.display_name === "string"
+        ? user.user_metadata.display_name
+        : "";
+    const authRole =
+      typeof user.app_metadata?.role === "string"
+        ? user.app_metadata.role
+        : undefined;
+    account = {
+      id: user.id,
+      email: user.email?.trim() || "—",
+      displayName:
+        profile?.display_name?.trim() || metaName.trim() || "",
+      roleLabel: roleLabel(authRole ?? profile?.role),
+    };
+  }
+
   onMount(() => {
     void (async () => {
       const { data } = await supabase.auth.getSession();
       signedIn = !!data.session?.user;
       ready = true;
       if (!signedIn) return;
+      await loadAccount();
       await refreshFactors();
     })();
   });
@@ -184,12 +230,8 @@
 
   async function copySecret() {
     if (!enroll?.secret) return;
-    try {
-      await navigator.clipboard.writeText(enroll.secret);
-      info = t("mfaSecretCopied");
-    } catch {
-      info = "";
-    }
+    const ok = await copyToClipboard(enroll.secret);
+    info = ok ? t("mfaSecretCopied") : "";
   }
 </script>
 
@@ -202,6 +244,71 @@
     <InlineAlert tone="muted">{t("settingsSignInRequired")}</InlineAlert>
     <Button href="/login">{t("login")}</Button>
   {:else}
+    {#if account}
+      <Card class="space-y-4">
+        <div>
+          <h2 class="text-base font-medium text-text">
+            {t("settingsAccountTitle")}
+          </h2>
+          <p class="mt-1 text-sm leading-relaxed text-text-muted">
+            {t("settingsAccountHint")}
+          </p>
+        </div>
+        <dl class="space-y-3 text-sm">
+          <div class="flex flex-col gap-1">
+            <dt class="text-text-muted">{t("settingsAccountEmail")}</dt>
+            <dd>
+              <button
+                type="button"
+                class="cursor-pointer text-left text-text hover:underline"
+                aria-label={`${t("copyValue")}: ${account.email}`}
+                onclick={() => void copyToClipboard(account?.email ?? "")}
+              >
+                {account.email}
+              </button>
+            </dd>
+          </div>
+          <div class="flex flex-col gap-1">
+            <dt class="text-text-muted">{t("settingsAccountName")}</dt>
+            <dd>
+              {#if account.displayName}
+                <button
+                  type="button"
+                  class="cursor-pointer text-left text-text hover:underline"
+                  aria-label={`${t("copyValue")}: ${account.displayName}`}
+                  onclick={() =>
+                    void copyToClipboard(account?.displayName ?? "")}
+                >
+                  {account.displayName}
+                </button>
+              {:else}
+                <span class="text-text-muted">{t("settingsAccountNameEmpty")}</span
+                >
+              {/if}
+            </dd>
+          </div>
+          <div class="flex flex-col gap-1">
+            <dt class="text-text-muted">{t("settingsAccountId")}</dt>
+            <dd>
+              <button
+                type="button"
+                class="cursor-pointer break-all text-left font-mono text-xs text-text hover:underline"
+                title={account.id}
+                aria-label={`${t("copyValue")}: ${account.id}`}
+                onclick={() => void copyToClipboard(account?.id ?? "")}
+              >
+                {account.id}
+              </button>
+            </dd>
+          </div>
+          <div class="flex flex-col gap-1">
+            <dt class="text-text-muted">{t("settingsAccountRole")}</dt>
+            <dd class="text-text">{account.roleLabel}</dd>
+          </div>
+        </dl>
+      </Card>
+    {/if}
+
     <Card class="space-y-4">
       <div>
         <h2 class="text-base font-medium text-text">{t("mfaSectionTitle")}</h2>
