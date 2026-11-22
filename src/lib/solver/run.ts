@@ -6,15 +6,11 @@ import {
   type SolveMethod,
   type SolveResponse,
   type SolveRunOptions,
-} from "$lib/domain";
-import type { ResolvedVenue } from "$lib/domain/types";
-import {
-  engineFail,
-  type EngineOutcome,
-  type TraceSink,
-} from "./contract";
-import { checkModelSize, SOLVE_LIMITS } from "./limits";
-import { defaultEngine, resolveEngine } from "./registry";
+} from '$lib/domain';
+import type { ResolvedVenue } from '$lib/domain/types';
+import { engineFail, type EngineOutcome, type TraceSink } from './contract';
+import { checkModelSize, SOLVE_LIMITS } from './limits';
+import { defaultEngine, resolveEngine } from './registry';
 
 function rejected(
   venue: ResolvedVenue,
@@ -25,7 +21,7 @@ function rejected(
   hint?: string,
 ): SolveResponse {
   return {
-    status: "rejected_too_large",
+    status: 'rejected_too_large',
     solver_meta: {
       venue,
       library: libraryFor(method, venue, engine),
@@ -46,18 +42,11 @@ function wrapOutcome(
   outcome: EngineOutcome,
 ): SolveResponse {
   if (!outcome.ok) {
-    return rejected(
-      venue,
-      method,
-      engine,
-      started,
-      outcome.fail.reason,
-      outcome.fail.hint,
-    );
+    return rejected(venue, method, engine, started, outcome.fail.reason, outcome.fail.hint);
   }
   const { result, trace, gap_vs_lp, hint, provenance } = outcome.value;
   return {
-    status: "done",
+    status: 'done',
     result,
     trace,
     solver_meta: {
@@ -68,9 +57,7 @@ function wrapOutcome(
       duration_ms: performance.now() - started,
       gap_vs_lp,
       hint,
-      provenance:
-        provenance ??
-        ({ method, engine } as import("$lib/domain").SolveRunProvenance),
+      provenance: provenance ?? ({ method, engine } as import('$lib/domain').SolveRunProvenance),
     },
   };
 }
@@ -90,19 +77,15 @@ function runEngine(
   const resolved = resolveEngine(method, engine);
   const eng = resolved.engine;
 
-  const size = checkModelSize(
-    model.products.length,
-    model.resources.length,
-    bodyBytes,
-  );
+  const size = checkModelSize(model.products.length, model.resources.length, bodyBytes);
   if (!size.ok) {
     return rejected(
       venue,
       method,
       eng,
       started,
-      size.reasons.join(","),
-      venue === "cloud" ? "solve_locally" : undefined,
+      size.reasons.join(','),
+      venue === 'cloud' ? 'solve_locally' : undefined,
     );
   }
 
@@ -124,7 +107,7 @@ function runEngine(
     }
 
     if (performance.now() > deadline) {
-      return rejected(venue, method, eng, started, "timeout");
+      return rejected(venue, method, eng, started, 'timeout');
     }
     return wrapOutcome(venue, method, eng, started, outcome);
   } catch (e) {
@@ -133,29 +116,20 @@ function runEngine(
       method,
       eng,
       started,
-      engineFail(e instanceof Error ? e.message : "error"),
+      engineFail(e instanceof Error ? e.message : 'error'),
     );
   }
 }
 
 export function solveLocal(
   model: Model,
-  venue: ResolvedVenue = "local",
+  venue: ResolvedVenue = 'local',
   bodyBytes = 0,
-  method: SolveMethod = "lp",
+  method: SolveMethod = 'lp',
   engine?: SolveEngine,
   options?: SolveRunOptions,
 ): SolveResponse {
-  return runEngine(
-    model,
-    venue,
-    bodyBytes,
-    method,
-    engine,
-    performance.now(),
-    undefined,
-    options,
-  );
+  return runEngine(model, venue, bodyBytes, method, engine, performance.now(), undefined, options);
 }
 
 /** Dual API for native viz (Q8b): same as solveLocal but optional frame sink. */
@@ -170,11 +144,11 @@ export function solveLocalStreaming(
     options?: SolveRunOptions;
   } = {},
 ): SolveResponse {
-  const method = opts.method ?? "lp";
+  const method = opts.method ?? 'lp';
   const engine = opts.engine ?? defaultEngine(method);
   return runEngine(
     model,
-    opts.venue ?? "local",
+    opts.venue ?? 'local',
     opts.bodyBytes ?? 0,
     method,
     engine,

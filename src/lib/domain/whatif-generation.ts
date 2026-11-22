@@ -1,10 +1,10 @@
-import { cloneModel } from "./mutations";
-import type { Model, Mutation, SolveResult, SolverMeta } from "./types";
+import { cloneModel } from './mutations';
+import type { Model, Mutation, SolveResult, SolverMeta } from './types';
 
-export const KIND_SENSITIVITY = "sensitivity";
-export const KIND_WHAT_IF_BASE = "what_if_base";
+export const KIND_SENSITIVITY = 'sensitivity';
+export const KIND_WHAT_IF_BASE = 'what_if_base';
 
-export type WhatIfBadge = "current" | "past";
+export type WhatIfBadge = 'current' | 'past';
 
 /** Minimal child shape for generation / pager logic. */
 export type WhatIfGenNode = {
@@ -21,14 +21,14 @@ export type WhatIfGenNode = {
 
 export type WhatIfPagerSlot =
   | {
-      kind: "generation";
+      kind: 'generation';
       generation: number;
       badge: WhatIfBadge;
       canRestore: boolean;
     }
   | {
-      kind: "empty_current";
-      badge: "current";
+      kind: 'empty_current';
+      badge: 'current';
       canRestore: false;
     };
 
@@ -58,8 +58,7 @@ export type GuestWhatIfState = {
 export function isSensitivityChild(node: WhatIfGenNode): boolean {
   if (node.kind === KIND_WHAT_IF_BASE) return false;
   return (
-    node.kind === KIND_SENSITIVITY ||
-    (node.what_if_generation != null && node.mutation != null)
+    node.kind === KIND_SENSITIVITY || (node.what_if_generation != null && node.mutation != null)
   );
 }
 
@@ -71,10 +70,7 @@ export function isWhatIfBase(node: WhatIfGenNode): boolean {
 export function collectGenerations(nodes: WhatIfGenNode[]): number[] {
   const set = new Set<number>();
   for (const n of nodes) {
-    if (
-      n.what_if_generation != null &&
-      (isSensitivityChild(n) || isWhatIfBase(n))
-    ) {
+    if (n.what_if_generation != null && (isSensitivityChild(n) || isWhatIfBase(n))) {
       set.add(n.what_if_generation);
     }
   }
@@ -89,19 +85,14 @@ export function findBaseForGeneration(
   nodes: WhatIfGenNode[],
   generation: number,
 ): WhatIfGenNode | null {
-  return (
-    nodes.find((n) => isWhatIfBase(n) && n.what_if_generation === generation) ??
-    null
-  );
+  return nodes.find((n) => isWhatIfBase(n) && n.what_if_generation === generation) ?? null;
 }
 
 export function sensitivityForGeneration(
   nodes: WhatIfGenNode[],
   generation: number,
 ): WhatIfGenNode[] {
-  return nodes.filter(
-    (n) => isSensitivityChild(n) && n.what_if_generation === generation,
-  );
+  return nodes.filter((n) => isSensitivityChild(n) && n.what_if_generation === generation);
 }
 
 /** Live = not soft-deleted (guest has no deleted_at → always live). */
@@ -128,16 +119,16 @@ export function buildPagerSlots(
   const slots: WhatIfPagerSlot[] = generations.map((generation) => {
     const isCurrent = activeGeneration === generation;
     return {
-      kind: "generation" as const,
+      kind: 'generation' as const,
       generation,
-      badge: isCurrent ? ("current" as const) : ("past" as const),
+      badge: isCurrent ? ('current' as const) : ('past' as const),
       canRestore: !isCurrent,
     };
   });
   if (activeGeneration == null) {
     slots.push({
-      kind: "empty_current",
-      badge: "current",
+      kind: 'empty_current',
+      badge: 'current',
       canRestore: false,
     });
   }
@@ -146,7 +137,7 @@ export function buildPagerSlots(
 
 /** Prefer the current badge slot; else last. */
 export function defaultPagerIndex(slots: WhatIfPagerSlot[]): number {
-  const current = slots.findIndex((s) => s.badge === "current");
+  const current = slots.findIndex((s) => s.badge === 'current');
   if (current >= 0) return current;
   return Math.max(0, slots.length - 1);
 }
@@ -168,12 +159,10 @@ export function resolveActiveAfterModelEdit(
 /** In-memory guest / reducer: append a new sensitivity pack. */
 export function appendGuestGeneration(
   state: GuestWhatIfState,
-  base: GuestWhatIfGeneration["base"],
+  base: GuestWhatIfGeneration['base'],
   items: GuestWhatIfItem[],
 ): GuestWhatIfState {
-  const generation = nextGenerationNumber(
-    state.generations.map((g) => g.generation),
-  );
+  const generation = nextGenerationNumber(state.generations.map((g) => g.generation));
   return {
     generations: [
       ...state.generations,
@@ -198,9 +187,7 @@ export function appendGuestGeneration(
 }
 
 /** Solve without sensitivity → current empty slot. */
-export function clearGuestActiveGeneration(
-  state: GuestWhatIfState,
-): GuestWhatIfState {
+export function clearGuestActiveGeneration(state: GuestWhatIfState): GuestWhatIfState {
   return { ...state, activeGeneration: null };
 }
 
@@ -208,7 +195,7 @@ export function clearGuestActiveGeneration(
 export function restoreGuestGeneration(
   state: GuestWhatIfState,
   generation: number,
-): { state: GuestWhatIfState; base: GuestWhatIfGeneration["base"] } | null {
+): { state: GuestWhatIfState; base: GuestWhatIfGeneration['base'] } | null {
   const pack = state.generations.find((g) => g.generation === generation);
   if (!pack) return null;
   return {
@@ -225,9 +212,7 @@ export function guestGenerationItems(
   state: GuestWhatIfState,
   generation: number,
 ): GuestWhatIfItem[] {
-  return (
-    state.generations.find((g) => g.generation === generation)?.items ?? []
-  );
+  return state.generations.find((g) => g.generation === generation)?.items ?? [];
 }
 
 export function emptyGuestWhatIfState(): GuestWhatIfState {
@@ -240,16 +225,11 @@ export function mutationKey(m: Mutation): string {
 }
 
 export function mutationsEqual(a: Mutation, b: Mutation): boolean {
-  return (
-    a.kind === b.kind && a.target === b.target && a.delta === b.delta
-  );
+  return a.kind === b.kind && a.target === b.target && a.delta === b.delta;
 }
 
 /** True if any mutation in the list matches `m`. */
-export function hasMutation(
-  mutations: Array<Mutation | null | undefined>,
-  m: Mutation,
-): boolean {
+export function hasMutation(mutations: Array<Mutation | null | undefined>, m: Mutation): boolean {
   return mutations.some((x) => x != null && mutationsEqual(x, m));
 }
 
@@ -260,7 +240,7 @@ export function hasMutation(
  */
 export function appendGuestSensitivityItem(
   state: GuestWhatIfState,
-  base: GuestWhatIfGeneration["base"],
+  base: GuestWhatIfGeneration['base'],
   item: GuestWhatIfItem,
 ): GuestWhatIfState {
   const clonedItem: GuestWhatIfItem = {
@@ -275,9 +255,7 @@ export function appendGuestSensitivityItem(
     return appendGuestGeneration(state, base, [clonedItem]);
   }
 
-  const genIdx = state.generations.findIndex(
-    (g) => g.generation === state.activeGeneration,
-  );
+  const genIdx = state.generations.findIndex((g) => g.generation === state.activeGeneration);
   if (genIdx < 0) {
     return appendGuestGeneration(state, base, [clonedItem]);
   }

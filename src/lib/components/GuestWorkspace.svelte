@@ -1,10 +1,6 @@
 <script lang="ts">
-  import { onMount } from "svelte";
-  import {
-    guestWhatIfStateFromSnapshot,
-    loadGuest,
-    saveGuest,
-  } from "$lib/db/guest";
+  import { onMount } from 'svelte';
+  import { guestWhatIfStateFromSnapshot, loadGuest, saveGuest } from '$lib/db/guest';
   import {
     buildPagerSlots,
     buildWhatIfRowData,
@@ -22,18 +18,18 @@
     type Mutation,
     type SolveResult,
     type SolverMeta,
-  } from "$lib/domain";
-  import { maybeRoundPlan } from "$lib/display";
-  import { solveLocal, runMutationsLocal } from "$lib/solver";
-  import { t } from "$lib/i18n";
-  import SolveWorkspace from "$lib/components/model/SolveWorkspace.svelte";
+  } from '$lib/domain';
+  import { maybeRoundPlan } from '$lib/display';
+  import { solveLocal, runMutationsLocal } from '$lib/solver';
+  import { t } from '$lib/i18n';
+  import SolveWorkspace from '$lib/components/model/SolveWorkspace.svelte';
   import {
     createSolveSession,
     type SolveTransport,
     type WhatIfRow,
-  } from "$lib/components/model/solve-session.svelte";
-  import type { InteractiveScenarioPayload } from "$lib/components/model/interactive-preview.svelte";
-  import { resolveSolveMode } from "$lib/solver/mode";
+  } from '$lib/components/model/solve-session.svelte';
+  import type { InteractiveScenarioPayload } from '$lib/components/model/interactive-preview.svelte';
+  import { resolveSolveMode } from '$lib/solver/mode';
 
   let {
     showLoginCta = true,
@@ -43,7 +39,7 @@
     compact?: boolean;
   } = $props();
 
-  let title = $state("");
+  let title = $state('');
   let whatIfState = $state<GuestWhatIfState>({
     generations: [],
     activeGeneration: null,
@@ -54,35 +50,19 @@
 
   const localTransport: SolveTransport = {
     solve: async (model, method, opts) =>
-      solveLocal(model, "local", 0, method, opts?.engine, opts?.options),
+      solveLocal(model, 'local', 0, method, opts?.engine, opts?.options),
     runMutations: async (model, mutations, method, opts) =>
-      runMutationsLocal(
-        model,
-        mutations,
-        "local",
-        method,
-        opts?.engine,
-        opts?.options,
-      ),
+      runMutationsLocal(model, mutations, 'local', method, opts?.engine, opts?.options),
   };
 
-  const generations = $derived(
-    whatIfState.generations.map((g) => g.generation),
-  );
-  const pagerSlots = $derived(
-    buildPagerSlots(generations, whatIfState.activeGeneration),
-  );
+  const generations = $derived(whatIfState.generations.map((g) => g.generation));
+  const pagerSlots = $derived(buildPagerSlots(generations, whatIfState.activeGeneration));
   const activeSlot = $derived(pagerSlots[genIndex] ?? null);
-  const currentPagerIndex = $derived(
-    pagerSlots.findIndex((s) => s.badge === "current"),
-  );
-  const activeGen = $derived(
-    activeSlot?.kind === "generation" ? activeSlot.generation : null,
-  );
+  const currentPagerIndex = $derived(pagerSlots.findIndex((s) => s.badge === 'current'));
+  const activeGen = $derived(activeSlot?.kind === 'generation' ? activeSlot.generation : null);
   const packBase = $derived(
     activeGen != null
-      ? (whatIfState.generations.find((g) => g.generation === activeGen)
-          ?.base ?? null)
+      ? (whatIfState.generations.find((g) => g.generation === activeGen)?.base ?? null)
       : null,
   );
   const whatIfRows = $derived.by((): WhatIfRow[] => {
@@ -104,13 +84,10 @@
         return {
           ...row,
           Z: display.Z,
-          deltaZ:
-            baseZ != null && Number.isFinite(baseZ)
-              ? display.Z - baseZ
-              : row.deltaZ,
+          deltaZ: baseZ != null && Number.isFinite(baseZ) ? display.Z - baseZ : row.deltaZ,
           plan: display.x,
           shadowMetric:
-            row.shadowKind === "modernization" && baseZ != null
+            row.shadowKind === 'modernization' && baseZ != null
               ? continuous.Z - baseZ
               : row.shadowMetric,
         };
@@ -119,15 +96,14 @@
     });
   });
   const whatIfEmptyMessage = $derived(
-    activeSlot?.kind === "empty_current" ? t("whatIfNotRun") : null,
+    activeSlot?.kind === 'empty_current' ? t('whatIfNotRun') : null,
   );
   const whatIfBadge = $derived(activeSlot?.badge ?? null);
   const whatIfShowRestore = $derived(
-    Boolean(activeSlot?.kind === "generation" && activeSlot.canRestore),
+    Boolean(activeSlot?.kind === 'generation' && activeSlot.canRestore),
   );
   const showWhatIfChrome = $derived(
-    Boolean(session.result) &&
-      (generations.length > 0 || whatIfState.activeGeneration === null),
+    Boolean(session.result) && (generations.length > 0 || whatIfState.activeGeneration === null),
   );
   const interactiveBaseModel = $derived(
     showWhatIfChrome ? (packBase?.model ?? session.model ?? null) : null,
@@ -135,9 +111,7 @@
   const interactiveBaseResult = $derived(
     showWhatIfChrome ? (packBase?.result ?? session.result ?? null) : null,
   );
-  const interactiveExistingMutations = $derived(
-    whatIfRows.map((r) => r.mutation),
-  );
+  const interactiveExistingMutations = $derived(whatIfRows.map((r) => r.mutation));
   const interactiveTransportOpts = $derived({
     engine: resolveSolveMode(session.solveMethod, false).engine,
     cloud: false,
@@ -147,7 +121,7 @@
   function persist() {
     if (!session.model) return;
     saveGuest({
-      title: title || t("newTask"),
+      title: title || t('newTask'),
       model: session.model,
       result: session.result ?? undefined,
       solver_meta: solverMeta ?? undefined,
@@ -167,7 +141,7 @@
 
   function initFromGuest(guest: ReturnType<typeof loadGuest>) {
     if (guest?.model) {
-      title = guest.title || t("newTask");
+      title = guest.title || t('newTask');
       whatIfState = guestWhatIfStateFromSnapshot(guest);
       solverMeta = (guest.solver_meta as SolverMeta | undefined) ?? null;
       session.hydrate({
@@ -178,7 +152,7 @@
       syncPagerToActive();
       return;
     }
-    title = t("newTask");
+    title = t('newTask');
     whatIfState = { generations: [], activeGeneration: null };
     solverMeta = null;
     session.hydrate({
@@ -197,15 +171,10 @@
     session.replaceModel(next);
     const baseModel =
       whatIfState.activeGeneration != null
-        ? whatIfState.generations.find(
-            (g) => g.generation === whatIfState.activeGeneration,
-          )?.base.model
+        ? whatIfState.generations.find((g) => g.generation === whatIfState.activeGeneration)?.base
+            .model
         : null;
-    const nextActive = resolveActiveAfterModelEdit(
-      whatIfState.activeGeneration,
-      baseModel,
-      next,
-    );
+    const nextActive = resolveActiveAfterModelEdit(whatIfState.activeGeneration, baseModel, next);
     if (nextActive !== whatIfState.activeGeneration) {
       whatIfState = { ...whatIfState, activeGeneration: nextActive };
       syncPagerToActive();
@@ -213,16 +182,13 @@
     persist();
   }
 
-  function onWhatIfChange(
-    field: Parameters<typeof session.updateWhatIf>[0],
-    raw: string,
-  ) {
+  function onWhatIfChange(field: Parameters<typeof session.updateWhatIf>[0], raw: string) {
     session.updateWhatIf(field, raw);
     persist();
   }
 
   function restoreBase() {
-    if (activeSlot?.kind !== "generation" || !activeSlot.canRestore) return;
+    if (activeSlot?.kind !== 'generation' || !activeSlot.canRestore) return;
     const restored = restoreGuestGeneration(whatIfState, activeSlot.generation);
     if (!restored) return;
     whatIfState = restored.state;
@@ -241,10 +207,7 @@
     if (!cycle) return;
     solverMeta = cycle.response.solver_meta ?? null;
 
-    if (
-      session.includeSensitivity &&
-      cycle.mutationsResponse?.status === "done"
-    ) {
+    if (session.includeSensitivity && cycle.mutationsResponse?.status === 'done') {
       const items = cycle.mutationsResponse.items.map((item) => ({
         title: item.mutation.label ?? item.mutation.kind,
         mutation: item.mutation as Mutation,
@@ -270,7 +233,7 @@
   }
 
   function addInteractiveToTable(payload: InteractiveScenarioPayload) {
-    if (whatIfBadge === "past" || !session.model) return;
+    if (whatIfBadge === 'past' || !session.model) return;
     const { row, result, solver_meta } = payload;
     if (hasMutation(interactiveExistingMutations, row.mutation)) return;
     const base = {
@@ -315,7 +278,7 @@
     {interactiveExistingMutations}
     interactiveBusy={session.busy}
     canCreateTaskFromInteractive={false}
-    createTaskDisabledReason={t("whatIfCreateNeedsLogin")}
+    createTaskDisabledReason={t('whatIfCreateNeedsLogin')}
     onAddInteractiveToTable={addInteractiveToTable}
     {onModelChange}
     {onWhatIfChange}

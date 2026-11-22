@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from 'vitest';
 import {
   VIEW_TOWARD_CAMERA,
   WORLD_UP,
@@ -13,7 +13,7 @@ import {
   quatSlerp,
   rotateByQuat,
   snapLookFrom,
-} from "./math";
+} from './math';
 
 function approxUnit(v: number[]) {
   const n = Math.hypot(v[0] ?? 0, v[1] ?? 0, v[2] ?? 0);
@@ -24,8 +24,8 @@ function lookFromOf(q: ReturnType<typeof quatIdentity>) {
   return rotateByQuat(VIEW_TOWARD_CAMERA, quatConjugate(q));
 }
 
-describe("orbit / view snaps", () => {
-  it("quatForViewFrom maps lookFrom toward camera (+Z view)", () => {
+describe('orbit / view snaps', () => {
+  it('quatForViewFrom maps lookFrom toward camera (+Z view)', () => {
     const q = quatForViewFrom([1, 0, 0]);
     const imaged = rotateByQuat([1, 0, 0], q);
     expect(imaged[2]).toBeCloseTo(1, 5);
@@ -34,7 +34,7 @@ describe("orbit / view snaps", () => {
     approxUnit(imaged);
   });
 
-  it("turntable yaw changes azimuth around world Z", () => {
+  it('turntable yaw changes azimuth around world Z', () => {
     const q0 = quatForViewFrom([1, 1, 0.2]);
     const q1 = applyTurntableOrbit(q0, 40, 0, 0.01);
     const look0 = lookFromOf(q0);
@@ -46,7 +46,7 @@ describe("orbit / view snaps", () => {
     expect(look1[2]).toBeCloseTo(look0[2] ?? 0, 2);
   });
 
-  it("turntable pitch through the Z pole is continuous (no snap-back)", () => {
+  it('turntable pitch through the Z pole is continuous (no snap-back)', () => {
     let q = quatForViewFrom([1, 0.15, 0.05]);
     const looks: number[][] = [];
     for (let i = 0; i < 100; i++) {
@@ -69,20 +69,17 @@ describe("orbit / view snaps", () => {
     expect(zSigns.some((s) => s > 0) && zSigns.some((s) => s < 0)).toBe(true);
   });
 
-  it("trackball applies arcball delta without requiring Z-up", () => {
+  it('trackball applies arcball delta without requiring Z-up', () => {
     const q0 = quatIdentity();
     const delta = arcballDelta({ x: 100, y: 100 }, { x: 180, y: 40 }, 400, 300);
     const q1 = applyTrackballOrbit(q0, delta);
     expect(q1).not.toEqual(q0);
     const zView = rotateByQuat(WORLD_UP, q1);
-    expect(Math.hypot(zView[0] ?? 0, zView[1] ?? 0, zView[2] ?? 0)).toBeCloseTo(
-      1,
-      5,
-    );
+    expect(Math.hypot(zView[0] ?? 0, zView[1] ?? 0, zView[2] ?? 0)).toBeCloseTo(1, 5);
   });
 
-  it("axis snap puts face in view plane as a square", () => {
-    const q = quatForSnap("pz");
+  it('axis snap puts face in view plane as a square', () => {
+    const q = quatForSnap('pz');
     const o = rotateByQuat([0, 0, 0], q);
     const x = rotateByQuat([1, 0, 0], q);
     const y = rotateByQuat([0, 1, 0], q);
@@ -96,11 +93,11 @@ describe("orbit / view snaps", () => {
     const ly = Math.hypot(sy.x - so.x, sy.y - so.y);
     expect(lx).toBeCloseTo(ly, 5);
     expect(lx).toBeCloseTo(1, 5);
-    expect(snapLookFrom("px")).toEqual([1, 0, 0]);
+    expect(snapLookFrom('px')).toEqual([1, 0, 0]);
   });
 
-  it("+X snap faces the camera squarely", () => {
-    const q = quatForSnap("px");
+  it('+X snap faces the camera squarely', () => {
+    const q = quatForSnap('px');
     const n = rotateByQuat([1, 0, 0], q);
     expect(n[2]).toBeCloseTo(1, 5);
     const y = rotateByQuat([0, 1, 0], q);
@@ -112,9 +109,9 @@ describe("orbit / view snaps", () => {
     expect(ly).toBeCloseTo(lz, 5);
   });
 
-  it("quatSlerp endpoints", () => {
+  it('quatSlerp endpoints', () => {
     const a = quatIdentity();
-    const b = quatForSnap("px");
+    const b = quatForSnap('px');
     const mid = quatSlerp(a, b, 0.5);
     expect(quatSlerp(a, b, 0)).toEqual(a);
     expect(quatSlerp(a, b, 1)[0]).toBeCloseTo(b[0], 5);

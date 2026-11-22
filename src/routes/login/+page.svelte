@@ -1,28 +1,28 @@
 <script lang="ts">
-  import { onMount } from "svelte";
-  import { goto } from "$app/navigation";
-  import { ArrowLeft } from "@lucide/svelte";
-  import { t } from "$lib/i18n";
-  import { supabase } from "$lib/db/supabase";
-  import { clearGuest, isGuestWorthUploading, loadGuest } from "$lib/db/guest";
-  import { mfaErrorMessage } from "$lib/db/mfa-errors";
-  import { createBlankModel } from "$lib/domain";
-  import Button from "$lib/components/ui/Button.svelte";
-  import Input from "$lib/components/ui/Input.svelte";
-  import InlineAlert from "$lib/components/ui/InlineAlert.svelte";
+  import { onMount } from 'svelte';
+  import { goto } from '$app/navigation';
+  import { ArrowLeft } from '@lucide/svelte';
+  import { t } from '$lib/i18n';
+  import { supabase } from '$lib/db/supabase';
+  import { clearGuest, isGuestWorthUploading, loadGuest } from '$lib/db/guest';
+  import { mfaErrorMessage } from '$lib/db/mfa-errors';
+  import { createBlankModel } from '$lib/domain';
+  import Button from '$lib/components/ui/Button.svelte';
+  import Input from '$lib/components/ui/Input.svelte';
+  import InlineAlert from '$lib/components/ui/InlineAlert.svelte';
 
-  type Mode = "login" | "register" | "checkEmail" | "mfa";
+  type Mode = 'login' | 'register' | 'checkEmail' | 'mfa';
 
   const MIN_PASSWORD_LENGTH = 8;
 
-  let mode = $state<Mode>("login");
-  let email = $state("");
-  let password = $state("");
-  let passwordConfirm = $state("");
-  let displayName = $state("");
-  let mfaCode = $state("");
-  let mfaFactorId = $state("");
-  let error = $state("");
+  let mode = $state<Mode>('login');
+  let email = $state('');
+  let password = $state('');
+  let passwordConfirm = $state('');
+  let displayName = $state('');
+  let mfaCode = $state('');
+  let mfaFactorId = $state('');
+  let error = $state('');
   let busy = $state(false);
   let hasGuest = $state(false);
 
@@ -34,7 +34,7 @@
 
   function setMode(next: Mode) {
     mode = next;
-    error = "";
+    error = '';
   }
 
   async function uploadGuestIfAny(userId: string) {
@@ -44,10 +44,10 @@
       clearGuest();
       return;
     }
-    await supabase.from("solve_nodes").insert({
+    await supabase.from('solve_nodes').insert({
       owner_id: userId,
-      title: guest.title || t("guestScenarioTitle"),
-      kind: "root",
+      title: guest.title || t('guestScenarioTitle'),
+      kind: 'root',
       model: guest.model ?? createBlankModel(),
       result: guest.result ?? null,
     });
@@ -56,27 +56,24 @@
 
   async function finishSignedIn(userId: string) {
     await uploadGuestIfAny(userId);
-    void goto("/app");
+    void goto('/app');
   }
 
   async function maybeRequireMfa(userId: string): Promise<boolean> {
-    const { data, error: aalErr } =
-      await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    const { data, error: aalErr } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
     if (aalErr || !data) return false;
-    if (data.currentLevel === "aal2" || data.nextLevel !== "aal2") return false;
+    if (data.currentLevel === 'aal2' || data.nextLevel !== 'aal2') return false;
 
     const factors = await supabase.auth.mfa.listFactors();
     const totp =
-      factors.data?.totp.find((f) => f.status === "verified") ??
-      factors.data?.all.find(
-        (f) => f.factor_type === "totp" && f.status === "verified",
-      );
+      factors.data?.totp.find((f) => f.status === 'verified') ??
+      factors.data?.all.find((f) => f.factor_type === 'totp' && f.status === 'verified');
     if (!totp) return false;
 
     mfaFactorId = totp.id;
-    mfaCode = "";
-    password = "";
-    mode = "mfa";
+    mfaCode = '';
+    password = '';
+    mode = 'mfa';
     return true;
   }
 
@@ -86,7 +83,7 @@
       password,
     });
     if (err || !data.user) {
-      error = err?.message?.trim() || t("loginFailed");
+      error = err?.message?.trim() || t('loginFailed');
       return;
     }
     if (await maybeRequireMfa(data.user.id)) return;
@@ -96,7 +93,7 @@
   async function onMfaVerify() {
     const trimmed = mfaCode.trim();
     if (!trimmed || !mfaFactorId) {
-      error = t("mfaInvalidCode");
+      error = t('mfaInvalidCode');
       return;
     }
     const challenge = await supabase.auth.mfa.challenge({
@@ -121,15 +118,15 @@
   async function onRegister() {
     const name = displayName.trim();
     if (!name) {
-      error = t("displayNameRequired");
+      error = t('displayNameRequired');
       return;
     }
     if (password.length < MIN_PASSWORD_LENGTH) {
-      error = t("passwordTooShort");
+      error = t('passwordTooShort');
       return;
     }
     if (password !== passwordConfirm) {
-      error = t("passwordMismatch");
+      error = t('passwordMismatch');
       return;
     }
 
@@ -143,7 +140,7 @@
       },
     });
     if (err) {
-      error = err.message?.trim() || t("registerFailed");
+      error = err.message?.trim() || t('registerFailed');
       return;
     }
 
@@ -152,19 +149,19 @@
       return;
     }
 
-    password = "";
-    passwordConfirm = "";
-    mode = "checkEmail";
+    password = '';
+    passwordConfirm = '';
+    mode = 'checkEmail';
   }
 
   async function onSubmit(e: Event) {
     e.preventDefault();
-    if (mode === "checkEmail") return;
+    if (mode === 'checkEmail') return;
     busy = true;
-    error = "";
+    error = '';
     try {
-      if (mode === "login") await onLogin();
-      else if (mode === "mfa") await onMfaVerify();
+      if (mode === 'login') await onLogin();
+      else if (mode === 'mfa') await onMfaVerify();
       else await onRegister();
     } finally {
       busy = false;
@@ -181,30 +178,28 @@
       type="button"
       class="inline-flex shrink-0 items-center justify-center rounded-[6px] text-text hover:bg-surface"
       style="width: var(--chrome-control-size); height: var(--chrome-control-size)"
-      aria-label={t("back")}
-      onclick={() => void goto("/app")}
+      aria-label={t('back')}
+      onclick={() => void goto('/app')}
     >
       <ArrowLeft size={20} strokeWidth={1.75} aria-hidden="true" />
     </button>
   </header>
 
-  <main
-    class="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-4 p-6"
-  >
-    {#if mode === "checkEmail"}
-      <h1 class="text-2xl font-medium">{t("registerCheckEmailTitle")}</h1>
+  <main class="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-4 p-6">
+    {#if mode === 'checkEmail'}
+      <h1 class="text-2xl font-medium">{t('registerCheckEmailTitle')}</h1>
       <p class="text-sm leading-relaxed text-text-muted">
-        {t("registerCheckEmail")}
+        {t('registerCheckEmail')}
       </p>
-    {:else if mode === "mfa"}
-      <h1 class="text-2xl font-medium">{t("mfaSectionTitle")}</h1>
-      <p class="text-sm leading-relaxed text-text-muted">{t("mfaLoginHint")}</p>
+    {:else if mode === 'mfa'}
+      <h1 class="text-2xl font-medium">{t('mfaSectionTitle')}</h1>
+      <p class="text-sm leading-relaxed text-text-muted">{t('mfaLoginHint')}</p>
       {#if error}
         <InlineAlert>{error}</InlineAlert>
       {/if}
       <form class="flex flex-col gap-3" onsubmit={onSubmit}>
         <label class="flex flex-col gap-1 text-sm">
-          <span>{t("mfaCode")}</span>
+          <span>{t('mfaCode')}</span>
           <Input
             bind:value={mfaCode}
             inputmode="numeric"
@@ -212,64 +207,54 @@
             placeholder="000000"
           />
         </label>
-        <Button type="submit" disabled={busy}>{t("mfaLoginSubmit")}</Button>
+        <Button type="submit" disabled={busy}>{t('mfaLoginSubmit')}</Button>
       </form>
     {:else}
       <h1 class="text-2xl font-medium">
-        {mode === "login" ? t("login") : t("register")}
+        {mode === 'login' ? t('login') : t('register')}
       </h1>
       {#if hasGuest}
-        <InlineAlert tone="muted">{t("guestUpload")}</InlineAlert>
+        <InlineAlert tone="muted">{t('guestUpload')}</InlineAlert>
       {/if}
       {#if error}
         <InlineAlert>{error}</InlineAlert>
       {/if}
       <form class="flex flex-col gap-3" onsubmit={onSubmit}>
-        {#if mode === "register"}
+        {#if mode === 'register'}
           <label class="flex flex-col gap-1 text-sm">
-            <span>{t("displayName")}</span>
+            <span>{t('displayName')}</span>
             <Input bind:value={displayName} autocomplete="nickname" />
           </label>
         {/if}
         <label class="flex flex-col gap-1 text-sm">
-          <span>{t("email")}</span>
+          <span>{t('email')}</span>
           <Input bind:value={email} type="email" autocomplete="username" />
         </label>
         <label class="flex flex-col gap-1 text-sm">
-          <span>{t("password")}</span>
+          <span>{t('password')}</span>
           <Input
             bind:value={password}
             type="password"
-            autocomplete={mode === "login"
-              ? "current-password"
-              : "new-password"}
+            autocomplete={mode === 'login' ? 'current-password' : 'new-password'}
           />
         </label>
-        {#if mode === "register"}
+        {#if mode === 'register'}
           <label class="flex flex-col gap-1 text-sm">
-            <span>{t("passwordConfirm")}</span>
-            <Input
-              bind:value={passwordConfirm}
-              type="password"
-              autocomplete="new-password"
-            />
+            <span>{t('passwordConfirm')}</span>
+            <Input bind:value={passwordConfirm} type="password" autocomplete="new-password" />
           </label>
         {/if}
         <Button type="submit" disabled={busy}>
-          {mode === "login" ? t("login") : t("register")}
+          {mode === 'login' ? t('login') : t('register')}
         </Button>
       </form>
-      {#if mode === "login"}
-        <Button
-          variant="ghost"
-          type="button"
-          onclick={() => setMode("register")}
-        >
-          {t("switchToRegister")}
+      {#if mode === 'login'}
+        <Button variant="ghost" type="button" onclick={() => setMode('register')}>
+          {t('switchToRegister')}
         </Button>
       {:else}
-        <Button variant="ghost" type="button" onclick={() => setMode("login")}>
-          {t("switchToLogin")}
+        <Button variant="ghost" type="button" onclick={() => setMode('login')}>
+          {t('switchToLogin')}
         </Button>
       {/if}
     {/if}

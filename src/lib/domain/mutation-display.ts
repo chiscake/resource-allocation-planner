@@ -1,8 +1,8 @@
-import { applyMutation } from "./mutations";
-import type { Model, Mutation, MutationKind } from "./types";
+import { applyMutation } from './mutations';
+import type { Model, Mutation, MutationKind } from './types';
 
 function fmt(n: number): string {
-  if (!Number.isFinite(n)) return "—";
+  if (!Number.isFinite(n)) return '—';
   const r = Math.round(n * 1e6) / 1e6;
   return String(r);
 }
@@ -24,27 +24,27 @@ export function mutationBeforeAfter(
   mutation: Mutation,
 ): { before: string; after: string } {
   switch (mutation.kind) {
-    case "resource_change": {
+    case 'resource_change': {
       const i = base.resources.indexOf(mutation.target);
-      if (i < 0) return { before: "—", after: "—" };
+      if (i < 0) return { before: '—', after: '—' };
       const before = base.b[i];
       return { before: fmt(before), after: fmt(before * (1 + mutation.delta)) };
     }
-    case "price_change": {
+    case 'price_change': {
       const j = base.products.indexOf(mutation.target);
-      if (j < 0) return { before: "—", after: "—" };
+      if (j < 0) return { before: '—', after: '—' };
       const before = base.c[j];
       return { before: fmt(before), after: fmt(before * (1 + mutation.delta)) };
     }
-    case "modernization": {
+    case 'modernization': {
       const factor = 1 + mutation.delta;
       return {
-        before: "A",
+        before: 'A',
         after: `A×${fmt(factor)}`,
       };
     }
     default:
-      return { before: "—", after: "—" };
+      return { before: '—', after: '—' };
   }
 }
 
@@ -54,28 +54,28 @@ export function mutationBeforeAfterFromMutated(
   mutation: Mutation,
 ): { before: string; after: string } {
   const d = mutation.delta;
-  if (mutation.kind === "modernization") {
+  if (mutation.kind === 'modernization') {
     return {
-      before: "A",
+      before: 'A',
       after: `A×${fmt(1 + d)}`,
     };
   }
-  if (Math.abs(1 + d) < 1e-12) return { before: "—", after: "—" };
+  if (Math.abs(1 + d) < 1e-12) return { before: '—', after: '—' };
   switch (mutation.kind) {
-    case "resource_change": {
+    case 'resource_change': {
       const i = mutated.resources.indexOf(mutation.target);
-      if (i < 0) return { before: "—", after: "—" };
+      if (i < 0) return { before: '—', after: '—' };
       const after = mutated.b[i];
       return { before: fmt(after / (1 + d)), after: fmt(after) };
     }
-    case "price_change": {
+    case 'price_change': {
       const j = mutated.products.indexOf(mutation.target);
-      if (j < 0) return { before: "—", after: "—" };
+      if (j < 0) return { before: '—', after: '—' };
       const after = mutated.c[j];
       return { before: fmt(after / (1 + d)), after: fmt(after) };
     }
     default:
-      return { before: "—", after: "—" };
+      return { before: '—', after: '—' };
   }
 }
 

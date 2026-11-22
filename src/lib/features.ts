@@ -4,9 +4,9 @@
  */
 
 function parsePublicBool(flag: string | undefined): boolean | null {
-  const v = (flag ?? "").trim().toLowerCase();
-  if (v === "0" || v === "false" || v === "no" || v === "off") return false;
-  if (v === "1" || v === "true" || v === "yes" || v === "on") return true;
+  const v = (flag ?? '').trim().toLowerCase();
+  if (v === '0' || v === 'false' || v === 'no' || v === 'off') return false;
+  if (v === '1' || v === 'true' || v === 'yes' || v === 'on') return true;
   return null;
 }
 

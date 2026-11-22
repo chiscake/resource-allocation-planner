@@ -24,32 +24,32 @@ export type CellCoord = { row: number; col: number };
  * override the diagonal gray default.
  */
 export type CellStyle = {
-	bold?: boolean;
-	/** Any valid CSS color (e.g. `#fef3c7`, `oklch(...)`, `yellow`) */
-	background?: string;
+  bold?: boolean;
+  /** Any valid CSS color (e.g. `#fef3c7`, `oklch(...)`, `yellow`) */
+  background?: string;
 };
 
 export type MatrixSnapshot = {
-	cells: string[][];
-	cellStyles: Array<{ row: number; col: number; style: CellStyle }>;
-	rowStyles: Array<{ row: number; style: CellStyle }>;
-	colStyles: Array<{ col: number; style: CellStyle }>;
+  cells: string[][];
+  cellStyles: Array<{ row: number; col: number; style: CellStyle }>;
+  rowStyles: Array<{ row: number; style: CellStyle }>;
+  colStyles: Array<{ col: number; style: CellStyle }>;
 };
 
 export type MatrixFromSizeOptions = {
-	/** Corner label at (0, 0). Default: empty string. */
-	corner?: string;
-	/** Value for the data diagonal (i, i) where i ≥ 1. */
-	diagonal?: string;
-	/**
-	 * When true (default), data diagonal cells are not UI-editable.
-	 * Programmatic `setValue` / loaders still work.
-	 */
-	diagonalLocked?: boolean;
-	/** Fill value for non-diagonal data cells. Default: empty string. */
-	fill?: string;
-	/** Whether to number headers 1..N. Default: true. */
-	numberedHeaders?: boolean;
+  /** Corner label at (0, 0). Default: empty string. */
+  corner?: string;
+  /** Value for the data diagonal (i, i) where i ≥ 1. */
+  diagonal?: string;
+  /**
+   * When true (default), data diagonal cells are not UI-editable.
+   * Programmatic `setValue` / loaders still work.
+   */
+  diagonalLocked?: boolean;
+  /** Fill value for non-diagonal data cells. Default: empty string. */
+  fill?: string;
+  /** Whether to number headers 1..N. Default: true. */
+  numberedHeaders?: boolean;
 };
 
 export type MatrixFillFn = (row: number, col: number, current: string) => string;

@@ -9,8 +9,8 @@ import {
   type SolveResult,
   type SolverMeta,
   type WhatIfRowData,
-} from "$lib/domain";
-import type { SolveTransport, SolveTransportOpts } from "./solve-session.svelte";
+} from '$lib/domain';
+import type { SolveTransport, SolveTransportOpts } from './solve-session.svelte';
 
 /** Preview row plus solve artifacts for persist / create-task. */
 export type InteractiveScenarioPayload = {
@@ -45,11 +45,7 @@ export async function runInteractivePreview(input: {
     input.baseModel,
   );
   const mutatedModel = applyMutation(input.baseModel, mutation);
-  const response = await input.transport.solve(
-    mutatedModel,
-    input.method,
-    input.transportOpts,
-  );
+  const response = await input.transport.solve(mutatedModel, input.method, input.transportOpts);
   const row = buildWhatIfRowData({
     base: input.baseModel,
     baseResult: input.baseResult,

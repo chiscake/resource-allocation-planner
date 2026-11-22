@@ -1,38 +1,30 @@
 <script lang="ts">
-  import { onMount } from "svelte";
-  import { page } from "$app/state";
-  import { goto } from "$app/navigation";
-  import { supabase } from "$lib/db/supabase";
-  import {
-    createSolveNode,
-    modelFromTemplate,
-  } from "$lib/db/create-solve-node";
+  import { onMount } from 'svelte';
+  import { page } from '$app/state';
+  import { goto } from '$app/navigation';
+  import { supabase } from '$lib/db/supabase';
+  import { createSolveNode, modelFromTemplate } from '$lib/db/create-solve-node';
   import {
     blankTaskDraft,
     clearTaskDraft,
     loadTaskDraft,
     saveTaskDraft,
     type TaskDraft,
-  } from "$lib/db/task-draft";
-  import { recordPublicTemplateUse } from "$lib/db/template-uses";
-  import { solveModel, runMutations } from "$lib/api/solve";
-  import { logSolverMismatches } from "$lib/db/solver-mismatch";
-  import {
-    cloneModel,
-    KIND_SENSITIVITY,
-    KIND_WHAT_IF_BASE,
-    type Model,
-  } from "$lib/domain";
-  import { t } from "$lib/i18n";
-  import SolveWorkspace from "$lib/components/model/SolveWorkspace.svelte";
-  import PageHeader from "$lib/components/ui/PageHeader.svelte";
+  } from '$lib/db/task-draft';
+  import { recordPublicTemplateUse } from '$lib/db/template-uses';
+  import { solveModel, runMutations } from '$lib/api/solve';
+  import { logSolverMismatches } from '$lib/db/solver-mismatch';
+  import { cloneModel, KIND_SENSITIVITY, KIND_WHAT_IF_BASE, type Model } from '$lib/domain';
+  import { t } from '$lib/i18n';
+  import SolveWorkspace from '$lib/components/model/SolveWorkspace.svelte';
+  import PageHeader from '$lib/components/ui/PageHeader.svelte';
   import {
     createSolveSession,
     type SolveTransport,
-  } from "$lib/components/model/solve-session.svelte";
-  import type { VerifyReport } from "$lib/solver/verify";
+  } from '$lib/components/model/solve-session.svelte';
+  import type { VerifyReport } from '$lib/solver/verify';
 
-  let title = $state(t("newTask"));
+  let title = $state(t('newTask'));
   let draftHint = $state(true);
   let ready = $state(false);
   const session = createSolveSession();
@@ -57,9 +49,9 @@
   function persistLocal() {
     if (!session.model) return;
     const draft: TaskDraft = {
-      title: title.trim() || t("newTask"),
+      title: title.trim() || t('newTask'),
       model: cloneModel(session.model),
-      templateId: page.url.searchParams.get("template"),
+      templateId: page.url.searchParams.get('template'),
       activeTab: session.activeTab,
       includeSensitivity: session.includeSensitivity,
       updated_at: new Date().toISOString(),
@@ -68,11 +60,11 @@
   }
 
   function applyDraft(draft: TaskDraft) {
-    title = draft.title || t("newTask");
+    title = draft.title || t('newTask');
     session.hydrate({
       model: draft.model,
       result: null,
-      activeTab: draft.activeTab ?? "plan",
+      activeTab: draft.activeTab ?? 'plan',
       includeSensitivity: draft.includeSensitivity ?? false,
       whatIfItems: [],
     });
@@ -80,13 +72,13 @@
 
   async function loadTemplateIntoDraft(templateId: string): Promise<boolean> {
     const { data, error: qErr } = await supabase
-      .from("templates")
-      .select("id, title, model, what_if, system_kind")
-      .eq("id", templateId)
-      .is("deleted_at", null)
+      .from('templates')
+      .select('id, title, model, what_if, system_kind')
+      .eq('id', templateId)
+      .is('deleted_at', null)
       .single();
     if (qErr || !data) {
-      session.error = qErr?.message ?? t("notFound");
+      session.error = qErr?.message ?? t('notFound');
       return false;
     }
     await recordPublicTemplateUse(templateId);
@@ -94,7 +86,7 @@
       title: data.title,
       model: modelFromTemplate(data),
       templateId,
-      activeTab: "plan",
+      activeTab: 'plan',
       includeSensitivity: false,
       updated_at: new Date().toISOString(),
     });
@@ -106,11 +98,11 @@
     void (async () => {
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) {
-        await goto("/login");
+        await goto('/login');
         return;
       }
       session.loadRoundPref();
-      const templateId = page.url.searchParams.get("template");
+      const templateId = page.url.searchParams.get('template');
       if (templateId) {
         const ok = await loadTemplateIntoDraft(templateId);
         if (!ok) {
@@ -131,10 +123,7 @@
     persistLocal();
   }
 
-  function onWhatIfChange(
-    field: Parameters<typeof session.updateWhatIf>[0],
-    raw: string,
-  ) {
+  function onWhatIfChange(field: Parameters<typeof session.updateWhatIf>[0], raw: string) {
     session.updateWhatIf(field, raw);
     persistLocal();
   }
@@ -151,15 +140,11 @@
     const cycle = await session.runSolveCycle(cloudTransport, {
       cloud,
       afterSolve: async ({ model, result, response }) => {
-        const created = await createSolveNode(
-          model,
-          title.trim() || t("newTask"),
-          {
-            result: result ?? null,
-            solver_meta: response.solver_meta ?? null,
-          },
-        );
-        if ("error" in created) {
+        const created = await createSolveNode(model, title.trim() || t('newTask'), {
+          result: result ?? null,
+          solver_meta: response.solver_meta ?? null,
+        });
+        if ('error' in created) {
           session.error = created.error;
           persistLocal();
           return false;
@@ -173,8 +158,8 @@
         if (report.root && !report.root.diff.match) {
           rows.push({
             solve_node_id: createdId,
-            method: "lp",
-            label: "root",
+            method: 'lp',
+            label: 'root',
             native_z: report.root.native.result?.Z ?? null,
             library_z: report.root.library.result?.Z ?? null,
             max_abs_dx: report.root.diff.maxAbsDx,
@@ -184,7 +169,7 @@
           if (item.diff.match) continue;
           rows.push({
             solve_node_id: createdId,
-            method: "lp",
+            method: 'lp',
             label: item.label,
             native_z: item.native.result?.Z ?? null,
             library_z: item.library.result?.Z ?? null,
@@ -196,7 +181,7 @@
     });
     if (!cycle || !createdId) return;
 
-    if (cycle.mutationsResponse?.status === "done") {
+    if (cycle.mutationsResponse?.status === 'done') {
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -205,7 +190,7 @@
           owner_id: user.id,
           parent_id: createdId,
           kind: KIND_WHAT_IF_BASE,
-          title: t("whatIf"),
+          title: t('whatIf'),
           model: cycle.model,
           mutation: null,
           result: cycle.result ?? null,
@@ -223,11 +208,11 @@
           solver_meta: item.response.solver_meta,
           what_if_generation: 1,
         }));
-        await supabase.from("solve_nodes").insert([baseRow, ...rows]);
+        await supabase.from('solve_nodes').insert([baseRow, ...rows]);
         await supabase
-          .from("solve_nodes")
+          .from('solve_nodes')
           .update({ active_what_if_generation: 1 })
-          .eq("id", createdId);
+          .eq('id', createdId);
       }
     }
 
@@ -244,7 +229,7 @@
       {title}
       editable
       ontitlecommit={renameDraft}
-      description={draftHint ? t("draftNotSavedHint") : undefined}
+      description={draftHint ? t('draftNotSavedHint') : undefined}
     />
 
     <SolveWorkspace
@@ -257,7 +242,7 @@
       onSolveCloud={() => void doSolve(true)}
     >
       {#snippet matrixFooter()}
-        <p class="mt-3 text-xs text-text-soft">{t("draftPersistOnSolve")}</p>
+        <p class="mt-3 text-xs text-text-soft">{t('draftPersistOnSolve')}</p>
       {/snippet}
     </SolveWorkspace>
   </section>

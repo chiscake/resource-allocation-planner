@@ -1,9 +1,5 @@
-import { describe, expect, it } from "vitest";
-import {
-  DIMETRIC_ALPHA,
-  projectDimetricOrtho,
-  unprojectDimetricOrthoZ0,
-} from "./math";
+import { describe, expect, it } from 'vitest';
+import { DIMETRIC_ALPHA, projectDimetricOrtho, unprojectDimetricOrthoZ0 } from './math';
 
 function angleDeg(a: number[], b: number[]): number {
   const na = Math.hypot(a[0], a[1]);
@@ -12,8 +8,8 @@ function angleDeg(a: number[], b: number[]): number {
   return (Math.acos(Math.min(1, Math.max(-1, cos))) * 180) / Math.PI;
 }
 
-describe("dimetric orthographic 105/105/150", () => {
-  it("projects unit axes with screen angles 105°, 105°, 150°", () => {
+describe('dimetric orthographic 105/105/150', () => {
+  it('projects unit axes with screen angles 105°, 105°, 150°', () => {
     const o = projectDimetricOrtho([0, 0, 0], 1, 0, 0);
     const x = projectDimetricOrtho([1, 0, 0], 1, 0, 0);
     const y = projectDimetricOrtho([0, 1, 0], 1, 0, 0);
@@ -37,11 +33,11 @@ describe("dimetric orthographic 105/105/150", () => {
     expect(dirZ[1]).toBeLessThan(0);
   });
 
-  it("uses α = 15°", () => {
+  it('uses α = 15°', () => {
     expect((DIMETRIC_ALPHA * 180) / Math.PI).toBeCloseTo(15, 9);
   });
 
-  it("round-trips unproject on Z=0", () => {
+  it('round-trips unproject on Z=0', () => {
     const p = projectDimetricOrtho([0.4, -0.2, 0], 1, 0, 0);
     const back = unprojectDimetricOrthoZ0(p.x, -p.y);
     expect(back[0]).toBeCloseTo(0.4, 9);

@@ -1,15 +1,15 @@
 <script lang="ts">
-  import { onMount } from "svelte";
-  import type { Factor } from "@supabase/supabase-js";
-  import { mfaErrorMessage } from "$lib/db/mfa-errors";
-  import { supabase } from "$lib/db/supabase";
-  import { t } from "$lib/i18n";
-  import { copyToClipboard } from "$lib/ui/clipboard";
-  import PageHeader from "$lib/components/ui/PageHeader.svelte";
-  import Button from "$lib/components/ui/Button.svelte";
-  import Input from "$lib/components/ui/Input.svelte";
-  import InlineAlert from "$lib/components/ui/InlineAlert.svelte";
-  import Card from "$lib/components/ui/Card.svelte";
+  import { onMount } from 'svelte';
+  import type { Factor } from '@supabase/supabase-js';
+  import { mfaErrorMessage } from '$lib/db/mfa-errors';
+  import { supabase } from '$lib/db/supabase';
+  import { t } from '$lib/i18n';
+  import { copyToClipboard } from '$lib/ui/clipboard';
+  import PageHeader from '$lib/components/ui/PageHeader.svelte';
+  import Button from '$lib/components/ui/Button.svelte';
+  import Input from '$lib/components/ui/Input.svelte';
+  import InlineAlert from '$lib/components/ui/InlineAlert.svelte';
+  import Card from '$lib/components/ui/Card.svelte';
 
   type EnrollDraft = {
     factorId: string;
@@ -29,22 +29,22 @@
   let account = $state<AccountInfo | null>(null);
   let verifiedFactor = $state<Factor | null>(null);
   let enroll = $state<EnrollDraft | null>(null);
-  let code = $state("");
-  let error = $state("");
-  let info = $state("");
+  let code = $state('');
+  let error = $state('');
+  let info = $state('');
   let busy = $state(false);
 
   function roleLabel(role: string | undefined): string {
-    const r = (role ?? "user").trim().toLowerCase();
-    if (r === "admin") return t("roleBadgeAdmin");
-    if (r === "mod") return t("roleBadgeMod");
-    return t("adminRoleUser");
+    const r = (role ?? 'user').trim().toLowerCase();
+    if (r === 'admin') return t('roleBadgeAdmin');
+    if (r === 'mod') return t('roleBadgeMod');
+    return t('adminRoleUser');
   }
 
   function qrToSrc(qr: string): string {
     const trimmed = qr.trim();
-    if (trimmed.startsWith("data:")) return trimmed;
-    if (trimmed.startsWith("<svg")) {
+    if (trimmed.startsWith('data:')) return trimmed;
+    if (trimmed.startsWith('<svg')) {
       return `data:image/svg+xml;utf8,${encodeURIComponent(trimmed)}`;
     }
     return trimmed;
@@ -57,12 +57,12 @@
       verifiedFactor = null;
       return;
     }
-    verifiedFactor = data.totp.find((f) => f.status === "verified") ?? null;
+    verifiedFactor = data.totp.find((f) => f.status === 'verified') ?? null;
   }
 
   async function cleanupUnverified() {
     const { data } = await supabase.auth.mfa.listFactors();
-    const unverified = data?.all.filter((f) => f.status === "unverified") ?? [];
+    const unverified = data?.all.filter((f) => f.status === 'unverified') ?? [];
     for (const f of unverified) {
       await supabase.auth.mfa.unenroll({ factorId: f.id });
     }
@@ -76,23 +76,18 @@
       return;
     }
     const { data: profile } = await supabase
-      .from("profiles")
-      .select("display_name, role")
-      .eq("id", user.id)
+      .from('profiles')
+      .select('display_name, role')
+      .eq('id', user.id)
       .maybeSingle();
     const metaName =
-      typeof user.user_metadata?.display_name === "string"
-        ? user.user_metadata.display_name
-        : "";
+      typeof user.user_metadata?.display_name === 'string' ? user.user_metadata.display_name : '';
     const authRole =
-      typeof user.app_metadata?.role === "string"
-        ? user.app_metadata.role
-        : undefined;
+      typeof user.app_metadata?.role === 'string' ? user.app_metadata.role : undefined;
     account = {
       id: user.id,
-      email: user.email?.trim() || "—",
-      displayName:
-        profile?.display_name?.trim() || metaName.trim() || "",
+      email: user.email?.trim() || '—',
+      displayName: profile?.display_name?.trim() || metaName.trim() || '',
       roleLabel: roleLabel(authRole ?? profile?.role),
     };
   }
@@ -109,19 +104,19 @@
   });
 
   async function startEnroll() {
-    error = "";
-    info = "";
+    error = '';
+    info = '';
     busy = true;
     try {
       await cleanupUnverified();
       const { data, error: err } = await supabase.auth.mfa.enroll({
-        factorType: "totp",
+        factorType: 'totp',
         // Default issuer is Site URL host (e.g. 127.0.0.1:5400); colon splits the otpauth label.
-        issuer: t("mfaIssuer"),
-        friendlyName: t("mfaIssuer"),
+        issuer: t('mfaIssuer'),
+        friendlyName: t('mfaIssuer'),
       });
       if (err || !data) {
-        error = err?.message?.trim() || t("mfaSetupFailed");
+        error = err?.message?.trim() || t('mfaSetupFailed');
         return;
       }
       enroll = {
@@ -129,18 +124,18 @@
         qrSrc: qrToSrc(data.totp.qr_code),
         secret: data.totp.secret,
       };
-      code = "";
+      code = '';
     } finally {
       busy = false;
     }
   }
 
   async function cancelEnroll() {
-    error = "";
-    info = "";
+    error = '';
+    info = '';
     const factorId = enroll?.factorId;
     enroll = null;
-    code = "";
+    code = '';
     if (factorId) {
       await supabase.auth.mfa.unenroll({ factorId });
     }
@@ -148,11 +143,11 @@
 
   async function confirmEnroll() {
     if (!enroll) return;
-    error = "";
-    info = "";
+    error = '';
+    info = '';
     const trimmed = code.trim();
     if (!trimmed) {
-      error = t("mfaInvalidCode");
+      error = t('mfaInvalidCode');
       return;
     }
     busy = true;
@@ -174,7 +169,7 @@
         return;
       }
       enroll = null;
-      code = "";
+      code = '';
       await refreshFactors();
     } finally {
       busy = false;
@@ -183,18 +178,17 @@
 
   async function disableMfa() {
     if (!verifiedFactor) return;
-    error = "";
-    info = "";
+    error = '';
+    info = '';
     const trimmed = code.trim();
     if (!trimmed) {
-      error = t("mfaInvalidCode");
+      error = t('mfaInvalidCode');
       return;
     }
     busy = true;
     try {
-      const { data: aal } =
-        await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-      if (aal?.currentLevel !== "aal2") {
+      const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (aal?.currentLevel !== 'aal2') {
         const challenge = await supabase.auth.mfa.challenge({
           factorId: verifiedFactor.id,
         });
@@ -217,11 +211,11 @@
         factorId: verifiedFactor.id,
       });
       if (unErr) {
-        error = unErr.message?.trim() || t("mfaDisableFailed");
+        error = unErr.message?.trim() || t('mfaDisableFailed');
         return;
       }
       await supabase.auth.refreshSession();
-      code = "";
+      code = '';
       await refreshFactors();
     } finally {
       busy = false;
@@ -231,78 +225,76 @@
   async function copySecret() {
     if (!enroll?.secret) return;
     const ok = await copyToClipboard(enroll.secret);
-    info = ok ? t("mfaSecretCopied") : "";
+    info = ok ? t('mfaSecretCopied') : '';
   }
 </script>
 
 <section class="mx-auto max-w-2xl space-y-6">
-  <PageHeader title={t("settings")} description={t("settingsHint")} />
+  <PageHeader title={t('settings')} description={t('settingsHint')} />
 
   {#if !ready}
     <p class="text-sm text-text-muted">…</p>
   {:else if !signedIn}
-    <InlineAlert tone="muted">{t("settingsSignInRequired")}</InlineAlert>
-    <Button href="/login">{t("login")}</Button>
+    <InlineAlert tone="muted">{t('settingsSignInRequired')}</InlineAlert>
+    <Button href="/login">{t('login')}</Button>
   {:else}
     {#if account}
       <Card class="space-y-4">
         <div>
           <h2 class="text-base font-medium text-text">
-            {t("settingsAccountTitle")}
+            {t('settingsAccountTitle')}
           </h2>
           <p class="mt-1 text-sm leading-relaxed text-text-muted">
-            {t("settingsAccountHint")}
+            {t('settingsAccountHint')}
           </p>
         </div>
         <dl class="space-y-3 text-sm">
           <div class="flex flex-col gap-1">
-            <dt class="text-text-muted">{t("settingsAccountEmail")}</dt>
+            <dt class="text-text-muted">{t('settingsAccountEmail')}</dt>
             <dd>
               <button
                 type="button"
                 class="cursor-pointer text-left text-text hover:underline"
-                aria-label={`${t("copyValue")}: ${account.email}`}
-                onclick={() => void copyToClipboard(account?.email ?? "")}
+                aria-label={`${t('copyValue')}: ${account.email}`}
+                onclick={() => void copyToClipboard(account?.email ?? '')}
               >
                 {account.email}
               </button>
             </dd>
           </div>
           <div class="flex flex-col gap-1">
-            <dt class="text-text-muted">{t("settingsAccountName")}</dt>
+            <dt class="text-text-muted">{t('settingsAccountName')}</dt>
             <dd>
               {#if account.displayName}
                 <button
                   type="button"
                   class="cursor-pointer text-left text-text hover:underline"
-                  aria-label={`${t("copyValue")}: ${account.displayName}`}
-                  onclick={() =>
-                    void copyToClipboard(account?.displayName ?? "")}
+                  aria-label={`${t('copyValue')}: ${account.displayName}`}
+                  onclick={() => void copyToClipboard(account?.displayName ?? '')}
                 >
                   {account.displayName}
                 </button>
               {:else}
-                <span class="text-text-muted">{t("settingsAccountNameEmpty")}</span
-                >
+                <span class="text-text-muted">{t('settingsAccountNameEmpty')}</span>
               {/if}
             </dd>
           </div>
           <div class="flex flex-col gap-1">
-            <dt class="text-text-muted">{t("settingsAccountId")}</dt>
+            <dt class="text-text-muted">{t('settingsAccountId')}</dt>
             <dd>
               <button
                 type="button"
                 class="cursor-pointer break-all text-left font-mono text-xs text-text hover:underline"
                 title={account.id}
-                aria-label={`${t("copyValue")}: ${account.id}`}
-                onclick={() => void copyToClipboard(account?.id ?? "")}
+                aria-label={`${t('copyValue')}: ${account.id}`}
+                onclick={() => void copyToClipboard(account?.id ?? '')}
               >
                 {account.id}
               </button>
             </dd>
           </div>
           <div class="flex flex-col gap-1">
-            <dt class="text-text-muted">{t("settingsAccountRole")}</dt>
+            <dt class="text-text-muted">{t('settingsAccountRole')}</dt>
             <dd class="text-text">{account.roleLabel}</dd>
           </div>
         </dl>
@@ -311,9 +303,9 @@
 
     <Card class="space-y-4">
       <div>
-        <h2 class="text-base font-medium text-text">{t("mfaSectionTitle")}</h2>
+        <h2 class="text-base font-medium text-text">{t('mfaSectionTitle')}</h2>
         <p class="mt-1 text-sm leading-relaxed text-text-muted">
-          {t("mfaSectionHint")}
+          {t('mfaSectionHint')}
         </p>
       </div>
 
@@ -325,9 +317,9 @@
       {/if}
 
       {#if verifiedFactor && !enroll}
-        <p class="text-sm text-text">{t("mfaEnabled")}</p>
+        <p class="text-sm text-text">{t('mfaEnabled')}</p>
         <label class="flex flex-col gap-1 text-sm">
-          <span>{t("mfaCode")}</span>
+          <span>{t('mfaCode')}</span>
           <Input
             bind:value={code}
             inputmode="numeric"
@@ -335,40 +327,30 @@
             placeholder="000000"
           />
         </label>
-        <Button
-          variant="danger"
-          disabled={busy}
-          onclick={() => void disableMfa()}
-        >
-          {t("mfaDisable")}
+        <Button variant="danger" disabled={busy} onclick={() => void disableMfa()}>
+          {t('mfaDisable')}
         </Button>
       {:else if enroll}
-        <div
-          class="flex flex-col items-start gap-3 sm:flex-row sm:items-center"
-        >
+        <div class="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
           <img
             src={enroll.qrSrc}
-            alt={t("mfaQrAlt")}
+            alt={t('mfaQrAlt')}
             class="h-60 w-60 rounded-[8px] border border-border bg-white p-2"
           />
           <div class="flex min-w-0 flex-1 flex-col gap-2">
-            <p class="text-sm font-medium text-text">{t("mfaSecretLabel")}</p>
+            <p class="text-sm font-medium text-text">{t('mfaSecretLabel')}</p>
             <code
               class="break-all rounded-[8px] border border-border bg-bg-soft px-3 py-2 font-mono text-xs text-text"
             >
               {enroll.secret}
             </code>
-            <Button
-              variant="secondary"
-              type="button"
-              onclick={() => void copySecret()}
-            >
-              {t("mfaCopySecret")}
+            <Button variant="secondary" type="button" onclick={() => void copySecret()}>
+              {t('mfaCopySecret')}
             </Button>
           </div>
         </div>
         <label class="flex flex-col gap-1 text-sm">
-          <span>{t("mfaCode")}</span>
+          <span>{t('mfaCode')}</span>
           <Input
             bind:value={code}
             inputmode="numeric"
@@ -378,21 +360,15 @@
         </label>
         <div class="flex flex-wrap gap-2">
           <Button disabled={busy} onclick={() => void confirmEnroll()}>
-            {t("mfaConfirmEnable")}
+            {t('mfaConfirmEnable')}
           </Button>
-          <Button
-            variant="ghost"
-            disabled={busy}
-            onclick={() => void cancelEnroll()}
-          >
-            {t("mfaCancelSetup")}
+          <Button variant="ghost" disabled={busy} onclick={() => void cancelEnroll()}>
+            {t('mfaCancelSetup')}
           </Button>
         </div>
       {:else}
-        <p class="text-sm text-text-muted">{t("mfaDisabled")}</p>
-        <Button disabled={busy} onclick={() => void startEnroll()}
-          >{t("mfaStartSetup")}</Button
-        >
+        <p class="text-sm text-text-muted">{t('mfaDisabled')}</p>
+        <Button disabled={busy} onclick={() => void startEnroll()}>{t('mfaStartSetup')}</Button>
       {/if}
     </Card>
   {/if}

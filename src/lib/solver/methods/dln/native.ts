@@ -8,14 +8,9 @@
  *   - costs mapped affinely to [0, 1] (t has cost 0 before the map).
  * Step: ηₖ = min{1/(4‖Âᵀr‖∞), κ/(5L‖u‖∞²)}, L = 1.02·‖Â‖₂² by power iteration.
  */
-import type {
-  DlnRunConfig,
-  DlnStopReason,
-  Model,
-  SolveResult,
-} from "$lib/domain";
-import { buildSolveResult } from "../../shared/resultBuild";
-import { solveLocalLpDuals } from "../../shared/lpDuals";
+import type { DlnRunConfig, DlnStopReason, Model, SolveResult } from '$lib/domain';
+import { buildSolveResult } from '../../shared/resultBuild';
+import { solveLocalLpDuals } from '../../shared/lpDuals';
 
 export interface DlnHyperparameters {
   lambda: number;
@@ -165,10 +160,10 @@ export function buildStandardForm(model: Model): DlnStandardForm {
  */
 export function validateStandardFormForDln(sf: DlnStandardForm): string | null {
   const { rows, cols, a, b } = sf;
-  if (rows === 0 || cols === 0) return "dln_unsupported";
+  if (rows === 0 || cols === 0) return 'dln_unsupported';
   for (let i = 0; i < rows; i++) {
     if (!(b[i] > 0) || !Number.isFinite(b[i])) {
-      return "dln_unsupported_rhs";
+      return 'dln_unsupported_rhs';
     }
   }
   for (let j = 0; j < cols; j++) {
@@ -176,11 +171,11 @@ export function validateStandardFormForDln(sf: DlnStandardForm): string | null {
     for (let i = 0; i < rows; i++) {
       const v = a[i * cols + j];
       if (!Number.isFinite(v) || v < 0) {
-        return "dln_unsupported_negative_a";
+        return 'dln_unsupported_negative_a';
       }
       if (v > 0) positive = true;
     }
-    if (!positive) return "dln_unsupported_unbounded_col";
+    if (!positive) return 'dln_unsupported_unbounded_col';
   }
   return null;
 }
@@ -236,14 +231,18 @@ export function solveDlnRaw(
 ): DlnRaw {
   const m = model.resources.length;
   const n = model.products.length;
-  if (m === 0 || n === 0) return { ok: false, reason: "dln_unsupported" };
+  if (m === 0 || n === 0) return { ok: false, reason: 'dln_unsupported' };
 
   const sf = buildStandardForm(model);
   const why = validateStandardFormForDln(sf);
   if (why) return { ok: false, reason: why };
 
-  const lambda = hyper.lambda > 0 && Number.isFinite(hyper.lambda) ? hyper.lambda : DEFAULT_DLN_HYPERPARAMS.lambda;
-  const kappa = hyper.kappa > 0 && Number.isFinite(hyper.kappa) ? hyper.kappa : DEFAULT_DLN_HYPERPARAMS.kappa;
+  const lambda =
+    hyper.lambda > 0 && Number.isFinite(hyper.lambda)
+      ? hyper.lambda
+      : DEFAULT_DLN_HYPERPARAMS.lambda;
+  const kappa =
+    hyper.kappa > 0 && Number.isFinite(hyper.kappa) ? hyper.kappa : DEFAULT_DLN_HYPERPARAMS.kappa;
   const tol = hyper.tol > 0 && Number.isFinite(hyper.tol) ? hyper.tol : DEFAULT_DLN_HYPERPARAMS.tol;
   const rowScale = Boolean(hyper.rowScale);
   const maxIter = Math.max(1, Math.trunc(hyper.maxIter || DEFAULT_DLN_HYPERPARAMS.maxIter));
@@ -255,7 +254,7 @@ export function solveDlnRaw(
 
   const bigM = (1 + BOUND_SLACK) * sumBound(sf);
   if (!(bigM > 0) || !Number.isFinite(bigM)) {
-    return { ok: false, reason: "dln_numerical_failure" };
+    return { ok: false, reason: 'dln_numerical_failure' };
   }
 
   const a = new Float64Array(rows * cols);
@@ -309,7 +308,7 @@ export function solveDlnRaw(
   const lipschitz = 1.02 * spectralNormSquared(a, rows, cols, POWER_ITERATIONS);
   const normB = norm2(b);
   if (!(normB > 0) || !Number.isFinite(normB)) {
-    return { ok: false, reason: "dln_numerical_failure" };
+    return { ok: false, reason: 'dln_numerical_failure' };
   }
 
   const x = new Float64Array(cols);
@@ -318,7 +317,7 @@ export function solveDlnRaw(
 
   let iter = 0;
   let residual = Number.NaN;
-  let stopReason: DlnStopReason = "max_iter";
+  let stopReason: DlnStopReason = 'max_iter';
 
   while (true) {
     for (let j = 0; j < cols; j++) {
@@ -332,26 +331,23 @@ export function solveDlnRaw(
     }
     residual = norm2(r) / normB;
     if (!Number.isFinite(residual)) {
-      return { ok: false, reason: "dln_numerical_failure" };
+      return { ok: false, reason: 'dln_numerical_failure' };
     }
     if (residual <= tol) {
-      stopReason = "tol";
+      stopReason = 'tol';
       break;
     }
     if (iter >= maxIter) {
-      stopReason = "max_iter";
+      stopReason = 'max_iter';
       break;
     }
 
     matTVec(a, rows, cols, r, g);
     const gInf = normInf(g);
     const uInf = normInf(u);
-    const eta = Math.min(
-      1.0 / (4 * gInf),
-      kappa / (5 * lipschitz * uInf * uInf),
-    );
+    const eta = Math.min(1.0 / (4 * gInf), kappa / (5 * lipschitz * uInf * uInf));
     if (!(eta > 0) || !Number.isFinite(eta)) {
-      return { ok: false, reason: "dln_numerical_failure" };
+      return { ok: false, reason: 'dln_numerical_failure' };
     }
 
     for (let j = 0; j < cols; j++) {
@@ -400,7 +396,7 @@ export function solveDlnRaw(
 export function solveDlnModel(
   model: Model,
   hyper: DlnHyperparameters = DEFAULT_DLN_HYPERPARAMS,
-  preset: DlnRunConfig["preset"] = "precise",
+  preset: DlnRunConfig['preset'] = 'precise',
 ):
   | {
       ok: true;

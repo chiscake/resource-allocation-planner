@@ -1,14 +1,14 @@
-import type { DlnRunConfig } from "$lib/domain";
-import type { DlnHyperparameters } from "./native";
+import type { DlnRunConfig } from '$lib/domain';
+import type { DlnHyperparameters } from './native';
 
-export type DlnPresetId = "fast" | "precise" | "custom";
+export type DlnPresetId = 'fast' | 'precise' | 'custom';
 
 export const DLN_PRESET_DEFS: Record<
-  Exclude<DlnPresetId, "custom">,
+  Exclude<DlnPresetId, 'custom'>,
   DlnHyperparameters & { labelKey: string }
 > = {
   fast: {
-    labelKey: "dlnPresetFast",
+    labelKey: 'dlnPresetFast',
     lambda: 0.003,
     kappa: 30,
     tol: 1e-6,
@@ -16,7 +16,7 @@ export const DLN_PRESET_DEFS: Record<
     maxIter: 20_000,
   },
   precise: {
-    labelKey: "dlnPresetPrecise",
+    labelKey: 'dlnPresetPrecise',
     lambda: 0.005,
     kappa: 3,
     tol: 1e-8,
@@ -27,7 +27,7 @@ export const DLN_PRESET_DEFS: Record<
 
 export function dlnHyperToRunConfig(
   hyper: DlnHyperparameters,
-  preset: DlnPresetId = "custom",
+  preset: DlnPresetId = 'custom',
 ): DlnRunConfig {
   return {
     lambda: hyper.lambda,
@@ -59,7 +59,7 @@ export function resolveDlnHyper(
   baseDefaults: DlnHyperparameters,
 ): DlnHyperparameters {
   const fromPreset =
-    preset && preset !== "custom" ? DLN_PRESET_DEFS[preset] : DLN_PRESET_DEFS.precise;
+    preset && preset !== 'custom' ? DLN_PRESET_DEFS[preset] : DLN_PRESET_DEFS.precise;
   const { labelKey: _l, ...presetParams } = fromPreset as typeof fromPreset & {
     labelKey?: string;
   };
@@ -71,11 +71,7 @@ export function resolveDlnFromRunConfig(
   config: Partial<DlnRunConfig> | undefined,
   baseDefaults: DlnHyperparameters,
 ): { hyper: DlnHyperparameters; preset: DlnPresetId } {
-  const preset = (config?.preset ?? "precise") as DlnPresetId;
-  const hyper = resolveDlnHyper(
-    preset,
-    dlnRunConfigToHyper(config),
-    baseDefaults,
-  );
+  const preset = (config?.preset ?? 'precise') as DlnPresetId;
+  const hyper = resolveDlnHyper(preset, dlnRunConfigToHyper(config), baseDefaults);
   return { hyper, preset };
 }

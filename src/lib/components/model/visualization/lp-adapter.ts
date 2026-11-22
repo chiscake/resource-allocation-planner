@@ -1,4 +1,4 @@
-import type { Model, SolveTrace } from "$lib/domain";
+import type { Model, SolveTrace } from '$lib/domain';
 import {
   computeEdges,
   computeFaces3d,
@@ -6,7 +6,7 @@ import {
   constraintSegment2d,
   feasiblePolygon2d,
   getAllConstraints,
-} from "./polytope";
+} from './polytope';
 import {
   emptyBounds,
   expandBounds,
@@ -16,13 +16,13 @@ import {
   type SceneLine,
   type ScenePoint,
   type ProjectionMode,
-} from "./types";
+} from './types';
 
 function defaultMode(dim: number): ProjectionMode {
-  if (dim <= 2) return "exact2d";
-  if (dim === 3) return "exact3d";
-  if (dim === 4) return "section3d";
-  return "selectedAxes";
+  if (dim <= 2) return 'exact2d';
+  if (dim === 3) return 'exact3d';
+  if (dim === 4) return 'section3d';
+  return 'selectedAxes';
 }
 
 function constraintsFromModel(model: Model) {
@@ -34,7 +34,7 @@ function constraintsFromModel(model: Model) {
 
 export function buildLpScene(
   model: Model,
-  trace: Extract<SolveTrace, { method: "lp" }> | null,
+  trace: Extract<SolveTrace, { method: 'lp' }> | null,
   opts?: {
     mode?: ProjectionMode;
     axisX?: number;
@@ -58,18 +58,18 @@ export function buildLpScene(
 
   const userCons = constraintsFromModel(model);
   const staticLines: SceneLine[] = [];
-  const staticRegions: SceneFrame["regions"] = [];
+  const staticRegions: SceneFrame['regions'] = [];
   const staticFaces: SceneFace[] = [];
 
-  if (dim === 2 && (mode === "exact2d" || mode === "selectedAxes")) {
+  if (dim === 2 && (mode === 'exact2d' || mode === 'selectedAxes')) {
     const poly = feasiblePolygon2d(userCons);
     if (poly.length >= 3) {
       staticRegions.push({
-        id: "feasible",
+        id: 'feasible',
         points2d: poly,
-        kind: "feasible",
-        label: "ОДР",
-        color: "#2563eb",
+        kind: 'feasible',
+        label: 'ОДР',
+        color: '#2563eb',
         opacity: 0.12,
       });
       bounds = expandBounds(
@@ -99,9 +99,9 @@ export function buildLpScene(
             v[1] = y;
             return v;
           }),
-          kind: "constraint",
+          kind: 'constraint',
           label: model.resources[i],
-          color: "#a3a3a3",
+          color: '#a3a3a3',
           dash: true,
         });
       }
@@ -109,7 +109,11 @@ export function buildLpScene(
   }
 
   // Low-dim polytope edges/faces for 3D/4D
-  if (dim >= 3 && dim <= 4 && (mode === "exact3d" || mode === "project4d" || mode === "section3d" || mode === "selectedAxes")) {
+  if (
+    dim >= 3 &&
+    dim <= 4 &&
+    (mode === 'exact3d' || mode === 'project4d' || mode === 'section3d' || mode === 'selectedAxes')
+  ) {
     const all = getAllConstraints(userCons, dim);
     const verts = computeVertices(all, dim);
     const edges = computeEdges(verts, dim);
@@ -121,11 +125,11 @@ export function buildLpScene(
       staticLines.push({
         id: `e-${i}-${j}`,
         points: [verts[i].point, verts[j].point],
-        kind: "edge",
-        color: "#4fd1c5",
+        kind: 'edge',
+        color: '#4fd1c5',
       });
     }
-    if (mode === "exact3d" || mode === "selectedAxes") {
+    if (mode === 'exact3d' || mode === 'selectedAxes') {
       const axes = [axisX, axisY, axisZ ?? Math.min(2, dim - 1)];
       const reducedCons = userCons.map((c) => ({
         a: axes.map((ai) => c.a[ai] ?? 0),
@@ -144,9 +148,9 @@ export function buildLpScene(
             });
             return full;
           }),
-          kind: "feasible",
-          label: "ОДР",
-          color: "#2563eb",
+          kind: 'feasible',
+          label: 'ОДР',
+          color: '#2563eb',
           opacity: 0.14,
         });
       });
@@ -154,12 +158,10 @@ export function buildLpScene(
   }
 
   const trajPts: number[][] = [];
-  const steps = primal.length > 0 ? primal : [{ Z: 0, x: model.products.map(() => 0), note: "—" }];
+  const steps = primal.length > 0 ? primal : [{ Z: 0, x: model.products.map(() => 0), note: '—' }];
 
   steps.forEach((frame, idx) => {
-    const x =
-      frame.x ??
-      model.products.map((p) => 0);
+    const x = frame.x ?? model.products.map((p) => 0);
     trajPts.push(x);
     bounds = expandBounds(bounds, [x]);
 
@@ -169,10 +171,10 @@ export function buildLpScene(
       points.push({
         id: `traj-${ti}`,
         coords: pt,
-        kind: ti === trajPts.length - 1 ? "best" : "trajectory",
-        label: ti === trajPts.length - 1 ? "Текущая" : undefined,
+        kind: ti === trajPts.length - 1 ? 'best' : 'trajectory',
+        label: ti === trajPts.length - 1 ? 'Текущая' : undefined,
         size: ti === trajPts.length - 1 ? 7 : 3.5,
-        color: "#f2679c",
+        color: '#f2679c',
       });
     });
 
@@ -184,9 +186,9 @@ export function buildLpScene(
         points.push({
           id: `v-${vi}`,
           coords: v.point,
-          kind: "vertex",
+          kind: 'vertex',
           size: 2.5,
-          color: "#8b93a7",
+          color: '#8b93a7',
         });
       });
     }
@@ -194,10 +196,10 @@ export function buildLpScene(
     const trajLine: SceneLine | null =
       trajPts.length >= 2
         ? {
-            id: "traj-line",
+            id: 'traj-line',
             points: trajPts.map((p) => p.slice()),
-            kind: "trajectory",
-            color: "#f2679c",
+            kind: 'trajectory',
+            color: '#f2679c',
           }
         : null;
 
@@ -210,9 +212,9 @@ export function buildLpScene(
       faces: staticFaces.map((f) => ({ ...f, points: f.points.map((p) => p.slice()) })),
       metrics: {
         Z: frame.Z ?? Number.NaN,
-        phase: frame.phase ?? "—",
-        entering: frame.entering ?? "—",
-        leaving: frame.leaving ?? "—",
+        phase: frame.phase ?? '—',
+        entering: frame.entering ?? '—',
+        leaving: frame.leaving ?? '—',
       },
     });
   });

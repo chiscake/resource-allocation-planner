@@ -1,5 +1,5 @@
-import { dot, normalize } from "./math";
-import type { VecN } from "./types";
+import { dot, normalize } from './math';
+import type { VecN } from './types';
 
 const EPS = 1e-6;
 
@@ -61,12 +61,12 @@ export function getAllConstraints(
   const all: Halfspace[] = userConstraints.map((c) => ({
     a: c.a.slice(0, dim),
     b: c.b,
-    kind: "user",
+    kind: 'user',
   }));
   for (let i = 0; i < dim; i++) {
     const a = new Array(dim).fill(0);
     a[i] = -1;
-    all.push({ a, b: 0, kind: "nonneg" });
+    all.push({ a, b: 0, kind: 'nonneg' });
   }
   return all;
 }
@@ -74,10 +74,7 @@ export function getAllConstraints(
 export type PolytopeVertex = { point: VecN; active: number[] };
 
 /** Enumerate vertices — only safe for small dim (≤4) and few constraints. */
-export function computeVertices(
-  allConstraints: Halfspace[],
-  dim: number,
-): PolytopeVertex[] {
+export function computeVertices(allConstraints: Halfspace[], dim: number): PolytopeVertex[] {
   if (dim < 2 || dim > 4) return [];
   if (allConstraints.length > 16) return [];
   const idxs = allConstraints.map((_, i) => i);
@@ -100,24 +97,17 @@ export function computeVertices(
       if (Math.abs(val - bi) < 1e-4) active.push(i);
     }
     if (!feasible) continue;
-    const dup = vertices.find((v) =>
-      v.point.every((p, k) => Math.abs(p - sol[k]) < 1e-4),
-    );
+    const dup = vertices.find((v) => v.point.every((p, k) => Math.abs(p - sol[k]) < 1e-4));
     if (!dup) vertices.push({ point: sol, active });
   }
   return vertices;
 }
 
-export function computeEdges(
-  vertices: PolytopeVertex[],
-  dim: number,
-): [number, number][] {
+export function computeEdges(vertices: PolytopeVertex[], dim: number): [number, number][] {
   const edges: [number, number][] = [];
   for (let i = 0; i < vertices.length; i++) {
     for (let j = i + 1; j < vertices.length; j++) {
-      const common = vertices[i].active.filter((x) =>
-        vertices[j].active.includes(x),
-      );
+      const common = vertices[i].active.filter((x) => vertices[j].active.includes(x));
       if (common.length >= dim - 1) edges.push([i, j]);
     }
   }
@@ -125,10 +115,7 @@ export function computeEdges(
 }
 
 /** Ordered polygonal faces for a 3D polytope (one face per binding constraint). */
-export function computeFaces3d(
-  vertices: PolytopeVertex[],
-  constraints: Halfspace[],
-): VecN[][] {
+export function computeFaces3d(vertices: PolytopeVertex[], constraints: Halfspace[]): VecN[][] {
   if (vertices.length < 3) return [];
   const faces: VecN[][] = [];
   for (let ci = 0; ci < constraints.length; ci++) {
@@ -171,20 +158,15 @@ export function computeFaces3d(
 }
 
 /** 2D feasible polygon from halfspaces via vertex enum + angular sort. */
-export function feasiblePolygon2d(
-  constraints: { a: number[]; b: number }[],
-): [number, number][] {
+export function feasiblePolygon2d(constraints: { a: number[]; b: number }[]): [number, number][] {
   const all = getAllConstraints(constraints, 2);
   const verts = computeVertices(all, 2);
   if (verts.length < 3) return [];
-  const cx =
-    verts.reduce((s, v) => s + v.point[0], 0) / verts.length;
-  const cy =
-    verts.reduce((s, v) => s + v.point[1], 0) / verts.length;
+  const cx = verts.reduce((s, v) => s + v.point[0], 0) / verts.length;
+  const cy = verts.reduce((s, v) => s + v.point[1], 0) / verts.length;
   const sorted = [...verts].sort(
     (a, b) =>
-      Math.atan2(a.point[1] - cy, a.point[0] - cx) -
-      Math.atan2(b.point[1] - cy, b.point[0] - cx),
+      Math.atan2(a.point[1] - cy, a.point[0] - cx) - Math.atan2(b.point[1] - cy, b.point[0] - cx),
   );
   return sorted.map((v) => [v.point[0], v.point[1]] as [number, number]);
 }

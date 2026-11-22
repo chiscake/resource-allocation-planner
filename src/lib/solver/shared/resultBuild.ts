@@ -1,4 +1,4 @@
-import type { Model, SolveResult } from "$lib/domain";
+import type { Model, SolveResult } from '$lib/domain';
 
 const DUAL_EPS = 1e-6;
 const CRITICAL_EPS = 1e-4;

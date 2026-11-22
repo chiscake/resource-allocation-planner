@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { t } from "$lib/i18n";
-  import { mutationKindOrder } from "$lib/domain";
-  import Button from "$lib/components/ui/Button.svelte";
-  import { formatPlanNumber } from "./format-plan-number";
-  import LpModelMatrix from "./LpModelMatrix.svelte";
-  import type { WhatIfRow } from "./solve-session.svelte";
-  import type { WhatIfRowData } from "$lib/domain";
+  import { t } from '$lib/i18n';
+  import { mutationKindOrder } from '$lib/domain';
+  import Button from '$lib/components/ui/Button.svelte';
+  import { formatPlanNumber } from './format-plan-number';
+  import LpModelMatrix from './LpModelMatrix.svelte';
+  import type { WhatIfRow } from './solve-session.svelte';
+  import type { WhatIfRowData } from '$lib/domain';
 
   let {
     rows,
@@ -15,9 +15,9 @@
     onCreateTaskFromScenario?: (row: WhatIfRowData) => void;
   } = $props();
 
-  type SortMode = "kind" | "zDesc";
+  type SortMode = 'kind' | 'zDesc';
 
-  let sortMode = $state<SortMode>("kind");
+  let sortMode = $state<SortMode>('kind');
   let expandedKeys = $state<string[]>([]);
 
   const ZERO_EPS = 1e-9;
@@ -34,14 +34,10 @@
       index,
       key: rowKey(row, index),
     }));
-    if (sortMode === "zDesc") {
+    if (sortMode === 'zDesc') {
       return [...indexed].sort((a, b) => {
-        const za = Number.isFinite(a.row.Z)
-          ? a.row.Z
-          : Number.NEGATIVE_INFINITY;
-        const zb = Number.isFinite(b.row.Z)
-          ? b.row.Z
-          : Number.NEGATIVE_INFINITY;
+        const za = Number.isFinite(a.row.Z) ? a.row.Z : Number.NEGATIVE_INFINITY;
+        const zb = Number.isFinite(b.row.Z) ? b.row.Z : Number.NEGATIVE_INFINITY;
         if (zb !== za) return zb - za;
         return a.index - b.index;
       });
@@ -58,9 +54,7 @@
   const colCount = 6;
 
   function sortBtnClass(mode: SortMode): string {
-    return sortMode === mode
-      ? "!bg-brand-soft !text-brand"
-      : "!text-text-muted hover:!bg-surface";
+    return sortMode === mode ? '!bg-brand-soft !text-brand' : '!text-text-muted hover:!bg-surface';
   }
 
   function isExpanded(key: string): boolean {
@@ -80,24 +74,22 @@
   }
 
   function fmtDelta(v: number): string {
-    if (!Number.isFinite(v)) return "—";
+    if (!Number.isFinite(v)) return '—';
     const s = formatPlanNumber(v);
     if (Math.abs(v) < ZERO_EPS) return formatPlanNumber(0);
     return v > 0 ? `+${s}` : s;
   }
 
   function shadowLabel(row: WhatIfRow): string {
-    if (row.shadowKind === "resource") return t("whatIfShadowResource");
-    if (row.shadowKind === "modernization")
-      return t("whatIfModernizationPrice");
-    return t("whatIfShadowCol");
+    if (row.shadowKind === 'resource') return t('whatIfShadowResource');
+    if (row.shadowKind === 'modernization') return t('whatIfModernizationPrice');
+    return t('whatIfShadowCol');
   }
 
   function shadowExplain(row: WhatIfRow): string {
-    if (row.shadowKind === "resource") return t("whatIfShadowExplainResource");
-    if (row.shadowKind === "modernization")
-      return t("whatIfShadowExplainModernization");
-    return "";
+    if (row.shadowKind === 'resource') return t('whatIfShadowExplainResource');
+    if (row.shadowKind === 'modernization') return t('whatIfShadowExplainModernization');
+    return '';
   }
 
   function planEntries(row: WhatIfRow): [string, number][] {
@@ -117,16 +109,16 @@
     <Button
       variant="ghost"
       class="!px-2.5 !py-1 text-xs {sortBtnClass('kind')}"
-      onclick={() => (sortMode = "kind")}
+      onclick={() => (sortMode = 'kind')}
     >
-      {t("whatIfSortByKind")}
+      {t('whatIfSortByKind')}
     </Button>
     <Button
       variant="ghost"
       class="!px-2.5 !py-1 text-xs {sortBtnClass('zDesc')}"
-      onclick={() => (sortMode = "zDesc")}
+      onclick={() => (sortMode = 'zDesc')}
     >
-      {t("whatIfSortByZ")}
+      {t('whatIfSortByZ')}
     </Button>
   </div>
   {#if hasExpanded}
@@ -135,7 +127,7 @@
       class="ml-auto cursor-pointer text-xs text-text-muted underline-offset-2 hover:text-text hover:underline"
       onclick={collapseAll}
     >
-      {t("whatIfCollapseAll")}
+      {t('whatIfCollapseAll')}
     </button>
   {/if}
 </div>
@@ -144,12 +136,12 @@
   <table class="w-full text-left text-sm">
     <thead>
       <tr class="border-b border-border text-text-muted">
-        <th class="py-2 pr-3">{t("mutation")}</th>
-        <th class="py-2 pr-3">{t("mutationBefore")}</th>
-        <th class="py-2 pr-3">{t("mutationAfter")}</th>
+        <th class="py-2 pr-3">{t('mutation')}</th>
+        <th class="py-2 pr-3">{t('mutationBefore')}</th>
+        <th class="py-2 pr-3">{t('mutationAfter')}</th>
         <th class="py-2 pr-3 text-right">Z</th>
-        <th class="py-2 pr-3 text-right">{t("whatIfDeltaZ")}</th>
-        <th class="py-2 text-right">{t("whatIfShadowCol")}</th>
+        <th class="py-2 pr-3 text-right">{t('whatIfDeltaZ')}</th>
+        <th class="py-2 text-right">{t('whatIfShadowCol')}</th>
       </tr>
     </thead>
     <tbody>
@@ -160,49 +152,43 @@
         >
           <td class="py-2 pr-3">{row.title}</td>
           <td class="py-2 pr-3 font-mono text-xs tabular-nums text-text-muted">
-            {row.before ?? "—"}
+            {row.before ?? '—'}
           </td>
           <td class="py-2 pr-3 font-mono text-xs tabular-nums text-text-muted">
-            {row.after ?? "—"}
+            {row.after ?? '—'}
           </td>
           <td class="py-2 pr-3 text-right font-mono tabular-nums">
-            {Number.isFinite(row.Z) ? formatPlanNumber(row.Z) : "—"}
+            {Number.isFinite(row.Z) ? formatPlanNumber(row.Z) : '—'}
           </td>
-          <td
-            class="py-2 pr-3 text-right font-mono tabular-nums text-text-muted"
-          >
+          <td class="py-2 pr-3 text-right font-mono tabular-nums text-text-muted">
             {fmtDelta(row.deltaZ)}
           </td>
           <td class="py-2 text-right font-mono tabular-nums">
             {#if row.shadowMetric != null && Number.isFinite(row.shadowMetric)}
               {formatPlanNumber(row.shadowMetric)}
             {:else}
-              <span class="text-text-faint">{t("whatIfShadowNone")}</span>
+              <span class="text-text-faint">{t('whatIfShadowNone')}</span>
             {/if}
           </td>
         </tr>
         {#if isExpanded(key)}
           <tr class="border-b border-border-soft bg-bg-soft/40">
             <td colspan={colCount} class="px-2 py-3">
-              {#if row.shadowKind !== "none"}
+              {#if row.shadowKind !== 'none'}
                 <p class="mb-3 text-xs leading-relaxed text-text-soft">
-                  <span class="font-medium text-text-muted"
-                    >{shadowLabel(row)}:</span
-                  >
+                  <span class="font-medium text-text-muted">{shadowLabel(row)}:</span>
                   {shadowExplain(row)}
                 </p>
               {/if}
 
               <p class="mb-2 text-xs font-medium text-text-muted">
-                {t("whatIfPlanAfter")}
+                {t('whatIfPlanAfter')}
               </p>
               <table class="mb-4 w-full max-w-md text-sm">
                 <tbody>
                   {#each planEntries(row) as [name, value] (name)}
                     <tr
-                      class="border-b border-border-soft last:border-0 {isZeroPlan(
-                        value,
-                      )
+                      class="border-b border-border-soft last:border-0 {isZeroPlan(value)
                         ? 'text-text-faint'
                         : 'text-text'}"
                     >
@@ -217,7 +203,7 @@
 
               {#if row.criticalResources?.length}
                 <p class="mb-2 text-xs font-medium text-text-muted">
-                  {t("whatIfCriticalAfter")}
+                  {t('whatIfCriticalAfter')}
                 </p>
                 <ul class="mb-4 flex flex-wrap gap-2">
                   {#each row.criticalResources as name (name)}
@@ -228,7 +214,7 @@
 
               {#if row.mutatedModel}
                 <p class="mb-2 text-xs font-medium text-text-muted">
-                  {t("mutationShowMatrix")}
+                  {t('mutationShowMatrix')}
                 </p>
                 <LpModelMatrix model={row.mutatedModel} readonly />
               {/if}
@@ -242,7 +228,7 @@
                       onCreateTaskFromScenario(row);
                     }}
                   >
-                    {t("createTaskFromScenario")}
+                    {t('createTaskFromScenario')}
                   </Button>
                 </div>
               {/if}

@@ -1,26 +1,17 @@
 <script lang="ts">
-  import { t } from "$lib/i18n";
-  import Button from "$lib/components/ui/Button.svelte";
-  import Card from "$lib/components/ui/Card.svelte";
-  import LpModelMatrix from "./LpModelMatrix.svelte";
-  import WhatIfTableBody from "./WhatIfTableBody.svelte";
-  import WhatIfInteractivePanel from "./WhatIfInteractivePanel.svelte";
-  import type { WhatIfRow } from "./solve-session.svelte";
-  import type {
-    Model,
-    Mutation,
-    SolveMethod,
-    SolveResult,
-    WhatIfRowData,
-  } from "$lib/domain";
-  import type { WhatIfBadge } from "$lib/domain/whatif-generation";
-  import type {
-    SolveTransport,
-    SolveTransportOpts,
-  } from "./solve-session.svelte";
-  import type { InteractiveScenarioPayload } from "./interactive-preview.svelte";
+  import { t } from '$lib/i18n';
+  import Button from '$lib/components/ui/Button.svelte';
+  import Card from '$lib/components/ui/Card.svelte';
+  import LpModelMatrix from './LpModelMatrix.svelte';
+  import WhatIfTableBody from './WhatIfTableBody.svelte';
+  import WhatIfInteractivePanel from './WhatIfInteractivePanel.svelte';
+  import type { WhatIfRow } from './solve-session.svelte';
+  import type { Model, Mutation, SolveMethod, SolveResult, WhatIfRowData } from '$lib/domain';
+  import type { WhatIfBadge } from '$lib/domain/whatif-generation';
+  import type { SolveTransport, SolveTransportOpts } from './solve-session.svelte';
+  import type { InteractiveScenarioPayload } from './interactive-preview.svelte';
 
-  type WhatIfTab = "pack" | "interactive" | "both";
+  type WhatIfTab = 'pack' | 'interactive' | 'both';
 
   let {
     rows,
@@ -39,7 +30,7 @@
     onCreateTaskFromScenario,
     interactiveBaseModel = null,
     interactiveBaseResult = null,
-    interactiveMethod = "lp" as SolveMethod,
+    interactiveMethod = 'lp' as SolveMethod,
     interactiveTransport = null,
     interactiveTransportOpts = undefined,
     interactiveExistingMutations = [],
@@ -73,12 +64,10 @@
     interactiveBusy?: boolean;
     canCreateTaskFromInteractive?: boolean;
     createTaskDisabledReason?: string | null;
-    onAddInteractiveToTable?: (
-      payload: InteractiveScenarioPayload,
-    ) => void | Promise<void>;
+    onAddInteractiveToTable?: (payload: InteractiveScenarioPayload) => void | Promise<void>;
   } = $props();
 
-  let tab = $state<WhatIfTab>("both");
+  let tab = $state<WhatIfTab>('both');
 
   const showPager = $derived(generationCount > 1);
   const showGoToCurrent = $derived(
@@ -92,34 +81,27 @@
     interactiveBaseModel != null && interactiveTransport != null,
   );
   const showPanel = $derived(
-    rows.length > 0 ||
-      Boolean(emptyMessage) ||
-      showPager ||
-      showInteractiveChrome,
+    rows.length > 0 || Boolean(emptyMessage) || showPager || showInteractiveChrome,
   );
-  const interactiveEnabled = $derived(badge !== "past");
-  const showPackHint = $derived(tab === "pack" || tab === "both");
+  const interactiveEnabled = $derived(badge !== 'past');
+  const showPackHint = $derived(tab === 'pack' || tab === 'both');
   const showInteractivePane = $derived(
-    (tab === "interactive" || tab === "both") && showInteractiveChrome,
+    (tab === 'interactive' || tab === 'both') && showInteractiveChrome,
   );
-  const showPackPane = $derived(tab === "pack" || tab === "both");
+  const showPackPane = $derived(tab === 'pack' || tab === 'both');
   const hint = $derived(
     emptyMessage
       ? null
       : showPager
-        ? badge === "current"
-          ? (activeHint ?? t("generationActiveHint"))
-          : (archiveHint ?? "")
-        : badge === "current"
-          ? (activeHint ?? t("generationActiveHint"))
+        ? badge === 'current'
+          ? (activeHint ?? t('generationActiveHint'))
+          : (archiveHint ?? '')
+        : badge === 'current'
+          ? (activeHint ?? t('generationActiveHint'))
           : null,
   );
   const badgeLabel = $derived(
-    badge === "current"
-      ? t("whatIfBadgeCurrent")
-      : badge === "past"
-        ? t("whatIfBadgePast")
-        : null,
+    badge === 'current' ? t('whatIfBadgeCurrent') : badge === 'past' ? t('whatIfBadgePast') : null,
   );
   /** Generation snapshot, else interactive/root base (e.g. empty current). */
   const displayBaseModel = $derived(baseModel ?? interactiveBaseModel);
@@ -133,13 +115,11 @@
             ? `${r.mutation.kind}:${r.mutation.target}:${r.mutation.delta}`
             : `i:${i}:${r.title}`,
         )
-        .join(";"),
+        .join(';'),
   );
 
   function tabClass(id: WhatIfTab): string {
-    return tab === id
-      ? "!bg-brand-soft !text-brand"
-      : "!text-text-muted hover:!bg-surface";
+    return tab === id ? '!bg-brand-soft !text-brand' : '!text-text-muted hover:!bg-surface';
   }
 </script>
 
@@ -147,14 +127,12 @@
   <Card>
     <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
       <div class="flex flex-wrap items-center gap-2">
-        <h2 class="text-lg font-medium">{t("whatIf")}</h2>
+        <h2 class="text-lg font-medium">{t('whatIf')}</h2>
         {#if badgeLabel}
           <span
             class={[
-              "rounded-md px-2 py-0.5 text-xs font-medium",
-              badge === "current"
-                ? "bg-brand-faint text-brand"
-                : "bg-bg-soft text-text-muted",
+              'rounded-md px-2 py-0.5 text-xs font-medium',
+              badge === 'current' ? 'bg-brand-faint text-brand' : 'bg-bg-soft text-text-muted',
             ]}
           >
             {badgeLabel}
@@ -169,7 +147,7 @@
               class="!px-2.5 !py-1 text-xs"
               onclick={() => onGenerationChange(currentGenerationIndex)}
             >
-              {t("whatIfGoToCurrent")}
+              {t('whatIfGoToCurrent')}
             </Button>
           {/if}
           <div class="flex items-center gap-3">
@@ -177,17 +155,19 @@
               variant="ghost"
               class="!px-2 !py-1"
               disabled={generationIndex <= 0}
-              onclick={() => onGenerationChange(generationIndex - 1)}>←</Button
+              onclick={() => onGenerationChange(generationIndex - 1)}
             >
-            <span class="font-mono text-sm"
-              >{generationIndex + 1}/{generationCount}</span
-            >
+              ←
+            </Button>
+            <span class="font-mono text-sm">{generationIndex + 1}/{generationCount}</span>
             <Button
               variant="ghost"
               class="!px-2 !py-1"
               disabled={generationIndex >= generationCount - 1}
-              onclick={() => onGenerationChange(generationIndex + 1)}>→</Button
+              onclick={() => onGenerationChange(generationIndex + 1)}
             >
+              →
+            </Button>
           </div>
         </div>
       {/if}
@@ -197,15 +177,11 @@
       <div class="mb-6">
         <div class="mb-2 flex flex-wrap items-center gap-3">
           <p class="text-sm font-medium text-text-muted">
-            {t("whatIfBaseMatrix")}
+            {t('whatIfBaseMatrix')}
           </p>
           {#if showRestore && onRestore}
-            <Button
-              variant="secondary"
-              class="!px-3 !py-1.5 text-sm"
-              onclick={onRestore}
-            >
-              {t("whatIfRestoreBase")}
+            <Button variant="secondary" class="!px-3 !py-1.5 text-sm" onclick={onRestore}>
+              {t('whatIfRestoreBase')}
             </Button>
           {/if}
         </div>
@@ -220,27 +196,25 @@
         <Button
           variant="ghost"
           class="!px-2.5 !py-1 text-xs {tabClass('both')}"
-          onclick={() => (tab = "both")}
+          onclick={() => (tab = 'both')}
         >
-          {t("tabWhatIfBoth")}
+          {t('tabWhatIfBoth')}
         </Button>
         <Button
           variant="ghost"
           class="!px-2.5 !py-1 text-xs {tabClass('interactive')}"
-          disabled={!interactiveEnabled && tab !== "interactive"}
-          title={!interactiveEnabled
-            ? t("whatIfPastInteractiveHint")
-            : undefined}
-          onclick={() => (tab = "interactive")}
+          disabled={!interactiveEnabled && tab !== 'interactive'}
+          title={!interactiveEnabled ? t('whatIfPastInteractiveHint') : undefined}
+          onclick={() => (tab = 'interactive')}
         >
-          {t("tabSensitivity")}
+          {t('tabSensitivity')}
         </Button>
         <Button
           variant="ghost"
           class="!px-2.5 !py-1 text-xs {tabClass('pack')}"
-          onclick={() => (tab = "pack")}
+          onclick={() => (tab = 'pack')}
         >
-          {t("tabWhatIfPack")}
+          {t('tabWhatIfPack')}
         </Button>
       </div>
     {/if}
@@ -250,9 +224,9 @@
     {/if}
 
     {#if showInteractivePane && interactiveBaseModel && interactiveTransport}
-      {#if tab === "both"}
+      {#if tab === 'both'}
         <h3 class="mb-3 text-sm font-medium text-text-muted">
-          {t("tabSensitivity")}
+          {t('tabSensitivity')}
         </h3>
       {/if}
       <WhatIfInteractivePanel
@@ -275,7 +249,7 @@
       {#if showInteractivePane}
         <div class="my-5 border-t border-border"></div>
         <h3 class="mb-3 text-sm font-medium text-text-muted">
-          {t("tabWhatIfPack")}
+          {t('tabWhatIfPack')}
         </h3>
       {/if}
       {#if emptyMessage}

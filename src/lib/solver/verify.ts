@@ -5,9 +5,9 @@ import type {
   SolveMethod,
   SolveResponse,
   SolveResult,
-} from "$lib/domain";
-import { solveLocal } from "./run";
-import { runMutationsLocal } from "./mutations";
+} from '$lib/domain';
+import { solveLocal } from './run';
+import { runMutationsLocal } from './mutations';
 
 export const VERIFY_EPS = 1e-6;
 
@@ -27,10 +27,7 @@ export function compareSolveResults(
   let maxAbsDx = 0;
   const keys = new Set([...Object.keys(native.x), ...Object.keys(library.x)]);
   for (const k of keys) {
-    maxAbsDx = Math.max(
-      maxAbsDx,
-      Math.abs((native.x[k] ?? 0) - (library.x[k] ?? 0)),
-    );
+    maxAbsDx = Math.max(maxAbsDx, Math.abs((native.x[k] ?? 0) - (library.x[k] ?? 0)));
   }
   return {
     match: dZ <= eps && maxAbsDx <= eps,
@@ -61,12 +58,12 @@ export function verifyAgainstLibrary(
   const items: VerifyItemReport[] = [];
   let root: VerifyItemReport | null = null;
 
-  if (method === "lp" && nativeRoot.status === "done" && nativeRoot.result) {
-    const library = solveLocal(model, "local", 0, "lp", "library");
-    if (library.status === "done" && library.result) {
+  if (method === 'lp' && nativeRoot.status === 'done' && nativeRoot.result) {
+    const library = solveLocal(model, 'local', 0, 'lp', 'library');
+    if (library.status === 'done' && library.result) {
       const diff = compareSolveResults(nativeRoot.result, library.result);
       root = {
-        label: "root",
+        label: 'root',
         native: nativeRoot,
         library,
         diff,
@@ -74,17 +71,17 @@ export function verifyAgainstLibrary(
     }
   }
 
-  if (method === "lp" && mutationItems && mutationItems.length > 0) {
+  if (method === 'lp' && mutationItems && mutationItems.length > 0) {
     const mutations: Mutation[] = mutationItems.map((i) => i.mutation);
-    const pack = runMutationsLocal(model, mutations, "local", "lp", "library");
+    const pack = runMutationsLocal(model, mutations, 'local', 'lp', 'library');
     for (let i = 0; i < mutationItems.length; i++) {
       const nat = mutationItems[i];
       const lib = pack.items[i];
       if (
         !nat?.response.result ||
         !lib?.response.result ||
-        nat.response.status !== "done" ||
-        lib.response.status !== "done"
+        nat.response.status !== 'done' ||
+        lib.response.status !== 'done'
       ) {
         continue;
       }
@@ -98,8 +95,7 @@ export function verifyAgainstLibrary(
     }
   }
 
-  const anyMismatch =
-    (root != null && !root.diff.match) || items.some((i) => !i.diff.match);
+  const anyMismatch = (root != null && !root.diff.match) || items.some((i) => !i.diff.match);
 
   return { root, items, anyMismatch };
 }

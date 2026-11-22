@@ -1,60 +1,60 @@
 @import 'tailwindcss';
 
 @theme {
-	--color-bg: #ffffff;
-	--color-bg-soft: #fafafa;
-	--color-surface: #f5f5f5;
-	--color-surface-strong: #e5e5e5;
-	--color-surface-hover: #f0f0f0;
-	--color-text: #0a0a0a;
-	--color-text-strong: #000000;
-	--color-text-medium: #262626;
-	--color-text-muted: #525252;
-	--color-text-soft: #737373;
-	--color-text-faint: #a3a3a3;
-	--color-brand: #2563eb;
-	--color-brand-hover: #1d4fd7;
-	--color-brand-soft: #dbeafe;
-	--color-brand-faint: #eff6ff;
-	--color-link: #2563eb;
-	--color-selected-bg: #eff6ff;
-	--color-accent: #0a0a0a;
-	--color-border: #e5e5e5;
-	--color-border-strong: #d4d4d4;
-	--color-border-soft: #f0f0f0;
-	--color-border-focus: #2563eb;
-	--color-danger-bg: #fee2e2;
-	--color-danger-text: #b91c1c;
-	--color-success-bg: #dcfce7;
-	--color-success-text: #15803d;
-	--color-warning-bg: #fef3c7;
-	--color-warning-text: #a16207;
-	--color-info-bg: #dbeafe;
-	--color-info-text: #1e40af;
-	--font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
-	--font-mono: 'IBM Plex Mono', ui-monospace, monospace;
-	--radius-control: 8px;
-	--radius-card: 12px;
+  --color-bg: #ffffff;
+  --color-bg-soft: #fafafa;
+  --color-surface: #f5f5f5;
+  --color-surface-strong: #e5e5e5;
+  --color-surface-hover: #f0f0f0;
+  --color-text: #0a0a0a;
+  --color-text-strong: #000000;
+  --color-text-medium: #262626;
+  --color-text-muted: #525252;
+  --color-text-soft: #737373;
+  --color-text-faint: #a3a3a3;
+  --color-brand: #2563eb;
+  --color-brand-hover: #1d4fd7;
+  --color-brand-soft: #dbeafe;
+  --color-brand-faint: #eff6ff;
+  --color-link: #2563eb;
+  --color-selected-bg: #eff6ff;
+  --color-accent: #0a0a0a;
+  --color-border: #e5e5e5;
+  --color-border-strong: #d4d4d4;
+  --color-border-soft: #f0f0f0;
+  --color-border-focus: #2563eb;
+  --color-danger-bg: #fee2e2;
+  --color-danger-text: #b91c1c;
+  --color-success-bg: #dcfce7;
+  --color-success-text: #15803d;
+  --color-warning-bg: #fef3c7;
+  --color-warning-text: #a16207;
+  --color-info-bg: #dbeafe;
+  --color-info-text: #1e40af;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --radius-control: 8px;
+  --radius-card: 12px;
 }
 
 :root {
-	/* Align header burger icon with sidebar icon column */
-	--chrome-pad-x: 0.75rem; /* 12px */
-	--chrome-control-size: 2.25rem; /* 36px = size-9 */
+  /* Align header burger icon with sidebar icon column */
+  --chrome-pad-x: 0.75rem; /* 12px */
+  --chrome-control-size: 2.25rem; /* 36px = size-9 */
 }
 
 html,
 body {
-	margin: 0;
-	min-height: 100%;
-	background: var(--color-bg);
-	color: var(--color-text);
-	font-family: var(--font-sans);
-	font-weight: 400;
+  margin: 0;
+  min-height: 100%;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-weight: 400;
 }
 
 * {
-	box-sizing: border-box;
+  box-sizing: border-box;
 }
 
 /* Consistent interactive cursor for all app buttons (incl. raw <button>). */
@@ -62,12 +62,12 @@ button:not(:disabled),
 [type='button']:not(:disabled),
 [type='submit']:not(:disabled),
 [type='reset']:not(:disabled) {
-	cursor: pointer;
+  cursor: pointer;
 }
 
 button:disabled,
 [type='button']:disabled,
 [type='submit']:disabled,
 [type='reset']:disabled {
-	cursor: not-allowed;
+  cursor: not-allowed;
 }

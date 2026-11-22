@@ -3,14 +3,14 @@
  * Cursor beforeShellExecution: gate dangerous git / supabase / vercel commands.
  * stdin: hook JSON; stdout: { permission: allow|ask|deny, ... }
  */
-import { createInterface } from "node:readline";
+import { createInterface } from 'node:readline';
 
 async function readStdin() {
   const chunks = [];
   for await (const line of createInterface({ input: process.stdin })) {
     chunks.push(line);
   }
-  return chunks.join("\n");
+  return chunks.join('\n');
 }
 
 function out(obj) {
@@ -20,29 +20,29 @@ function out(obj) {
 const raw = await readStdin();
 let payload = {};
 try {
-  payload = JSON.parse(raw || "{}");
+  payload = JSON.parse(raw || '{}');
 } catch {
-  out({ permission: "allow" });
+  out({ permission: 'allow' });
   process.exit(0);
 }
 
-const command = String(payload.command ?? "");
+const command = String(payload.command ?? '');
 
 const denyPatterns = [
   {
     re: /git\s+(commit|add).*(\.env\.local|\.env\.cloud|\.env\b)/i,
-    msg: "Do not stage or commit env secret files.",
+    msg: 'Do not stage or commit env secret files.',
   },
   {
     re: /git\s+(commit|add).*\.vercel(\b|\/|\\)/i,
-    msg: "Do not commit .vercel/.",
+    msg: 'Do not commit .vercel/.',
   },
 ];
 
 for (const { re, msg } of denyPatterns) {
   if (re.test(command)) {
     out({
-      permission: "deny",
+      permission: 'deny',
       user_message: msg,
       agent_message: msg,
     });
@@ -53,30 +53,30 @@ for (const { re, msg } of denyPatterns) {
 const askPatterns = [
   {
     re: /git\s+push\s+.*\bmain\b/i,
-    msg: "Push to main requires release checklist (docs/COMMIT_WORKFLOW.md). Confirm with the user.",
+    msg: 'Push to main requires release checklist (docs/COMMIT_WORKFLOW.md). Confirm with the user.',
   },
   {
     re: /git\s+push\s+[^\n]*--force(-with-lease)?/i,
-    msg: "Force-push requested. Confirm with the user.",
+    msg: 'Force-push requested. Confirm with the user.',
   },
   {
     re: /supabase\s+db\s+push/i,
-    msg: "Cloud migration push. Confirm the user wants to ship schema.",
+    msg: 'Cloud migration push. Confirm the user wants to ship schema.',
   },
   {
     re: /supabase\s+functions\s+deploy/i,
-    msg: "Edge Function deploy to cloud. Confirm with the user.",
+    msg: 'Edge Function deploy to cloud. Confirm with the user.',
   },
   {
     re: /vercel\s+([^\n]*\s)?--prod\b|vercel\s+deploy\s+[^\n]*--prod/i,
-    msg: "Manual production Vercel deploy. Prefer Git push unless debugging.",
+    msg: 'Manual production Vercel deploy. Prefer Git push unless debugging.',
   },
 ];
 
 for (const { re, msg } of askPatterns) {
   if (re.test(command)) {
     out({
-      permission: "ask",
+      permission: 'ask',
       user_message: msg,
       agent_message: msg,
     });
@@ -84,4 +84,4 @@ for (const { re, msg } of askPatterns) {
   }
 }
 
-out({ permission: "allow" });
+out({ permission: 'allow' });

@@ -1,24 +1,20 @@
 <script lang="ts">
-  import { onMount } from "svelte";
-  import { afterNavigate } from "$app/navigation";
-  import { env } from "$env/dynamic/public";
-  import type { User } from "@supabase/supabase-js";
-  import { supabase } from "$lib/db/supabase";
-  import AppHeader from "$lib/components/chrome/AppHeader.svelte";
-  import AppSidebar from "$lib/components/chrome/AppSidebar.svelte";
-  import DevQuickLoginBar from "$lib/components/chrome/DevQuickLoginBar.svelte";
-  import NotificationsDrawer from "$lib/components/chrome/NotificationsDrawer.svelte";
-  import { isDevQuickLoginEnabled } from "$lib/devQuickLogin";
-  import { t } from "$lib/i18n";
-  import {
-    chrome,
-    initChromeNav,
-    closeMobileNav,
-  } from "$lib/chrome/chrome.svelte";
+  import { onMount } from 'svelte';
+  import { afterNavigate } from '$app/navigation';
+  import { env } from '$env/dynamic/public';
+  import type { User } from '@supabase/supabase-js';
+  import { supabase } from '$lib/db/supabase';
+  import AppHeader from '$lib/components/chrome/AppHeader.svelte';
+  import AppSidebar from '$lib/components/chrome/AppSidebar.svelte';
+  import DevQuickLoginBar from '$lib/components/chrome/DevQuickLoginBar.svelte';
+  import NotificationsDrawer from '$lib/components/chrome/NotificationsDrawer.svelte';
+  import { isDevQuickLoginEnabled } from '$lib/devQuickLogin';
+  import { t } from '$lib/i18n';
+  import { chrome, initChromeNav, closeMobileNav } from '$lib/chrome/chrome.svelte';
 
   let { children } = $props();
-  let userEmail = $state("");
-  let userRole = $state<"admin" | "mod" | "user" | null>(null);
+  let userEmail = $state('');
+  let userRole = $state<'admin' | 'mod' | 'user' | null>(null);
   let isAdmin = $state(false);
   let isMod = $state(false);
   let signedIn = $state(false);
@@ -27,12 +23,11 @@
 
   function applyUser(user: User | null) {
     signedIn = !!user;
-    userEmail = user?.email ?? "";
+    userEmail = user?.email ?? '';
     const role = user?.app_metadata?.role;
-    isAdmin = role === "admin";
-    isMod = role === "mod";
-    userRole =
-      role === "admin" || role === "mod" || role === "user" ? role : null;
+    isAdmin = role === 'admin';
+    isMod = role === 'mod';
+    userRole = role === 'admin' || role === 'mod' || role === 'user' ? role : null;
   }
 
   async function loadAuth() {
@@ -42,7 +37,7 @@
 
   async function logout() {
     await supabase.auth.signOut();
-    location.href = "/app";
+    location.href = '/app';
   }
 
   onMount(() => {
@@ -61,12 +56,7 @@
   });
 </script>
 
-<div
-  class={[
-    "flex h-dvh flex-col overflow-hidden bg-bg",
-    showQuickLogin && "pb-[3.25rem]",
-  ]}
->
+<div class={['flex h-dvh flex-col overflow-hidden bg-bg', showQuickLogin && 'pb-[3.25rem]']}>
   <AppHeader {userEmail} {userRole} onLogout={logout} />
   <div class="relative flex min-h-0 flex-1 overflow-hidden">
     <AppSidebar {isAdmin} {isMod} {signedIn} />
@@ -75,7 +65,7 @@
       <button
         type="button"
         class="absolute inset-0 z-20 cursor-default border-0 bg-[rgba(10,10,10,0.35)] p-0 md:hidden"
-        aria-label={t("closeNav")}
+        aria-label={t('closeNav')}
         onclick={closeMobileNav}
       ></button>
     {/if}

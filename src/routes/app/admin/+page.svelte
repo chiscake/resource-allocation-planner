@@ -1,19 +1,18 @@
 <script lang="ts">
-  import { onMount } from "svelte";
-  import { ArrowDown, ArrowUp, Check, EllipsisVertical } from "@lucide/svelte";
-  import { supabase } from "$lib/db/supabase";
-  import { env } from "$env/dynamic/public";
-  import { t } from "$lib/i18n";
-  import { copyToClipboard } from "$lib/ui/clipboard";
-  import PageHeader from "$lib/components/ui/PageHeader.svelte";
-  import Button from "$lib/components/ui/Button.svelte";
-  import Card from "$lib/components/ui/Card.svelte";
-  import Input from "$lib/components/ui/Input.svelte";
-  import Badge from "$lib/components/ui/Badge.svelte";
-  import Modal from "$lib/components/ui/Modal.svelte";
+  import { onMount } from 'svelte';
+  import { ArrowDown, ArrowUp, Check, EllipsisVertical } from '@lucide/svelte';
+  import { supabase } from '$lib/db/supabase';
+  import { env } from '$env/dynamic/public';
+  import { t } from '$lib/i18n';
+  import { copyToClipboard } from '$lib/ui/clipboard';
+  import PageHeader from '$lib/components/ui/PageHeader.svelte';
+  import Button from '$lib/components/ui/Button.svelte';
+  import Card from '$lib/components/ui/Card.svelte';
+  import Input from '$lib/components/ui/Input.svelte';
+  import Badge from '$lib/components/ui/Badge.svelte';
+  import Modal from '$lib/components/ui/Modal.svelte';
 
-  const PASSWORD_ALPHABET =
-    "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*-_";
+  const PASSWORD_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*-_';
   const PASSWORD_LENGTH = 12;
   const PAGE_SIZE = 50;
 
@@ -27,38 +26,32 @@
     blocked: boolean;
   };
 
-  type RoleFilter = "admin" | "mod" | "user";
-  type StatusFilter = "active" | "blocked";
+  type RoleFilter = 'admin' | 'mod' | 'user';
+  type StatusFilter = 'active' | 'blocked';
   type SortKey =
-    | "display_name"
-    | "role"
-    | "email"
-    | "created_at"
-    | "last_sign_in_at"
-    | "blocked"
-    | "id";
-  type SortDir = "asc" | "desc";
+    'display_name' | 'role' | 'email' | 'created_at' | 'last_sign_in_at' | 'blocked' | 'id';
+  type SortDir = 'asc' | 'desc';
 
   type PendingMutation =
-    | { kind: "set_blocked"; user_ids: string[]; blocked: boolean }
-    | { kind: "delete"; user_ids: string[] }
-    | { kind: "set_role"; user_ids: string[]; role: "user" | "mod" };
+    | { kind: 'set_blocked'; user_ids: string[]; blocked: boolean }
+    | { kind: 'delete'; user_ids: string[] }
+    | { kind: 'set_role'; user_ids: string[]; role: 'user' | 'mod' };
 
   let isAdmin = $state(false);
   let currentUserId = $state<string | null>(null);
-  let email = $state("");
-  let password = $state("");
-  let displayName = $state("");
-  let createMsg = $state("");
-  let usersMsg = $state("");
+  let email = $state('');
+  let password = $state('');
+  let displayName = $state('');
+  let createMsg = $state('');
+  let usersMsg = $state('');
   let users = $state<AdminUser[]>([]);
   let selectedIds = $state<string[]>([]);
-  let searchQuery = $state("");
+  let searchQuery = $state('');
   let roleFilters = $state<RoleFilter[]>([]);
   let statusFilters = $state<StatusFilter[]>([]);
   let page = $state(1);
-  let sortKey = $state<SortKey>("created_at");
-  let sortDir = $state<SortDir>("desc");
+  let sortKey = $state<SortKey>('created_at');
+  let sortDir = $state<SortDir>('desc');
   // Hidden for now: system templates admin section.
   // let templates = $state<
   //   { id: string; title: string; system_kind: string | null }[]
@@ -66,28 +59,28 @@
   // let editTitle = $state<Record<string, string>>({});
 
   let confirmOpen = $state(false);
-  let confirmTitle = $state("");
-  let confirmBody = $state("");
-  let confirmLabel = $state("");
+  let confirmTitle = $state('');
+  let confirmBody = $state('');
+  let confirmLabel = $state('');
   let pendingMutation = $state<PendingMutation | null>(null);
   let confirming = $state(false);
   let menuOpenId = $state<string | null>(null);
 
   function sortValue(u: AdminUser, key: SortKey): string | number {
     switch (key) {
-      case "display_name":
-        return (u.display_name ?? "").trim().toLowerCase();
-      case "role":
+      case 'display_name':
+        return (u.display_name ?? '').trim().toLowerCase();
+      case 'role':
         return normalizedRole(u);
-      case "email":
-        return (u.email ?? "").trim().toLowerCase();
-      case "created_at":
+      case 'email':
+        return (u.email ?? '').trim().toLowerCase();
+      case 'created_at':
         return u.created_at ? Date.parse(u.created_at) || 0 : 0;
-      case "last_sign_in_at":
+      case 'last_sign_in_at':
         return u.last_sign_in_at ? Date.parse(u.last_sign_in_at) || 0 : 0;
-      case "blocked":
+      case 'blocked':
         return u.blocked ? 1 : 0;
-      case "id":
+      case 'id':
         return u.id.toLowerCase();
     }
   }
@@ -96,21 +89,21 @@
     const av = sortValue(a, sortKey);
     const bv = sortValue(b, sortKey);
     let cmp = 0;
-    if (typeof av === "number" && typeof bv === "number") {
+    if (typeof av === 'number' && typeof bv === 'number') {
       cmp = av - bv;
     } else {
-      cmp = String(av).localeCompare(String(bv), "ru");
+      cmp = String(av).localeCompare(String(bv), 'ru');
     }
     if (cmp === 0) cmp = a.id.localeCompare(b.id);
-    return sortDir === "asc" ? cmp : -cmp;
+    return sortDir === 'asc' ? cmp : -cmp;
   }
 
   const filteredUsers = $derived.by(() => {
     const q = searchQuery.trim().toLowerCase();
     const filtered = users.filter((u) => {
       if (q) {
-        const name = (u.display_name ?? "").toLowerCase();
-        const mail = (u.email ?? "").toLowerCase();
+        const name = (u.display_name ?? '').toLowerCase();
+        const mail = (u.email ?? '').toLowerCase();
         const id = u.id.toLowerCase();
         if (!name.includes(q) && !mail.includes(q) && !id.includes(q)) {
           return false;
@@ -118,13 +111,13 @@
       }
       if (roleFilters.length > 0) {
         const role = normalizedRole(u);
-        if (role !== "admin" && role !== "mod" && role !== "user") {
+        if (role !== 'admin' && role !== 'mod' && role !== 'user') {
           return false;
         }
         if (!roleFilters.includes(role)) return false;
       }
       if (statusFilters.length > 0) {
-        const status: StatusFilter = u.blocked ? "blocked" : "active";
+        const status: StatusFilter = u.blocked ? 'blocked' : 'active';
         if (!statusFilters.includes(status)) return false;
       }
       return true;
@@ -132,9 +125,7 @@
     return [...filtered].sort(compareUsers);
   });
 
-  const pageCount = $derived(
-    Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE)),
-  );
+  const pageCount = $derived(Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE)));
   const clampedPage = $derived(Math.min(Math.max(1, page), pageCount));
   const pagedUsers = $derived(
     filteredUsers.slice((clampedPage - 1) * PAGE_SIZE, clampedPage * PAGE_SIZE),
@@ -142,36 +133,31 @@
   const pageRangeFrom = $derived(
     filteredUsers.length === 0 ? 0 : (clampedPage - 1) * PAGE_SIZE + 1,
   );
-  const pageRangeTo = $derived(
-    Math.min(clampedPage * PAGE_SIZE, filteredUsers.length),
-  );
+  const pageRangeTo = $derived(Math.min(clampedPage * PAGE_SIZE, filteredUsers.length));
 
   /** Actionable among current page rows only (select-all scope). */
   const actionableUsers = $derived(pagedUsers.filter((u) => isActionable(u)));
   const allActionableSelected = $derived(
-    actionableUsers.length > 0 &&
-      actionableUsers.every((u) => selectedIds.includes(u.id)),
+    actionableUsers.length > 0 && actionableUsers.every((u) => selectedIds.includes(u.id)),
   );
-  const someActionableSelected = $derived(
-    actionableUsers.some((u) => selectedIds.includes(u.id)),
-  );
+  const someActionableSelected = $derived(actionableUsers.some((u) => selectedIds.includes(u.id)));
 
   /** No checkbox / block / unblock / delete for self or any admin (incl. other admins). */
   function isActionable(u: AdminUser): boolean {
     if (u.id === currentUserId) return false;
-    if (u.role.trim().toLowerCase() === "admin") return false;
+    if (u.role.trim().toLowerCase() === 'admin') return false;
     return true;
   }
 
   function userWho(u: AdminUser): string {
-    return u.display_name?.trim() || u.email?.trim() || "—";
+    return u.display_name?.trim() || u.email?.trim() || '—';
   }
 
   function formatDate(iso: string | null): string {
-    if (!iso) return t("adminNeverSignedIn");
+    if (!iso) return t('adminNeverSignedIn');
     const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return t("adminNeverSignedIn");
-    return d.toLocaleString("ru-RU");
+    if (Number.isNaN(d.getTime())) return t('adminNeverSignedIn');
+    return d.toLocaleString('ru-RU');
   }
 
   function shortId(id: string): string {
@@ -181,11 +167,10 @@
 
   function toggleSort(key: SortKey) {
     if (sortKey === key) {
-      sortDir = sortDir === "asc" ? "desc" : "asc";
+      sortDir = sortDir === 'asc' ? 'desc' : 'asc';
     } else {
       sortKey = key;
-      sortDir =
-        key === "created_at" || key === "last_sign_in_at" ? "desc" : "asc";
+      sortDir = key === 'created_at' || key === 'last_sign_in_at' ? 'desc' : 'asc';
     }
     resetPage();
   }
@@ -193,18 +178,18 @@
   function sortHeaderClass(key: SortKey): string {
     const active = sortKey === key;
     return [
-      "inline-flex cursor-pointer items-center gap-1 rounded-[4px] px-0.5 py-0.5 font-medium transition-colors hover:text-text",
-      active ? "text-text" : "text-text-muted",
-    ].join(" ");
+      'inline-flex cursor-pointer items-center gap-1 rounded-[4px] px-0.5 py-0.5 font-medium transition-colors hover:text-text',
+      active ? 'text-text' : 'text-text-muted',
+    ].join(' ');
   }
 
-  function ariaSortFor(key: SortKey): "ascending" | "descending" | "none" {
-    if (sortKey !== key) return "none";
-    return sortDir === "asc" ? "ascending" : "descending";
+  function ariaSortFor(key: SortKey): 'ascending' | 'descending' | 'none' {
+    if (sortKey !== key) return 'none';
+    return sortDir === 'asc' ? 'ascending' : 'descending';
   }
 
   function copyCell(value: string | null | undefined) {
-    const text = (value ?? "").trim();
+    const text = (value ?? '').trim();
     if (!text) return;
     void copyToClipboard(text);
   }
@@ -255,19 +240,19 @@
 
   function filterToggleClass(selected: boolean): string {
     return [
-      "inline-flex cursor-pointer items-center gap-1 rounded-[8px] border px-2.5 py-1 text-sm transition-colors",
+      'inline-flex cursor-pointer items-center gap-1 rounded-[8px] border px-2.5 py-1 text-sm transition-colors',
       selected
-        ? "border-border bg-surface text-text"
-        : "border-border bg-transparent text-text hover:bg-bg-soft",
-    ].join(" ");
+        ? 'border-border bg-surface text-text'
+        : 'border-border bg-transparent text-text hover:bg-bg-soft',
+    ].join(' ');
   }
 
   async function authHeaders(): Promise<Record<string, string>> {
     const { data: session } = await supabase.auth.getSession();
     return {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
       Authorization: `Bearer ${session.session?.access_token}`,
-      apikey: env.PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "",
+      apikey: env.PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? '',
     };
   }
 
@@ -276,14 +261,11 @@
     status: number;
     data: Record<string, unknown>;
   }> {
-    const res = await fetch(
-      `${env.PUBLIC_SUPABASE_URL}/functions/v1/admin-users`,
-      {
-        method: "POST",
-        headers: await authHeaders(),
-        body: JSON.stringify(body),
-      },
-    );
+    const res = await fetch(`${env.PUBLIC_SUPABASE_URL}/functions/v1/admin-users`, {
+      method: 'POST',
+      headers: await authHeaders(),
+      body: JSON.stringify(body),
+    });
     let data: Record<string, unknown> = {};
     try {
       data = await res.json();
@@ -295,20 +277,18 @@
 
   async function loadUsers() {
     try {
-      const { ok, data } = await callAdminUsers({ action: "list" });
+      const { ok, data } = await callAdminUsers({ action: 'list' });
       if (!ok) {
-        const err = typeof data.error === "string" ? data.error.trim() : "";
-        usersMsg = err || t("adminUsersUnavailable");
+        const err = typeof data.error === 'string' ? data.error.trim() : '';
+        usersMsg = err || t('adminUsersUnavailable');
         users = [];
         clearSelection();
         return;
       }
       users = Array.isArray(data.users) ? (data.users as AdminUser[]) : [];
-      selectedIds = selectedIds.filter((id) =>
-        users.some((u) => u.id === id && isActionable(u)),
-      );
+      selectedIds = selectedIds.filter((id) => users.some((u) => u.id === id && isActionable(u)));
     } catch {
-      usersMsg = t("adminUsersUnavailable");
+      usersMsg = t('adminUsersUnavailable');
       users = [];
       clearSelection();
     }
@@ -326,7 +306,7 @@
 
   onMount(async () => {
     const { data } = await supabase.auth.getUser();
-    isAdmin = data.user?.app_metadata?.role === "admin";
+    isAdmin = data.user?.app_metadata?.role === 'admin';
     currentUserId = data.user?.id ?? null;
     // await reloadTemplates();
     if (isAdmin) await loadUsers();
@@ -335,48 +315,40 @@
   async function generatePassword() {
     const bytes = new Uint8Array(PASSWORD_LENGTH);
     crypto.getRandomValues(bytes);
-    password = Array.from(
-      bytes,
-      (b) => PASSWORD_ALPHABET[b % PASSWORD_ALPHABET.length],
-    ).join("");
+    password = Array.from(bytes, (b) => PASSWORD_ALPHABET[b % PASSWORD_ALPHABET.length]).join('');
     try {
       await navigator.clipboard.writeText(password);
-      createMsg = t("adminPasswordCopied");
+      createMsg = t('adminPasswordCopied');
     } catch {
-      createMsg = t("adminPasswordGenerated");
+      createMsg = t('adminPasswordGenerated');
     }
   }
 
   async function createUser() {
-    createMsg = "";
+    createMsg = '';
     try {
-      const res = await fetch(
-        `${env.PUBLIC_SUPABASE_URL}/functions/v1/admin-create-user`,
-        {
-          method: "POST",
-          headers: await authHeaders(),
-          body: JSON.stringify({ email, password, display_name: displayName }),
-        },
-      );
+      const res = await fetch(`${env.PUBLIC_SUPABASE_URL}/functions/v1/admin-create-user`, {
+        method: 'POST',
+        headers: await authHeaders(),
+        body: JSON.stringify({ email, password, display_name: displayName }),
+      });
 
       let body: { email?: string; error?: string } = {};
       try {
         body = await res.json();
       } catch {
-        createMsg = t("adminCreateUserUnavailable");
+        createMsg = t('adminCreateUserUnavailable');
         return;
       }
 
       if (res.ok) {
-        createMsg = t("adminUserCreated", { email: body.email ?? email });
+        createMsg = t('adminUserCreated', { email: body.email ?? email });
       } else {
-        createMsg = body.error?.trim()
-          ? body.error
-          : t("adminCreateUserUnavailable");
+        createMsg = body.error?.trim() ? body.error : t('adminCreateUserUnavailable');
       }
       await loadUsers();
     } catch {
-      createMsg = t("adminCreateUserUnavailable");
+      createMsg = t('adminCreateUserUnavailable');
     }
   }
 
@@ -392,12 +364,7 @@
   //   await reloadTemplates();
   // }
 
-  function openConfirm(
-    title: string,
-    body: string,
-    label: string,
-    mutation: PendingMutation,
-  ) {
+  function openConfirm(title: string, body: string, label: string, mutation: PendingMutation) {
     confirmTitle = title;
     confirmBody = body;
     confirmLabel = label;
@@ -415,10 +382,10 @@
     if (!isActionable(u)) return;
     menuOpenId = null;
     openConfirm(
-      t("adminConfirmBlockTitle"),
-      t("adminConfirmBlockBody", { who: userWho(u) }),
-      t("adminBlock"),
-      { kind: "set_blocked", user_ids: [u.id], blocked: true },
+      t('adminConfirmBlockTitle'),
+      t('adminConfirmBlockBody', { who: userWho(u) }),
+      t('adminBlock'),
+      { kind: 'set_blocked', user_ids: [u.id], blocked: true },
     );
   }
 
@@ -426,10 +393,10 @@
     if (!isActionable(u)) return;
     menuOpenId = null;
     openConfirm(
-      t("adminConfirmUnblockTitle"),
-      t("adminConfirmUnblockBody", { who: userWho(u) }),
-      t("adminUnblock"),
-      { kind: "set_blocked", user_ids: [u.id], blocked: false },
+      t('adminConfirmUnblockTitle'),
+      t('adminConfirmUnblockBody', { who: userWho(u) }),
+      t('adminUnblock'),
+      { kind: 'set_blocked', user_ids: [u.id], blocked: false },
     );
   }
 
@@ -437,10 +404,10 @@
     if (!isActionable(u)) return;
     menuOpenId = null;
     openConfirm(
-      t("adminConfirmDeleteTitle"),
-      t("adminConfirmDeleteBody", { who: userWho(u) }),
-      t("adminDeleteUser"),
-      { kind: "delete", user_ids: [u.id] },
+      t('adminConfirmDeleteTitle'),
+      t('adminConfirmDeleteBody', { who: userWho(u) }),
+      t('adminDeleteUser'),
+      { kind: 'delete', user_ids: [u.id] },
     );
   }
 
@@ -449,24 +416,24 @@
   }
 
   function askPromoteMod(u: AdminUser) {
-    if (!isActionable(u) || normalizedRole(u) !== "user") return;
+    if (!isActionable(u) || normalizedRole(u) !== 'user') return;
     menuOpenId = null;
     openConfirm(
-      t("adminConfirmPromoteTitle"),
-      t("adminConfirmPromoteBody", { who: userWho(u) }),
-      t("adminPromoteMod"),
-      { kind: "set_role", user_ids: [u.id], role: "mod" },
+      t('adminConfirmPromoteTitle'),
+      t('adminConfirmPromoteBody', { who: userWho(u) }),
+      t('adminPromoteMod'),
+      { kind: 'set_role', user_ids: [u.id], role: 'mod' },
     );
   }
 
   function askDemoteUser(u: AdminUser) {
-    if (!isActionable(u) || normalizedRole(u) !== "mod") return;
+    if (!isActionable(u) || normalizedRole(u) !== 'mod') return;
     menuOpenId = null;
     openConfirm(
-      t("adminConfirmDemoteTitle"),
-      t("adminConfirmDemoteBody", { who: userWho(u) }),
-      t("adminDemoteUser"),
-      { kind: "set_role", user_ids: [u.id], role: "user" },
+      t('adminConfirmDemoteTitle'),
+      t('adminConfirmDemoteBody', { who: userWho(u) }),
+      t('adminDemoteUser'),
+      { kind: 'set_role', user_ids: [u.id], role: 'user' },
     );
   }
 
@@ -489,88 +456,83 @@
   function askBulkBlock() {
     const ids = selectedActionableIds();
     if (ids.length === 0) {
-      usersMsg = t("adminUsersNoneSelected");
+      usersMsg = t('adminUsersNoneSelected');
       return;
     }
     openConfirm(
-      t("adminConfirmBulkBlockTitle"),
-      t("adminConfirmBulkBlockBody", { count: String(ids.length) }),
-      t("adminBulkBlock"),
-      { kind: "set_blocked", user_ids: ids, blocked: true },
+      t('adminConfirmBulkBlockTitle'),
+      t('adminConfirmBulkBlockBody', { count: String(ids.length) }),
+      t('adminBulkBlock'),
+      { kind: 'set_blocked', user_ids: ids, blocked: true },
     );
   }
 
   function askBulkUnblock() {
     const ids = selectedActionableIds();
     if (ids.length === 0) {
-      usersMsg = t("adminUsersNoneSelected");
+      usersMsg = t('adminUsersNoneSelected');
       return;
     }
     openConfirm(
-      t("adminConfirmBulkUnblockTitle"),
-      t("adminConfirmBulkUnblockBody", { count: String(ids.length) }),
-      t("adminBulkUnblock"),
-      { kind: "set_blocked", user_ids: ids, blocked: false },
+      t('adminConfirmBulkUnblockTitle'),
+      t('adminConfirmBulkUnblockBody', { count: String(ids.length) }),
+      t('adminBulkUnblock'),
+      { kind: 'set_blocked', user_ids: ids, blocked: false },
     );
   }
 
   function askBulkDelete() {
     const ids = selectedActionableIds();
     if (ids.length === 0) {
-      usersMsg = t("adminUsersNoneSelected");
+      usersMsg = t('adminUsersNoneSelected');
       return;
     }
     openConfirm(
-      t("adminConfirmBulkDeleteTitle"),
-      t("adminConfirmBulkDeleteBody", { count: String(ids.length) }),
-      t("adminBulkDelete"),
-      { kind: "delete", user_ids: ids },
+      t('adminConfirmBulkDeleteTitle'),
+      t('adminConfirmBulkDeleteBody', { count: String(ids.length) }),
+      t('adminBulkDelete'),
+      { kind: 'delete', user_ids: ids },
     );
   }
 
   async function runConfirm() {
     if (!pendingMutation) return;
     confirming = true;
-    usersMsg = "";
+    usersMsg = '';
     const mutation = pendingMutation;
     const total = mutation.user_ids.length;
     try {
       const body =
-        mutation.kind === "set_blocked"
+        mutation.kind === 'set_blocked'
           ? {
-              action: "set_blocked" as const,
+              action: 'set_blocked' as const,
               user_ids: mutation.user_ids,
               blocked: mutation.blocked,
             }
-          : mutation.kind === "set_role"
+          : mutation.kind === 'set_role'
             ? {
-                action: "set_role" as const,
+                action: 'set_role' as const,
                 user_ids: mutation.user_ids,
                 role: mutation.role,
               }
             : {
-                action: "delete" as const,
+                action: 'delete' as const,
                 user_ids: mutation.user_ids,
               };
 
       const { ok, data } = await callAdminUsers(body);
-      if (!ok && typeof data.error === "string" && data.error.trim()) {
+      if (!ok && typeof data.error === 'string' && data.error.trim()) {
         usersMsg = data.error.trim();
         confirmOpen = false;
         pendingMutation = null;
       } else if (!ok && !Array.isArray(data.results)) {
-        usersMsg = t("adminUsersUnavailable");
+        usersMsg = t('adminUsersUnavailable');
         confirmOpen = false;
         pendingMutation = null;
       } else {
-        const results = Array.isArray(data.results)
-          ? (data.results as { ok?: boolean }[])
-          : [];
-        const okCount =
-          typeof data.ok === "number"
-            ? data.ok
-            : results.filter((r) => r.ok).length;
-        usersMsg = t("adminUsersActionDone", {
+        const results = Array.isArray(data.results) ? (data.results as { ok?: boolean }[]) : [];
+        const okCount = typeof data.ok === 'number' ? data.ok : results.filter((r) => r.ok).length;
+        usersMsg = t('adminUsersActionDone', {
           ok: String(okCount),
           total: String(total),
         });
@@ -580,7 +542,7 @@
         await loadUsers();
       }
     } catch {
-      usersMsg = t("adminUsersUnavailable");
+      usersMsg = t('adminUsersUnavailable');
       confirmOpen = false;
       pendingMutation = null;
     } finally {
@@ -592,77 +554,54 @@
 <svelte:window onclick={closeMoreMenu} />
 
 <section class="mx-auto max-w-6xl space-y-6">
-  <PageHeader title={t("admin")} description={t("adminHint")} />
+  <PageHeader title={t('admin')} description={t('adminHint')} />
 
   {#if !isAdmin}
     <Card>
-      <p class="text-sm text-text-muted">{t("adminDenied")}</p>
+      <p class="text-sm text-text-muted">{t('adminDenied')}</p>
     </Card>
   {:else}
     <Card>
-      <h2 class="mb-3 font-medium">{t("adminCreateUser")}</h2>
+      <h2 class="mb-3 font-medium">{t('adminCreateUser')}</h2>
       <div class="space-y-3">
         <label class="flex flex-col gap-1 text-sm">
-          <span>{t("email")}</span>
+          <span>{t('email')}</span>
           <Input bind:value={email} type="email" autocomplete="off" />
         </label>
         <label class="flex flex-col gap-1 text-sm">
-          <span>{t("adminDisplayName")}</span>
+          <span>{t('adminDisplayName')}</span>
           <Input bind:value={displayName} autocomplete="off" />
         </label>
         <label class="flex flex-col gap-1 text-sm">
-          <span>{t("password")}</span>
+          <span>{t('password')}</span>
           <div class="flex items-center gap-2">
-            <Input
-              bind:value={password}
-              type="text"
-              autocomplete="new-password"
-              class="flex-1"
-            />
-            <Button
-              variant="secondary"
-              type="button"
-              onclick={generatePassword}
-            >
-              {t("adminGeneratePassword")}
+            <Input bind:value={password} type="text" autocomplete="new-password" class="flex-1" />
+            <Button variant="secondary" type="button" onclick={generatePassword}>
+              {t('adminGeneratePassword')}
             </Button>
           </div>
-          <span class="text-xs text-text-muted"
-            >{t("adminPasswordOnceHint")}</span
-          >
+          <span class="text-xs text-text-muted">{t('adminPasswordOnceHint')}</span>
         </label>
         <div class="flex items-center justify-between gap-3">
           <p class="min-w-0 flex-1 text-sm text-text-muted">{createMsg}</p>
-          <Button onclick={createUser}>{t("create")}</Button>
+          <Button onclick={createUser}>{t('create')}</Button>
         </div>
       </div>
     </Card>
 
     <Card>
       <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <h2 class="font-medium">{t("adminUsers")}</h2>
+        <h2 class="font-medium">{t('adminUsers')}</h2>
         {#if selectedIds.length > 0}
           <div class="flex flex-wrap items-center gap-2">
-            <Button
-              variant="secondary"
-              class="!px-3 !py-1.5 text-xs"
-              onclick={askBulkBlock}
-            >
-              {t("adminBulkBlock")}
+            <Button variant="secondary" class="!px-3 !py-1.5 text-xs" onclick={askBulkBlock}>
+              {t('adminBulkBlock')}
             </Button>
-            <Button
-              variant="secondary"
-              class="!px-3 !py-1.5 text-xs"
-              onclick={askBulkUnblock}
-            >
-              {t("adminBulkUnblock")}
+            <Button variant="secondary" class="!px-3 !py-1.5 text-xs" onclick={askBulkUnblock}>
+              {t('adminBulkUnblock')}
             </Button>
-            <Button
-              variant="danger"
-              class="!px-3 !py-1.5 text-xs"
-              onclick={askBulkDelete}
-            >
-              {t("adminBulkDelete")}
+            <Button variant="danger" class="!px-3 !py-1.5 text-xs" onclick={askBulkDelete}>
+              {t('adminBulkDelete')}
             </Button>
           </div>
         {/if}
@@ -675,71 +614,70 @@
         <Input
           bind:value={searchQuery}
           type="search"
-          placeholder={t("adminUsersSearchPlaceholder")}
+          placeholder={t('adminUsersSearchPlaceholder')}
           autocomplete="off"
           oninput={resetPage}
         />
         <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
           <div class="flex flex-wrap items-center gap-2">
-            <span class="text-xs text-text-muted">{t("adminFilterRoles")}</span>
+            <span class="text-xs text-text-muted">{t('adminFilterRoles')}</span>
             <button
               type="button"
-              class={filterToggleClass(roleFilters.includes("admin"))}
-              aria-pressed={roleFilters.includes("admin")}
-              onclick={() => toggleRoleFilter("admin")}
+              class={filterToggleClass(roleFilters.includes('admin'))}
+              aria-pressed={roleFilters.includes('admin')}
+              onclick={() => toggleRoleFilter('admin')}
             >
-              {#if roleFilters.includes("admin")}
+              {#if roleFilters.includes('admin')}
                 <Check class="size-3.5 shrink-0" />
               {/if}
-              {t("roleBadgeAdmin")}
+              {t('roleBadgeAdmin')}
             </button>
             <button
               type="button"
-              class={filterToggleClass(roleFilters.includes("mod"))}
-              aria-pressed={roleFilters.includes("mod")}
-              onclick={() => toggleRoleFilter("mod")}
+              class={filterToggleClass(roleFilters.includes('mod'))}
+              aria-pressed={roleFilters.includes('mod')}
+              onclick={() => toggleRoleFilter('mod')}
             >
-              {#if roleFilters.includes("mod")}
+              {#if roleFilters.includes('mod')}
                 <Check class="size-3.5 shrink-0" />
               {/if}
-              {t("roleBadgeMod")}
+              {t('roleBadgeMod')}
             </button>
             <button
               type="button"
-              class={filterToggleClass(roleFilters.includes("user"))}
-              aria-pressed={roleFilters.includes("user")}
-              onclick={() => toggleRoleFilter("user")}
+              class={filterToggleClass(roleFilters.includes('user'))}
+              aria-pressed={roleFilters.includes('user')}
+              onclick={() => toggleRoleFilter('user')}
             >
-              {#if roleFilters.includes("user")}
+              {#if roleFilters.includes('user')}
                 <Check class="size-3.5 shrink-0" />
               {/if}
-              {t("adminRoleUser")}
+              {t('adminRoleUser')}
             </button>
           </div>
           <div class="flex flex-wrap items-center gap-2">
-            <span class="text-xs text-text-muted">{t("adminFilterStatus")}</span
-            >
+            <span class="text-xs text-text-muted">{t('adminFilterStatus')}</span>
             <button
               type="button"
-              class={filterToggleClass(statusFilters.includes("active"))}
-              aria-pressed={statusFilters.includes("active")}
-              onclick={() => toggleStatusFilter("active")}
+              class={filterToggleClass(statusFilters.includes('active'))}
+              aria-pressed={statusFilters.includes('active')}
+              onclick={() => toggleStatusFilter('active')}
             >
-              {#if statusFilters.includes("active")}
+              {#if statusFilters.includes('active')}
                 <Check class="size-3.5 shrink-0" />
               {/if}
-              {t("adminStatusActive")}
+              {t('adminStatusActive')}
             </button>
             <button
               type="button"
-              class={filterToggleClass(statusFilters.includes("blocked"))}
-              aria-pressed={statusFilters.includes("blocked")}
-              onclick={() => toggleStatusFilter("blocked")}
+              class={filterToggleClass(statusFilters.includes('blocked'))}
+              aria-pressed={statusFilters.includes('blocked')}
+              onclick={() => toggleStatusFilter('blocked')}
             >
-              {#if statusFilters.includes("blocked")}
+              {#if statusFilters.includes('blocked')}
                 <Check class="size-3.5 shrink-0" />
               {/if}
-              {t("adminStatusBlocked")}
+              {t('adminStatusBlocked')}
             </button>
           </div>
         </div>
@@ -747,7 +685,7 @@
 
       {#if filteredUsers.length === 0}
         {#if users.length > 0}
-          <p class="text-sm text-text-muted">{t("adminUsersEmptyFilter")}</p>
+          <p class="text-sm text-text-muted">{t('adminUsersEmptyFilter')}</p>
         {/if}
       {:else}
         <div class="overflow-x-auto">
@@ -758,149 +696,121 @@
                   <input
                     type="checkbox"
                     class="accent-brand"
-                    aria-label={t("adminSelectAll")}
+                    aria-label={t('adminSelectAll')}
                     checked={allActionableSelected}
-                    indeterminate={someActionableSelected &&
-                      !allActionableSelected}
+                    indeterminate={someActionableSelected && !allActionableSelected}
                     disabled={actionableUsers.length === 0}
-                    onchange={(e) =>
-                      toggleSelectAll(
-                        (e.currentTarget as HTMLInputElement).checked,
-                      )}
+                    onchange={(e) => toggleSelectAll((e.currentTarget as HTMLInputElement).checked)}
                   />
                 </th>
-                <th class="px-2 py-2" aria-sort={ariaSortFor("display_name")}>
+                <th class="px-2 py-2" aria-sort={ariaSortFor('display_name')}>
                   <button
                     type="button"
-                    class={sortHeaderClass("display_name")}
-                    onclick={() => toggleSort("display_name")}
+                    class={sortHeaderClass('display_name')}
+                    onclick={() => toggleSort('display_name')}
                   >
-                    {t("adminColName")}
-                    {#if sortKey === "display_name"}
-                      {#if sortDir === "asc"}
+                    {t('adminColName')}
+                    {#if sortKey === 'display_name'}
+                      {#if sortDir === 'asc'}
                         <ArrowUp class="size-3.5 shrink-0" aria-hidden="true" />
                       {:else}
-                        <ArrowDown
-                          class="size-3.5 shrink-0"
-                          aria-hidden="true"
-                        />
+                        <ArrowDown class="size-3.5 shrink-0" aria-hidden="true" />
                       {/if}
                     {/if}
                   </button>
                 </th>
-                <th class="px-2 py-2" aria-sort={ariaSortFor("role")}>
+                <th class="px-2 py-2" aria-sort={ariaSortFor('role')}>
                   <button
                     type="button"
-                    class={sortHeaderClass("role")}
-                    onclick={() => toggleSort("role")}
+                    class={sortHeaderClass('role')}
+                    onclick={() => toggleSort('role')}
                   >
-                    {t("adminColRole")}
-                    {#if sortKey === "role"}
-                      {#if sortDir === "asc"}
+                    {t('adminColRole')}
+                    {#if sortKey === 'role'}
+                      {#if sortDir === 'asc'}
                         <ArrowUp class="size-3.5 shrink-0" aria-hidden="true" />
                       {:else}
-                        <ArrowDown
-                          class="size-3.5 shrink-0"
-                          aria-hidden="true"
-                        />
+                        <ArrowDown class="size-3.5 shrink-0" aria-hidden="true" />
                       {/if}
                     {/if}
                   </button>
                 </th>
-                <th class="px-2 py-2" aria-sort={ariaSortFor("email")}>
+                <th class="px-2 py-2" aria-sort={ariaSortFor('email')}>
                   <button
                     type="button"
-                    class={sortHeaderClass("email")}
-                    onclick={() => toggleSort("email")}
+                    class={sortHeaderClass('email')}
+                    onclick={() => toggleSort('email')}
                   >
-                    {t("adminColEmail")}
-                    {#if sortKey === "email"}
-                      {#if sortDir === "asc"}
+                    {t('adminColEmail')}
+                    {#if sortKey === 'email'}
+                      {#if sortDir === 'asc'}
                         <ArrowUp class="size-3.5 shrink-0" aria-hidden="true" />
                       {:else}
-                        <ArrowDown
-                          class="size-3.5 shrink-0"
-                          aria-hidden="true"
-                        />
+                        <ArrowDown class="size-3.5 shrink-0" aria-hidden="true" />
                       {/if}
                     {/if}
                   </button>
                 </th>
-                <th class="px-2 py-2" aria-sort={ariaSortFor("created_at")}>
+                <th class="px-2 py-2" aria-sort={ariaSortFor('created_at')}>
                   <button
                     type="button"
-                    class={sortHeaderClass("created_at")}
-                    onclick={() => toggleSort("created_at")}
+                    class={sortHeaderClass('created_at')}
+                    onclick={() => toggleSort('created_at')}
                   >
-                    {t("adminColCreated")}
-                    {#if sortKey === "created_at"}
-                      {#if sortDir === "asc"}
+                    {t('adminColCreated')}
+                    {#if sortKey === 'created_at'}
+                      {#if sortDir === 'asc'}
                         <ArrowUp class="size-3.5 shrink-0" aria-hidden="true" />
                       {:else}
-                        <ArrowDown
-                          class="size-3.5 shrink-0"
-                          aria-hidden="true"
-                        />
+                        <ArrowDown class="size-3.5 shrink-0" aria-hidden="true" />
                       {/if}
                     {/if}
                   </button>
                 </th>
-                <th class="px-2 py-2" aria-sort={ariaSortFor("last_sign_in_at")}>
+                <th class="px-2 py-2" aria-sort={ariaSortFor('last_sign_in_at')}>
                   <button
                     type="button"
-                    class={sortHeaderClass("last_sign_in_at")}
-                    onclick={() => toggleSort("last_sign_in_at")}
+                    class={sortHeaderClass('last_sign_in_at')}
+                    onclick={() => toggleSort('last_sign_in_at')}
                   >
-                    {t("adminColLastSignIn")}
-                    {#if sortKey === "last_sign_in_at"}
-                      {#if sortDir === "asc"}
+                    {t('adminColLastSignIn')}
+                    {#if sortKey === 'last_sign_in_at'}
+                      {#if sortDir === 'asc'}
                         <ArrowUp class="size-3.5 shrink-0" aria-hidden="true" />
                       {:else}
-                        <ArrowDown
-                          class="size-3.5 shrink-0"
-                          aria-hidden="true"
-                        />
+                        <ArrowDown class="size-3.5 shrink-0" aria-hidden="true" />
                       {/if}
                     {/if}
                   </button>
                 </th>
-                <th
-                  class="w-[9.5rem] min-w-[9.5rem] px-2 py-2"
-                  aria-sort={ariaSortFor("blocked")}
-                >
+                <th class="w-[9.5rem] min-w-[9.5rem] px-2 py-2" aria-sort={ariaSortFor('blocked')}>
                   <button
                     type="button"
-                    class={sortHeaderClass("blocked")}
-                    onclick={() => toggleSort("blocked")}
+                    class={sortHeaderClass('blocked')}
+                    onclick={() => toggleSort('blocked')}
                   >
-                    {t("adminColStatus")}
-                    {#if sortKey === "blocked"}
-                      {#if sortDir === "asc"}
+                    {t('adminColStatus')}
+                    {#if sortKey === 'blocked'}
+                      {#if sortDir === 'asc'}
                         <ArrowUp class="size-3.5 shrink-0" aria-hidden="true" />
                       {:else}
-                        <ArrowDown
-                          class="size-3.5 shrink-0"
-                          aria-hidden="true"
-                        />
+                        <ArrowDown class="size-3.5 shrink-0" aria-hidden="true" />
                       {/if}
                     {/if}
                   </button>
                 </th>
-                <th class="px-2 py-2" aria-sort={ariaSortFor("id")}>
+                <th class="px-2 py-2" aria-sort={ariaSortFor('id')}>
                   <button
                     type="button"
-                    class={sortHeaderClass("id")}
-                    onclick={() => toggleSort("id")}
+                    class={sortHeaderClass('id')}
+                    onclick={() => toggleSort('id')}
                   >
-                    {t("adminColId")}
-                    {#if sortKey === "id"}
-                      {#if sortDir === "asc"}
+                    {t('adminColId')}
+                    {#if sortKey === 'id'}
+                      {#if sortDir === 'asc'}
                         <ArrowUp class="size-3.5 shrink-0" aria-hidden="true" />
                       {:else}
-                        <ArrowDown
-                          class="size-3.5 shrink-0"
-                          aria-hidden="true"
-                        />
+                        <ArrowDown class="size-3.5 shrink-0" aria-hidden="true" />
                       {/if}
                     {/if}
                   </button>
@@ -912,8 +822,8 @@
               {#each pagedUsers as u (u.id)}
                 {@const actionable = isActionable(u)}
                 {@const role = normalizedRole(u)}
-                {@const name = u.display_name?.trim() || ""}
-                {@const mail = u.email?.trim() || ""}
+                {@const name = u.display_name?.trim() || ''}
+                {@const mail = u.email?.trim() || ''}
                 <tr class="border-b border-border/60 align-middle">
                   <td class="px-2 py-2">
                     {#if actionable}
@@ -922,10 +832,7 @@
                         class="accent-brand"
                         checked={selectedIds.includes(u.id)}
                         onchange={(e) =>
-                          toggleSelected(
-                            u.id,
-                            (e.currentTarget as HTMLInputElement).checked,
-                          )}
+                          toggleSelected(u.id, (e.currentTarget as HTMLInputElement).checked)}
                       />
                     {/if}
                   </td>
@@ -935,7 +842,7 @@
                         type="button"
                         class="max-w-[12rem] cursor-pointer truncate text-left hover:underline"
                         title={name}
-                        aria-label={`${t("copyValue")}: ${name}`}
+                        aria-label={`${t('copyValue')}: ${name}`}
                         onclick={() => copyCell(name)}
                       >
                         {name}
@@ -951,7 +858,7 @@
                         type="button"
                         class="max-w-[16rem] cursor-pointer truncate text-left hover:underline"
                         title={mail}
-                        aria-label={`${t("copyValue")}: ${mail}`}
+                        aria-label={`${t('copyValue')}: ${mail}`}
                         onclick={() => copyCell(mail)}
                       >
                         {mail}
@@ -960,19 +867,15 @@
                       —
                     {/if}
                   </td>
-                  <td class="px-2 py-2 whitespace-nowrap"
-                    >{formatDate(u.created_at)}</td
-                  >
-                  <td class="px-2 py-2 whitespace-nowrap"
-                    >{u.last_sign_in_at
-                      ? formatDate(u.last_sign_in_at)
-                      : t("adminNeverSignedIn")}</td
-                  >
+                  <td class="px-2 py-2 whitespace-nowrap">{formatDate(u.created_at)}</td>
+                  <td class="px-2 py-2 whitespace-nowrap">
+                    {u.last_sign_in_at ? formatDate(u.last_sign_in_at) : t('adminNeverSignedIn')}
+                  </td>
                   <td class="w-[9.5rem] min-w-[9.5rem] px-2 py-2">
                     {#if u.blocked}
-                      <Badge variant="danger">{t("adminStatusBlocked")}</Badge>
+                      <Badge variant="danger">{t('adminStatusBlocked')}</Badge>
                     {:else}
-                      <Badge variant="success">{t("adminStatusActive")}</Badge>
+                      <Badge variant="success">{t('adminStatusActive')}</Badge>
                     {/if}
                   </td>
                   <td class="px-2 py-2">
@@ -980,7 +883,7 @@
                       type="button"
                       class="cursor-pointer font-mono text-xs hover:underline"
                       title={u.id}
-                      aria-label={`${t("copyValue")}: ${u.id}`}
+                      aria-label={`${t('copyValue')}: ${u.id}`}
                       onclick={() => copyCell(u.id)}
                     >
                       {shortId(u.id)}
@@ -992,8 +895,8 @@
                         <Button
                           variant="ghost"
                           class="!px-1.5 !py-1"
-                          title={t("adminMoreActions")}
-                          aria-label={t("adminMoreActions")}
+                          title={t('adminMoreActions')}
+                          aria-label={t('adminMoreActions')}
                           aria-expanded={menuOpenId === u.id}
                           onclick={(e) => toggleMoreMenu(u.id, e)}
                         >
@@ -1005,21 +908,21 @@
                             class="absolute right-0 z-20 mt-1 min-w-[14rem] rounded-[8px] border border-border bg-bg py-1 shadow-lg"
                             onpointerdown={(e) => e.stopPropagation()}
                           >
-                            {#if role === "user"}
+                            {#if role === 'user'}
                               <button
                                 type="button"
                                 class="block w-full cursor-pointer px-3 py-2 text-left text-sm text-text hover:bg-bg-soft"
                                 onclick={() => askPromoteMod(u)}
                               >
-                                {t("adminPromoteMod")}
+                                {t('adminPromoteMod')}
                               </button>
-                            {:else if role === "mod"}
+                            {:else if role === 'mod'}
                               <button
                                 type="button"
                                 class="block w-full cursor-pointer px-3 py-2 text-left text-sm text-text hover:bg-bg-soft"
                                 onclick={() => askDemoteUser(u)}
                               >
-                                {t("adminDemoteUser")}
+                                {t('adminDemoteUser')}
                               </button>
                             {/if}
                             {#if u.blocked}
@@ -1028,7 +931,7 @@
                                 class="block w-full cursor-pointer px-3 py-2 text-left text-sm text-text hover:bg-bg-soft"
                                 onclick={() => askUnblockOne(u)}
                               >
-                                {t("adminUnblock")}
+                                {t('adminUnblock')}
                               </button>
                             {:else}
                               <button
@@ -1036,7 +939,7 @@
                                 class="block w-full cursor-pointer px-3 py-2 text-left text-sm text-text hover:bg-bg-soft"
                                 onclick={() => askBlockOne(u)}
                               >
-                                {t("adminBlock")}
+                                {t('adminBlock')}
                               </button>
                             {/if}
                             <button
@@ -1044,7 +947,7 @@
                               class="block w-full cursor-pointer px-3 py-2 text-left text-sm text-danger-text hover:bg-bg-soft"
                               onclick={() => askDeleteOne(u)}
                             >
-                              {t("adminDeleteUser")}
+                              {t('adminDeleteUser')}
                             </button>
                           </div>
                         {/if}
@@ -1057,11 +960,9 @@
           </table>
         </div>
 
-        <div
-          class="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm text-text-muted"
-        >
+        <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm text-text-muted">
           <span>
-            {t("adminPageRange", {
+            {t('adminPageRange', {
               from: String(pageRangeFrom),
               to: String(pageRangeTo),
               total: String(filteredUsers.length),
@@ -1076,7 +977,7 @@
                 page = Math.max(1, clampedPage - 1);
               }}
             >
-              {t("adminPagePrev")}
+              {t('adminPagePrev')}
             </Button>
             <Button
               variant="secondary"
@@ -1086,7 +987,7 @@
                 page = Math.min(pageCount, clampedPage + 1);
               }}
             >
-              {t("adminPageNext")}
+              {t('adminPageNext')}
             </Button>
           </div>
         </div>
@@ -1126,13 +1027,13 @@
   <p class="text-sm text-text-muted">{confirmBody}</p>
   <div class="mt-6 flex justify-end gap-2">
     <Button variant="ghost" onclick={closeConfirm} disabled={confirming}>
-      {t("cancel")}
+      {t('cancel')}
     </Button>
     <Button
-      variant={pendingMutation?.kind === "delete" ||
-      (pendingMutation?.kind === "set_blocked" && pendingMutation.blocked)
-        ? "danger"
-        : "primary"}
+      variant={pendingMutation?.kind === 'delete' ||
+      (pendingMutation?.kind === 'set_blocked' && pendingMutation.blocked)
+        ? 'danger'
+        : 'primary'}
       onclick={runConfirm}
       disabled={confirming}
     >

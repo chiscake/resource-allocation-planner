@@ -8,15 +8,15 @@ export type ScenePoint = {
   label?: string;
   /** feasible | infeasible | best | trajectory | optimum | baseline */
   kind:
-    | "feasible"
-    | "infeasible"
-    | "best"
-    | "bestEver"
-    | "trajectory"
-    | "optimum"
-    | "baseline"
-    | "vertex"
-    | "compare";
+    | 'feasible'
+    | 'infeasible'
+    | 'best'
+    | 'bestEver'
+    | 'trajectory'
+    | 'optimum'
+    | 'baseline'
+    | 'vertex'
+    | 'compare';
   color?: string;
   size?: number;
   meta?: Record<string, unknown>;
@@ -26,7 +26,7 @@ export type SceneLine = {
   id: string;
   points: VecN[];
   label?: string;
-  kind: "edge" | "constraint" | "level" | "trajectory" | "axis";
+  kind: 'edge' | 'constraint' | 'level' | 'trajectory' | 'axis';
   color?: string;
   dash?: boolean;
 };
@@ -36,7 +36,7 @@ export type SceneRegion = {
   /** Polygon in the projected 2D plane (after projection). */
   points2d: [number, number][];
   label?: string;
-  kind: "feasible" | "level";
+  kind: 'feasible' | 'level';
   color?: string;
   opacity?: number;
 };
@@ -46,7 +46,7 @@ export type SceneFace = {
   id: string;
   points: VecN[];
   label?: string;
-  kind: "feasible";
+  kind: 'feasible';
   color?: string;
   opacity?: number;
 };
@@ -60,13 +60,7 @@ export type SceneOverlayMarker = {
 };
 
 export type ProjectionMode =
-  | "exact2d"
-  | "exact3d"
-  | "section3d"
-  | "project4d"
-  | "selectedAxes"
-  | "pca"
-  | "parallel";
+  'exact2d' | 'exact3d' | 'section3d' | 'project4d' | 'selectedAxes' | 'pca' | 'parallel';
 
 export type SceneFrame = {
   stepIndex: number;
@@ -135,7 +129,7 @@ export function expandBounds(
 export type SceneViewDebug = {
   quat: [number, number, number, number];
   lookFrom: number[];
-  rotationMode: "turntable" | "trackball";
+  rotationMode: 'turntable' | 'trackball';
   zoom: number;
   panX: number;
   panY: number;
@@ -151,5 +145,5 @@ export type SceneViewDebug = {
   rot4?: number[];
   /** w-components of world axes X/Y/Z/W in view space. */
   axisW?: { x: number; y: number; z: number; w: number };
-  projection: "viewOrtho" | "perspective4d";
+  projection: 'viewOrtho' | 'perspective4d';
 };

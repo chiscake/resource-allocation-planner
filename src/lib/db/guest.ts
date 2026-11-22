@@ -1,12 +1,9 @@
-import { createBlankModel, cloneModel, type Model } from "$lib/domain";
-import type {
-  GuestWhatIfGeneration,
-  GuestWhatIfState,
-} from "$lib/domain/whatif-generation";
-import { emptyGuestWhatIfState } from "$lib/domain/whatif-generation";
-import { t } from "$lib/i18n";
+import { createBlankModel, cloneModel, type Model } from '$lib/domain';
+import type { GuestWhatIfGeneration, GuestWhatIfState } from '$lib/domain/whatif-generation';
+import { emptyGuestWhatIfState } from '$lib/domain/whatif-generation';
+import { t } from '$lib/i18n';
 
-const GUEST_KEY = "rap_guest_slot";
+const GUEST_KEY = 'rap_guest_slot';
 
 export interface GuestWhatIfRow {
   title: string;
@@ -34,7 +31,7 @@ export interface GuestSnapshot {
 }
 
 export function loadGuest(): GuestSnapshot | null {
-  if (typeof localStorage === "undefined") return null;
+  if (typeof localStorage === 'undefined') return null;
   const raw = localStorage.getItem(GUEST_KEY);
   if (!raw) return null;
   try {
@@ -77,7 +74,7 @@ export function isGuestWorthUploading(guest: GuestSnapshot): boolean {
 }
 
 /** One local scenario slot — blank model for «Новая задача». */
-export function saveGuestBlank(title = t("newTask")): GuestSnapshot {
+export function saveGuestBlank(title = t('newTask')): GuestSnapshot {
   const snapshot: GuestSnapshot = {
     title,
     model: createBlankModel(),

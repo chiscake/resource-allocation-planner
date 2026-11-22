@@ -1,29 +1,23 @@
-import { labeledName } from "$lib/display/units";
-import type { Model, Mutation } from "./types";
-import { SCHEMA_VERSION } from "./types";
+import { labeledName } from '$lib/display/units';
+import type { Model, Mutation } from './types';
+import { SCHEMA_VERSION } from './types';
 
 /** Signed percent for labels, e.g. +10% / −15%. */
 export function formatMutationDeltaPct(delta: number): string {
   const pct = Math.round(Math.abs(delta) * 100);
-  const sign = delta >= 0 ? "+" : "−";
+  const sign = delta >= 0 ? '+' : '−';
   return `${sign}${pct}%`;
 }
 
 function mutationTargetLabel(mutation: Mutation, model?: Model): string {
   if (!model) return mutation.target;
-  if (mutation.kind === "resource_change") {
+  if (mutation.kind === 'resource_change') {
     const i = model.resources.indexOf(mutation.target);
-    return labeledName(
-      mutation.target,
-      i >= 0 ? model.resource_units?.[i] : "",
-    );
+    return labeledName(mutation.target, i >= 0 ? model.resource_units?.[i] : '');
   }
   // modernization + price_change target a product
   const j = model.products.indexOf(mutation.target);
-  return labeledName(
-    mutation.target,
-    j >= 0 ? model.product_units?.[j] : "",
-  );
+  return labeledName(mutation.target, j >= 0 ? model.product_units?.[j] : '');
 }
 
 /** End-user mutation title (RU). Kept here so DB titles match the sensitivity table. */
@@ -31,11 +25,11 @@ export function formatMutationLabel(mutation: Mutation, model?: Model): string {
   const d = formatMutationDeltaPct(mutation.delta);
   const target = mutationTargetLabel(mutation, model);
   switch (mutation.kind) {
-    case "resource_change":
+    case 'resource_change':
       return `Запас: ${target} ${d}`;
-    case "modernization":
+    case 'modernization':
       return `Расход: ${target} ${d}`;
-    case "price_change":
+    case 'price_change':
       return `Цена: ${target} ${d}`;
     default:
       return mutation.label ?? mutation.kind;
@@ -64,13 +58,13 @@ export function applyMutation(model: Model, mutation: Mutation): Model {
   const next = cloneModel(model);
 
   switch (mutation.kind) {
-    case "resource_change": {
+    case 'resource_change': {
       const i = next.resources.indexOf(mutation.target);
       if (i < 0) throw new Error(`Unknown resource: ${mutation.target}`);
       next.b[i] = next.b[i] * (1 + mutation.delta);
       break;
     }
-    case "modernization": {
+    case 'modernization': {
       const j = next.products.indexOf(mutation.target);
       if (j < 0) throw new Error(`Unknown product: ${mutation.target}`);
       for (let i = 0; i < next.resources.length; i++) {
@@ -78,7 +72,7 @@ export function applyMutation(model: Model, mutation: Mutation): Model {
       }
       break;
     }
-    case "price_change": {
+    case 'price_change': {
       const j = next.products.indexOf(mutation.target);
       if (j < 0) throw new Error(`Unknown product: ${mutation.target}`);
       next.c[j] = next.c[j] * (1 + mutation.delta);
@@ -93,7 +87,7 @@ export function applyMutation(model: Model, mutation: Mutation): Model {
 
 /** True when a what-if pct should generate that mutation family. */
 function activePct(v: number | null | undefined): v is number {
-  return typeof v === "number" && Number.isFinite(v) && v > 0;
+  return typeof v === 'number' && Number.isFinite(v) && v > 0;
 }
 
 /** Task-13 style default mutation pack from what_if_defaults.
@@ -108,12 +102,12 @@ export function buildDefaultMutations(model: Model): Mutation[] {
   if (activePct(rp)) {
     for (const r of model.resources) {
       const plus: Mutation = {
-        kind: "resource_change",
+        kind: 'resource_change',
         target: r,
         delta: rp,
       };
       const minus: Mutation = {
-        kind: "resource_change",
+        kind: 'resource_change',
         target: r,
         delta: -rp,
       };
@@ -124,7 +118,7 @@ export function buildDefaultMutations(model: Model): Mutation[] {
   if (activePct(mp)) {
     for (const p of model.products) {
       const m: Mutation = {
-        kind: "modernization",
+        kind: 'modernization',
         target: p,
         delta: -mp,
       };
@@ -134,12 +128,12 @@ export function buildDefaultMutations(model: Model): Mutation[] {
   if (activePct(pp)) {
     for (const p of model.products) {
       const plus: Mutation = {
-        kind: "price_change",
+        kind: 'price_change',
         target: p,
         delta: pp,
       };
       const minus: Mutation = {
-        kind: "price_change",
+        kind: 'price_change',
         target: p,
         delta: -pp,
       };

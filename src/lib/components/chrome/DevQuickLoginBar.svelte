@@ -1,18 +1,18 @@
 <script lang="ts">
-  import { supabase } from "$lib/db/supabase";
-  import { DEV_QUICK_ACCOUNTS, type DevQuickAccount } from "$lib/devQuickLogin";
+  import { supabase } from '$lib/db/supabase';
+  import { DEV_QUICK_ACCOUNTS, type DevQuickAccount } from '$lib/devQuickLogin';
 
-  let { currentEmail = "" }: { currentEmail?: string } = $props();
+  let { currentEmail = '' }: { currentEmail?: string } = $props();
 
   let busyEmail = $state<string | null>(null);
-  let errorMessage = $state("");
+  let errorMessage = $state('');
 
   async function switchTo(account: DevQuickAccount) {
     if (busyEmail) return;
     if (currentEmail.toLowerCase() === account.email.toLowerCase()) return;
 
     busyEmail = account.email;
-    errorMessage = "";
+    errorMessage = '';
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       if (sessionData.session) {
@@ -24,10 +24,9 @@
       });
       if (error) throw error;
       // Full reload onto home so layout/auth chrome reset cleanly.
-      location.href = "/app";
+      location.href = '/app';
     } catch (err) {
-      errorMessage =
-        err instanceof Error ? err.message : "Не удалось переключить аккаунт";
+      errorMessage = err instanceof Error ? err.message : 'Не удалось переключить аккаунт';
       busyEmail = null;
     }
   }
@@ -37,8 +36,7 @@
   <span class="hint">Быстрый вход</span>
   <div class="buttons">
     {#each DEV_QUICK_ACCOUNTS as account (account.email)}
-      {@const current =
-        currentEmail.toLowerCase() === account.email.toLowerCase()}
+      {@const current = currentEmail.toLowerCase() === account.email.toLowerCase()}
       <button
         type="button"
         class:current

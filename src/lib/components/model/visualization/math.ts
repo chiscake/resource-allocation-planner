@@ -1,4 +1,4 @@
-import type { VecN } from "./types";
+import type { VecN } from './types';
 
 const EPS = 1e-9;
 
@@ -130,14 +130,7 @@ export const DEFAULT_ANGLES4: Angles4 = {
   zw: 0.35,
 };
 
-export const ANGLES4_KEYS: (keyof Angles4)[] = [
-  "xy",
-  "xz",
-  "yz",
-  "xw",
-  "yw",
-  "zw",
-];
+export const ANGLES4_KEYS: (keyof Angles4)[] = ['xy', 'xz', 'yz', 'xw', 'yw', 'zw'];
 
 function cs(theta: number) {
   return { c: Math.cos(theta), s: Math.sin(theta) };
@@ -228,8 +221,7 @@ export function boundingCenterScale(points: VecN[], targetRadius: number) {
   }
   const center = mins.map((mn, i) => (mn + maxs[i]) / 2);
   let extent = 0;
-  for (let i = 0; i < dim; i++)
-    extent = Math.max(extent, (maxs[i] - mins[i]) / 2);
+  for (let i = 0; i < dim; i++) extent = Math.max(extent, (maxs[i] - mins[i]) / 2);
   if (extent < 1e-6) extent = 1;
   return { center, scale: targetRadius / extent };
 }
@@ -255,9 +247,7 @@ export function computePcaBasis(samples: VecN[], k = 2): VecN[] {
   for (let i = 0; i < dim; i++) mean[i] /= samples.length;
 
   // Covariance (dim × dim)
-  const cov: number[][] = Array.from({ length: dim }, () =>
-    new Array(dim).fill(0),
-  );
+  const cov: number[][] = Array.from({ length: dim }, () => new Array(dim).fill(0));
   for (const s of samples) {
     for (let i = 0; i < dim; i++) {
       for (let j = i; j < dim; j++) {
@@ -268,8 +258,7 @@ export function computePcaBasis(samples: VecN[], k = 2): VecN[] {
     }
   }
   const denom = Math.max(1, samples.length - 1);
-  for (let i = 0; i < dim; i++)
-    for (let j = 0; j < dim; j++) cov[i][j] /= denom;
+  for (let i = 0; i < dim; i++) for (let j = 0; j < dim; j++) cov[i][j] /= denom;
 
   // Power iteration for top-k eigenvectors (Gram-Schmidt).
   const basis: VecN[] = [];
@@ -366,11 +355,7 @@ export function arcballDelta(
   };
   const a = toBall(last.x, last.y);
   const b = toBall(next.x, next.y);
-  const axis = [
-    a[1] * b[2] - a[2] * b[1],
-    a[2] * b[0] - a[0] * b[2],
-    a[0] * b[1] - a[1] * b[0],
-  ];
+  const axis = [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
   const axisLen = Math.hypot(axis[0], axis[1], axis[2]);
   if (axisLen < 1e-8) return quatIdentity();
   const angle = Math.acos(Math.max(-1, Math.min(1, dot(a, b))));
@@ -448,10 +433,7 @@ export function quatFromTo(from: VecN, to: VecN): Quat {
  * View orientation so `lookFrom` (world) points toward the camera (+Z view),
  * with world Z kept upright (Blender turntable / axis-snap convention).
  */
-export function quatForViewFrom(
-  lookFrom: VecN,
-  worldUp: VecN = WORLD_UP,
-): Quat {
+export function quatForViewFrom(lookFrom: VecN, worldUp: VecN = WORLD_UP): Quat {
   const cam = VIEW_TOWARD_CAMERA;
   const from = normalize(lookFrom);
   let q = quatFromTo(from, cam);
@@ -488,12 +470,7 @@ export function quatForViewFrom(
  * continuous — no axis flip / snap-back. After crossing a pole the view can go
  * upside-down; that is intentional for a full 360° pitch.
  */
-export function applyTurntableOrbit(
-  q: Quat,
-  dx: number,
-  dy: number,
-  sens = 0.01,
-): Quat {
+export function applyTurntableOrbit(q: Quat, dx: number, dy: number, sens = 0.01): Quat {
   // Pitch in view space around local X — continuous through poles.
   let next = q;
   if (dy !== 0) {
@@ -514,23 +491,23 @@ export function applyTrackballOrbit(q: Quat, delta: Quat): Quat {
 }
 
 export type ViewSnapId =
-  | "px"
-  | "nx"
-  | "py"
-  | "ny"
-  | "pz"
-  | "nz"
-  | "ppp"
-  | "ppn"
-  | "pnp"
-  | "pnn"
-  | "npp"
-  | "npn"
-  | "nnp"
-  | "nnn";
+  | 'px'
+  | 'nx'
+  | 'py'
+  | 'ny'
+  | 'pz'
+  | 'nz'
+  | 'ppp'
+  | 'ppn'
+  | 'pnp'
+  | 'pnn'
+  | 'npp'
+  | 'npn'
+  | 'nnp'
+  | 'nnn';
 
 const CORNER_SIGN: Record<
-  Exclude<ViewSnapId, "px" | "nx" | "py" | "ny" | "pz" | "nz">,
+  Exclude<ViewSnapId, 'px' | 'nx' | 'py' | 'ny' | 'pz' | 'nz'>,
   [number, number, number]
 > = {
   ppp: [1, 1, 1],
@@ -545,17 +522,17 @@ const CORNER_SIGN: Record<
 
 export function snapLookFrom(id: ViewSnapId): VecN {
   switch (id) {
-    case "px":
+    case 'px':
       return [1, 0, 0];
-    case "nx":
+    case 'nx':
       return [-1, 0, 0];
-    case "py":
+    case 'py':
       return [0, 1, 0];
-    case "ny":
+    case 'ny':
       return [0, -1, 0];
-    case "pz":
+    case 'pz':
       return [0, 0, 1];
-    case "nz":
+    case 'nz':
       return [0, 0, -1];
     default:
       return normalize([...CORNER_SIGN[id]]);
@@ -566,24 +543,17 @@ export function quatForSnap(id: ViewSnapId): Quat {
   return quatForViewFrom(snapLookFrom(id), WORLD_UP);
 }
 
-export const VIEW_SNAP_AXIS_IDS: ViewSnapId[] = [
-  "px",
-  "nx",
-  "py",
-  "ny",
-  "pz",
-  "nz",
-];
+export const VIEW_SNAP_AXIS_IDS: ViewSnapId[] = ['px', 'nx', 'py', 'ny', 'pz', 'nz'];
 
 export const VIEW_SNAP_CORNER_IDS: ViewSnapId[] = [
-  "ppp",
-  "ppn",
-  "pnp",
-  "pnn",
-  "npp",
-  "npn",
-  "nnp",
-  "nnn",
+  'ppp',
+  'ppn',
+  'pnp',
+  'pnn',
+  'npp',
+  'npn',
+  'nnp',
+  'nnn',
 ];
 
 /** Row-major 4×4; viewVec = M · worldVec (Claude-style 4D gizmo). */
@@ -615,8 +585,7 @@ export function mat4Apply(M: Mat4, v: VecN): VecN {
   const z = v[2] ?? 0;
   const w = v[3] ?? 0;
   return [0, 1, 2, 3].map(
-    (r) =>
-      M[r * 4]! * x + M[r * 4 + 1]! * y + M[r * 4 + 2]! * z + M[r * 4 + 3]! * w,
+    (r) => M[r * 4]! * x + M[r * 4 + 1]! * y + M[r * 4 + 2]! * z + M[r * 4 + 3]! * w,
   );
 }
 
@@ -712,23 +681,11 @@ export function mat4Rotate(R: Mat4, G: Mat4): Mat4 {
 /**
  * 4D orbit: drag orbits in view xz/yz; with shiftKey — view xw/yw.
  */
-export function applyOrbit4(
-  R: Mat4,
-  dx: number,
-  dy: number,
-  shift: boolean,
-  k = 0.01,
-): Mat4 {
+export function applyOrbit4(R: Mat4, dx: number, dy: number, shift: boolean, k = 0.01): Mat4 {
   if (shift) {
-    return mat4Rotate(
-      R,
-      mat4Mul(mat4PlaneRot(0, 3, dx * k), mat4PlaneRot(1, 3, -dy * k)),
-    );
+    return mat4Rotate(R, mat4Mul(mat4PlaneRot(0, 3, dx * k), mat4PlaneRot(1, 3, -dy * k)));
   }
-  return mat4Rotate(
-    R,
-    mat4Mul(mat4PlaneRot(2, 0, dx * k), mat4PlaneRot(2, 1, -dy * k)),
-  );
+  return mat4Rotate(R, mat4Mul(mat4PlaneRot(2, 0, dx * k), mat4PlaneRot(2, 1, -dy * k)));
 }
 
 /** Drag an axis tip toward a new direction in view space. */
@@ -752,11 +709,7 @@ export function dragAxisTip4(
 }
 
 /** Snap signed world axis toward view +Z (toward camera). */
-export function snapAxisTowardCamera4(
-  R: Mat4,
-  axis: number,
-  sign: 1 | -1,
-): Arc4 | null {
+export function snapAxisTowardCamera4(R: Mat4, axis: number, sign: 1 | -1): Arc4 | null {
   const p = mat4Col(R, axis).map((x) => x * sign);
   return mat4Arc(p, [0, 0, 1, 0]);
 }

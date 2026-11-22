@@ -1,7 +1,7 @@
-import type { GaRunConfig } from "$lib/domain";
-import type { GaHyperparameters } from "./native";
+import type { GaRunConfig } from '$lib/domain';
+import type { GaHyperparameters } from './native';
 
-export type GaPresetId = "fast" | "balanced" | "precise" | "custom";
+export type GaPresetId = 'fast' | 'balanced' | 'precise' | 'custom';
 
 export const GA_TRACE_MAX_INDIVIDUALS = 12_000;
 export const GA_TRACE_MAX_POP_PER_GEN = 200;
@@ -10,11 +10,11 @@ export const GA_TRACE_MAX_POP_PER_GEN = 200;
 export const GA_DEFAULT_SEED = 13;
 
 export const GA_PRESET_DEFS: Record<
-  Exclude<GaPresetId, "custom">,
+  Exclude<GaPresetId, 'custom'>,
   Partial<GaHyperparameters> & { labelKey: string }
 > = {
   fast: {
-    labelKey: "gaPresetFast",
+    labelKey: 'gaPresetFast',
     populationSize: 30,
     maxGenerations: 40,
     stagnationGenerations: 12,
@@ -23,7 +23,7 @@ export const GA_PRESET_DEFS: Record<
     seed: GA_DEFAULT_SEED,
   },
   balanced: {
-    labelKey: "gaPresetBalanced",
+    labelKey: 'gaPresetBalanced',
     populationSize: 60,
     maxGenerations: 120,
     stagnationGenerations: 25,
@@ -32,7 +32,7 @@ export const GA_PRESET_DEFS: Record<
     seed: GA_DEFAULT_SEED,
   },
   precise: {
-    labelKey: "gaPresetPrecise",
+    labelKey: 'gaPresetPrecise',
     populationSize: 100,
     maxGenerations: 250,
     stagnationGenerations: 40,
@@ -45,7 +45,7 @@ export const GA_PRESET_DEFS: Record<
 
 export function hyperToRunConfig(
   hyper: GaHyperparameters,
-  preset: GaPresetId = "custom",
+  preset: GaPresetId = 'custom',
 ): GaRunConfig {
   return {
     populationSize: hyper.populationSize,
@@ -115,8 +115,7 @@ export function resolveGaHyper(
   overrides: Partial<GaHyperparameters> = {},
   baseDefaults: GaHyperparameters,
 ): GaHyperparameters {
-  const fromPreset =
-    preset && preset !== "custom" ? GA_PRESET_DEFS[preset] : {};
+  const fromPreset = preset && preset !== 'custom' ? GA_PRESET_DEFS[preset] : {};
   const { labelKey: _l, ...presetParams } = fromPreset as typeof fromPreset & {
     labelKey?: string;
   };
@@ -128,11 +127,7 @@ export function resolveGaFromRunConfig(
   config: Partial<GaRunConfig> | undefined,
   baseDefaults: GaHyperparameters,
 ): { hyper: GaHyperparameters; preset: GaPresetId } {
-  const preset = (config?.preset ?? "balanced") as GaPresetId;
-  const hyper = resolveGaHyper(
-    preset,
-    runConfigToHyper(config),
-    baseDefaults,
-  );
+  const preset = (config?.preset ?? 'balanced') as GaPresetId;
+  const hyper = resolveGaHyper(preset, runConfigToHyper(config), baseDefaults);
   return { hyper, preset };
 }

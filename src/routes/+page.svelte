@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { t } from '$lib/i18n';
+  import { t } from '$lib/i18n';
 </script>
 
 <!--
@@ -7,5 +7,5 @@
 	or briefly before the client load redirect.
 -->
 <main class="grid min-h-screen place-items-center p-8">
-	<p class="text-sm text-text-muted">{t('redirecting')}</p>
+  <p class="text-sm text-text-muted">{t('redirecting')}</p>
 </main>

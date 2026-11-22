@@ -1,7 +1,7 @@
-import solver from "javascript-lp-solver";
-import type { Model, SolveResult } from "$lib/domain";
-import { buildSolveResult } from "../../shared/resultBuild";
-import { engineFail, engineOk, type SolverEngine } from "../../contract";
+import solver from 'javascript-lp-solver';
+import type { Model, SolveResult } from '$lib/domain';
+import { buildSolveResult } from '../../shared/resultBuild';
+import { engineFail, engineOk, type SolverEngine } from '../../contract';
 
 function buildPrimalModel(model: Model) {
   const constraints: Record<string, { max: number }> = {};
@@ -17,8 +17,8 @@ function buildPrimalModel(model: Model) {
     variables[`x_${j}`] = v;
   }
   return {
-    optimize: "profit",
-    opType: "max" as const,
+    optimize: 'profit',
+    opType: 'max' as const,
     constraints,
     variables,
   };
@@ -39,8 +39,8 @@ function buildDualModel(model: Model) {
     variables[`y_${i}`] = v;
   }
   return {
-    optimize: "cost",
-    opType: "min" as const,
+    optimize: 'cost',
+    opType: 'min' as const,
     constraints,
     variables,
   };
@@ -52,36 +52,28 @@ function extractLpResult(
   dual: Record<string, unknown>,
 ): SolveResult {
   const xVec = model.products.map((_, j) => Number(primal[`x_${j}`] ?? 0));
-  const yVec = model.resources.map((_, i) =>
-    Math.max(0, Number(dual[`y_${i}`] ?? 0)),
-  );
+  const yVec = model.resources.map((_, i) => Math.max(0, Number(dual[`y_${i}`] ?? 0)));
   return buildSolveResult(model, xVec, yVec, Boolean(primal.feasible));
 }
 
 /** Solve continuous LP via javascript-lp-solver (primal + dual). */
 export function solveLpLibrary(model: Model): SolveResult {
-  const primalRaw = solver.Solve(buildPrimalModel(model)) as Record<
-    string,
-    unknown
-  >;
-  const dualRaw = solver.Solve(buildDualModel(model)) as Record<
-    string,
-    unknown
-  >;
+  const primalRaw = solver.Solve(buildPrimalModel(model)) as Record<string, unknown>;
+  const dualRaw = solver.Solve(buildDualModel(model)) as Record<string, unknown>;
   return extractLpResult(model, primalRaw, dualRaw);
 }
 
 export const lpLibraryEngine: SolverEngine = {
-  method: "lp",
-  engine: "library",
+  method: 'lp',
+  engine: 'library',
   solve(model) {
     try {
       return engineOk({
         result: solveLpLibrary(model),
-        provenance: { method: "lp", engine: "library" },
+        provenance: { method: 'lp', engine: 'library' },
       });
     } catch (e) {
-      return engineFail(e instanceof Error ? e.message : "error");
+      return engineFail(e instanceof Error ? e.message : 'error');
     }
   },
 };

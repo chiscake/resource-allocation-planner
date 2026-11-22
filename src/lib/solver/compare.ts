@@ -7,27 +7,17 @@ import {
   type SolveResult,
   type SolveRunOptions,
   type SolveTrace,
-} from "$lib/domain";
-import { solveLocal } from "./run";
-import { availableEngines } from "./registry";
-import {
-  DEFAULT_GA_HYPERPARAMS,
-  type GaHyperparameters,
-} from "./methods/ga/native";
-import {
-  hyperToRunConfig,
-  resolveGaFromRunConfig,
-  type GaPresetId,
-} from "./methods/ga/presets";
-import {
-  DEFAULT_DLN_HYPERPARAMS,
-  type DlnHyperparameters,
-} from "./methods/dln/native";
+} from '$lib/domain';
+import { solveLocal } from './run';
+import { availableEngines } from './registry';
+import { DEFAULT_GA_HYPERPARAMS, type GaHyperparameters } from './methods/ga/native';
+import { hyperToRunConfig, resolveGaFromRunConfig, type GaPresetId } from './methods/ga/presets';
+import { DEFAULT_DLN_HYPERPARAMS, type DlnHyperparameters } from './methods/dln/native';
 import {
   dlnHyperToRunConfig,
   resolveDlnFromRunConfig,
   type DlnPresetId,
-} from "./methods/dln/presets";
+} from './methods/dln/presets';
 
 export type CompareConfigId = `${SolveMethod}:${SolveEngine}`;
 
@@ -63,7 +53,7 @@ export function listCompareConfigs(): CompareConfig[] {
         method,
         engine,
         label: `${method} · ${engine}`,
-        required: method === "lp" && engine === "native",
+        required: method === 'lp' && engine === 'native',
       });
     }
   }
@@ -95,10 +85,10 @@ export function runMethodComparison(
   const all = listCompareConfigs();
   const selected = new Set(selectedIds);
   // Ensure LP native baseline
-  selected.add("lp:native");
+  selected.add('lp:native');
 
   const configs = all.filter((c) => selected.has(c.id));
-  const gaPreset = opts?.gaPreset ?? "balanced";
+  const gaPreset = opts?.gaPreset ?? 'balanced';
   const { hyper } = resolveGaFromRunConfig(
     {
       preset: gaPreset,
@@ -110,7 +100,7 @@ export function runMethodComparison(
     ga: hyperToRunConfig(hyper, gaPreset),
   };
 
-  const dlnPreset = opts?.dlnPreset ?? "precise";
+  const dlnPreset = opts?.dlnPreset ?? 'precise';
   const { hyper: dlnHyper } = resolveDlnFromRunConfig(
     {
       preset: dlnPreset,
@@ -127,29 +117,18 @@ export function runMethodComparison(
 
   // Run baseline first
   const ordered = [
-    ...configs.filter((c) => c.id === "lp:native"),
-    ...configs.filter((c) => c.id !== "lp:native"),
+    ...configs.filter((c) => c.id === 'lp:native'),
+    ...configs.filter((c) => c.id !== 'lp:native'),
   ];
 
   for (const config of ordered) {
     const started = performance.now();
     try {
       const options =
-        config.method === "ga"
-          ? gaOptions
-          : config.method === "dln"
-            ? dlnOptions
-            : undefined;
-      const response = solveLocal(
-        model,
-        "local",
-        0,
-        config.method,
-        config.engine,
-        options,
-      );
+        config.method === 'ga' ? gaOptions : config.method === 'dln' ? dlnOptions : undefined;
+      const response = solveLocal(model, 'local', 0, config.method, config.engine, options);
       const durationMs = performance.now() - started;
-      if (response.status !== "done" || !response.result) {
+      if (response.status !== 'done' || !response.result) {
         rows.push({
           config,
           ok: false,
@@ -162,17 +141,14 @@ export function runMethodComparison(
         });
         continue;
       }
-      if (config.id === "lp:native") baseline = response.result;
+      if (config.id === 'lp:native') baseline = response.result;
       const deltaZ = baseline ? response.result.Z - baseline.Z : 0;
       const gap =
         baseline && Math.abs(baseline.Z) > 1e-9
           ? Math.max(0, (baseline.Z - response.result.Z) / baseline.Z)
           : 0;
       const dx = baseline
-        ? maxAbsDx(
-            planVector(model, response.result),
-            planVector(model, baseline),
-          )
+        ? maxAbsDx(planVector(model, response.result), planVector(model, baseline))
         : 0;
       rows.push({
         config,

@@ -13,20 +13,13 @@ export interface SizeCheck {
   reasons: string[];
 }
 
-export function checkModelSize(
-  nVars: number,
-  nCons: number,
-  bodyBytes = 0,
-): SizeCheck {
+export function checkModelSize(nVars: number, nCons: number, bodyBytes = 0): SizeCheck {
   const reasons: string[] = [];
-  if (nVars > SOLVE_LIMITS.maxVariables)
-    reasons.push(`n>${SOLVE_LIMITS.maxVariables}`);
-  if (nCons > SOLVE_LIMITS.maxConstraints)
-    reasons.push(`m>${SOLVE_LIMITS.maxConstraints}`);
+  if (nVars > SOLVE_LIMITS.maxVariables) reasons.push(`n>${SOLVE_LIMITS.maxVariables}`);
+  if (nCons > SOLVE_LIMITS.maxConstraints) reasons.push(`m>${SOLVE_LIMITS.maxConstraints}`);
   if (nVars * nCons > SOLVE_LIMITS.maxDenseCells) {
     reasons.push(`m*n>${SOLVE_LIMITS.maxDenseCells}`);
   }
-  if (bodyBytes > SOLVE_LIMITS.maxBodyBytes)
-    reasons.push(`body>${SOLVE_LIMITS.maxBodyBytes}`);
+  if (bodyBytes > SOLVE_LIMITS.maxBodyBytes) reasons.push(`body>${SOLVE_LIMITS.maxBodyBytes}`);
   return { ok: reasons.length === 0, reasons };
 }

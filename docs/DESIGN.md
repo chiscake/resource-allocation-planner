@@ -15,7 +15,6 @@ preview_swatch: ['#ffffff', '#0a0a0a', '#2563eb']
 related: [anthropic, modal, replicate]
 description: 'Cartesia presents real-time voice as laboratory instrument. The canvas is clinical white (`#ffffff`), the type is a Suisse-adjacent Inter cut held at hairline weights, and a single confident deep blue (`#2563eb`) carries every action. Mono captions in `IBM Plex Mono` mark technical specs and latency benchmarks — the visual language is research-paper restraint, not product marketing flourish. Where consumer voice products lean on glow gradients or character mascots, Cartesia ships a near-monochrome page that reads as infrastructure: pure white, near-black type, one deep blue, and mono benchmarks treated as first-class content. The brand''s entire competitive edge is "we ship 90ms time-to-first-byte" — the visual language exists to make that claim feel measured rather than marketed.'
 
-
 # Canonical 8-role aliases (bg / text / brand / border / accent / muted / surface / danger).
 # Maps role names to this entry's actual token names so role-aware
 # downstream tools resolve `theme.background` → entry's `bg`, etc.
@@ -32,40 +31,40 @@ aliases:
   ring: border-strong
 colors:
   # Primary
-  bg: '#ffffff'                          # clinical white canvas — defining surface
-  bg-soft: '#fafafa'                     # subtle off-white for code panels and benchmark plots
-  surface: '#f5f5f5'                     # neutral grey panel base
-  surface-strong: '#e5e5e5'              # divider strength surface
-  surface-hover: '#f0f0f0'               # hover wash on neutral panels
-  text: '#0a0a0a'                        # near-black body text — never pure #000 outside CTA
-  text-strong: '#000000'                 # absolute black reserved for CTA pills
-  text-medium: '#262626'                 # secondary heading emphasis
-  text-muted: '#525252'                  # captions, metadata
-  text-soft: '#737373'                   # supporting copy, helper text
-  text-faint: '#a3a3a3'                  # disabled, microcopy
-  on-brand: '#ffffff'                    # white label on deep-blue brand swatches
-  on-cta: '#ffffff'                      # white label on near-black CTA pills
+  bg: '#ffffff' # clinical white canvas — defining surface
+  bg-soft: '#fafafa' # subtle off-white for code panels and benchmark plots
+  surface: '#f5f5f5' # neutral grey panel base
+  surface-strong: '#e5e5e5' # divider strength surface
+  surface-hover: '#f0f0f0' # hover wash on neutral panels
+  text: '#0a0a0a' # near-black body text — never pure #000 outside CTA
+  text-strong: '#000000' # absolute black reserved for CTA pills
+  text-medium: '#262626' # secondary heading emphasis
+  text-muted: '#525252' # captions, metadata
+  text-soft: '#737373' # supporting copy, helper text
+  text-faint: '#a3a3a3' # disabled, microcopy
+  on-brand: '#ffffff' # white label on deep-blue brand swatches
+  on-cta: '#ffffff' # white label on near-black CTA pills
 
   # Brand & Accent
-  brand: '#2563eb'                       # signature deep blue — inline links, secondary accents
-  brand-hover: '#1d4fd7'                 # pressed state for blue actions
-  brand-deep: '#1e40af'                  # rare deep-blue accent on white
-  brand-soft: '#dbeafe'                  # tonal info-callout fill
-  brand-faint: '#eff6ff'                 # quietest blue tint for spec table headers
-  accent: '#0a0a0a'                      # near-black accent — the "second action" colour
+  brand: '#2563eb' # signature deep blue — inline links, secondary accents
+  brand-hover: '#1d4fd7' # pressed state for blue actions
+  brand-deep: '#1e40af' # rare deep-blue accent on white
+  brand-soft: '#dbeafe' # tonal info-callout fill
+  brand-faint: '#eff6ff' # quietest blue tint for spec table headers
+  accent: '#0a0a0a' # near-black accent — the "second action" colour
 
   # Interactive
-  link: '#2563eb'                        # deep blue, underlined on hover
-  link-hover: '#1d4fd7'                  # pressed link state
-  selected-bg: '#eff6ff'                 # selected nav and selected row tint
-  disabled-bg: '#f5f5f5'                 # disabled control fill
-  disabled-text: '#a3a3a3'               # disabled control label
+  link: '#2563eb' # deep blue, underlined on hover
+  link-hover: '#1d4fd7' # pressed link state
+  selected-bg: '#eff6ff' # selected nav and selected row tint
+  disabled-bg: '#f5f5f5' # disabled control fill
+  disabled-text: '#a3a3a3' # disabled control label
 
   # Borders
-  border: '#e5e5e5'                      # default hairline — neutral cool grey
-  border-strong: '#d4d4d4'               # emphasized rule
-  border-soft: '#f0f0f0'                 # quietest division
-  border-focus: '#2563eb'                # focus-ring blue
+  border: '#e5e5e5' # default hairline — neutral cool grey
+  border-strong: '#d4d4d4' # emphasized rule
+  border-soft: '#f0f0f0' # quietest division
+  border-focus: '#2563eb' # focus-ring blue
 
   # Semantic
   success-bg: '#dcfce7'
@@ -80,8 +79,8 @@ colors:
   # Shadow tints
 
 shadow-tints:
-  shadow-rgb: '0, 0, 0'                  # neutral black-tinted shadow base
-  shadow-blue: '37, 99, 235'             # rare blue-tinted focus glow
+  shadow-rgb: '0, 0, 0' # neutral black-tinted shadow base
+  shadow-blue: '37, 99, 235' # rare blue-tinted focus glow
 typography:
   display:
     family: 'Inter, "InterDisplay", -apple-system, "system-ui", "Helvetica Neue", sans-serif'
@@ -96,23 +95,39 @@ typography:
     weights: [400, 500]
     opentype-features: ['tnum', 'zero', 'ss02']
   scale:
-    display-hero:    { size: 96, weight: 500, lineHeight: 1.02, tracking: '-0.035em', family: display, opentype: 'ss01' }
-    display:         { size: 80, weight: 500, lineHeight: 1.04, tracking: '-0.03em',  family: display }
-    h1:              { size: 72, weight: 500, lineHeight: 1.05, tracking: '-0.03em',  family: display }
-    h2:              { size: 48, weight: 500, lineHeight: 1.1,  tracking: '-0.02em',  family: display }
-    h3:              { size: 32, weight: 500, lineHeight: 1.2,  tracking: '-0.015em', family: display }
-    h4:              { size: 24, weight: 500, lineHeight: 1.3,  tracking: '-0.01em',  family: display }
-    h5:              { size: 18, weight: 500, lineHeight: 1.4,  family: display }
-    eyebrow:         { size: 12, weight: 500, lineHeight: 1.4,  tracking: '0.06em',   family: mono, transform: uppercase }
-    body-large:      { size: 18, weight: 400, lineHeight: 1.55, family: body }
-    body:            { size: 15, weight: 400, lineHeight: 1.5,  family: body }
-    body-small:      { size: 14, weight: 400, lineHeight: 1.5,  family: body }
-    caption:         { size: 13, weight: 400, lineHeight: 1.4,  family: body }
-    caption-tabular: { size: 13, weight: 500, lineHeight: 1.4,  family: mono, opentype: 'tnum' }
-    label:           { size: 13, weight: 500, lineHeight: 1.3,  family: body }
-    code:            { size: 13, weight: 400, lineHeight: 1.55, family: mono, opentype: 'tnum zero' }
-    code-micro:      { size: 11, weight: 400, lineHeight: 1.4,  family: mono }
-    benchmark:       { size: 14, weight: 500, lineHeight: 1.3,  family: mono, opentype: 'tnum' }
+    display-hero:
+      {
+        size: 96,
+        weight: 500,
+        lineHeight: 1.02,
+        tracking: '-0.035em',
+        family: display,
+        opentype: 'ss01',
+      }
+    display: { size: 80, weight: 500, lineHeight: 1.04, tracking: '-0.03em', family: display }
+    h1: { size: 72, weight: 500, lineHeight: 1.05, tracking: '-0.03em', family: display }
+    h2: { size: 48, weight: 500, lineHeight: 1.1, tracking: '-0.02em', family: display }
+    h3: { size: 32, weight: 500, lineHeight: 1.2, tracking: '-0.015em', family: display }
+    h4: { size: 24, weight: 500, lineHeight: 1.3, tracking: '-0.01em', family: display }
+    h5: { size: 18, weight: 500, lineHeight: 1.4, family: display }
+    eyebrow:
+      {
+        size: 12,
+        weight: 500,
+        lineHeight: 1.4,
+        tracking: '0.06em',
+        family: mono,
+        transform: uppercase,
+      }
+    body-large: { size: 18, weight: 400, lineHeight: 1.55, family: body }
+    body: { size: 15, weight: 400, lineHeight: 1.5, family: body }
+    body-small: { size: 14, weight: 400, lineHeight: 1.5, family: body }
+    caption: { size: 13, weight: 400, lineHeight: 1.4, family: body }
+    caption-tabular: { size: 13, weight: 500, lineHeight: 1.4, family: mono, opentype: 'tnum' }
+    label: { size: 13, weight: 500, lineHeight: 1.3, family: body }
+    code: { size: 13, weight: 400, lineHeight: 1.55, family: mono, opentype: 'tnum zero' }
+    code-micro: { size: 11, weight: 400, lineHeight: 1.4, family: mono }
+    benchmark: { size: 14, weight: 500, lineHeight: 1.3, family: mono, opentype: 'tnum' }
 
 radius:
   micro: 2
@@ -249,21 +264,21 @@ shadows:
   ring-offset: '0 0 0 2px #ffffff, 0 0 0 4px #2563eb'
 
 accessibility:
-  contrast-text-on-bg: 19.5              # #0a0a0a on #ffffff — AAA at all sizes
-  contrast-text-on-brand: 4.5            # #ffffff on #2563eb — AA at body sizes
-  contrast-text-muted-on-bg: 7.6         # #525252 on #ffffff — AAA
-  contrast-text-soft-on-bg: 4.6          # #737373 on #ffffff — AA at body sizes
-  contrast-link-on-bg: 8.6               # #2563eb on #ffffff — AAA at body
+  contrast-text-on-bg: 19.5 # #0a0a0a on #ffffff — AAA at all sizes
+  contrast-text-on-brand: 4.5 # #ffffff on #2563eb — AA at body sizes
+  contrast-text-muted-on-bg: 7.6 # #525252 on #ffffff — AAA
+  contrast-text-soft-on-bg: 4.6 # #737373 on #ffffff — AA at body sizes
+  contrast-link-on-bg: 8.6 # #2563eb on #ffffff — AAA at body
   focus-ring: '2px solid #2563eb with 2px white offset'
   reduced-motion-honored: true
   keyboard-nav: 'visible focus on every interactive surface; tab order matches visual reading order'
   prose-line-length: 'capped at 720px (~70 characters) for hero copy and long-form prose'
   aria-patterns: 'comboboxes use aria-controls + aria-expanded; modals use aria-modal + initial-focus; benchmark tables use scope="col" / scope="row"'
 
-dark-mode: null                          # marketing surface is light-only; dashboard handles its own theme
+dark-mode: null # marketing surface is light-only; dashboard handles its own theme
 
 lineage:
-  summary: 'Cartesia is the deliberate inverse of the gradient-soaked AI landing page — clinical white canvas, hairline Inter at weight 500, IBM Plex Mono benchmarks treated as content. The chromatic restraint is aggressive: white / near-black / one deep blue. Lineage runs through Anthropic''s research-lab restraint, Stripe''s single-confident-blue discipline, Modal''s mono-spec density, and arXiv preprint conventions.'
+  summary: "Cartesia is the deliberate inverse of the gradient-soaked AI landing page — clinical white canvas, hairline Inter at weight 500, IBM Plex Mono benchmarks treated as content. The chromatic restraint is aggressive: white / near-black / one deep blue. Lineage runs through Anthropic's research-lab restraint, Stripe's single-confident-blue discipline, Modal's mono-spec density, and arXiv preprint conventions."
   influences:
     - name: Anthropic
       role: 'Cream-and-slate restraint translated into white-and-black; type-led marketing without imagery; long-form-prose-as-marketing pattern'
@@ -290,15 +305,16 @@ lineage:
 
 ## 1. Visual Theme & Atmosphere
 
-Cartesia presents voice AI as a category of *infrastructure* rather than a creative tool, and the marketing surface enforces that read at every turn. Open the homepage and you land on pure clinical white `#ffffff` — not paper-cream, not warm off-white, but a calibrated lab-coat white that signals measurement first and feeling second. There are essentially no decorative gradients, no hero illustrations, no character work. Just type, benchmarks, and a single deep blue (`#2563eb`) that surfaces in inline links and secondary accents.
+Cartesia presents voice AI as a category of _infrastructure_ rather than a creative tool, and the marketing surface enforces that read at every turn. Open the homepage and you land on pure clinical white `#ffffff` — not paper-cream, not warm off-white, but a calibrated lab-coat white that signals measurement first and feeling second. There are essentially no decorative gradients, no hero illustrations, no character work. Just type, benchmarks, and a single deep blue (`#2563eb`) that surfaces in inline links and secondary accents.
 
 The most consequential decision in the entire system is a typographic one: **Inter is held to weight 500 at headline scale**, never 700. That single choice — lighter weight than the marketing-default 700 — shifts the tone from "consumer product launch" to "research preview." Hairline-cut display copy on a white canvas is the visual equivalent of a paper preprint: confident, measured, and slightly clinical. Latency numbers and model parameter counts are then set in **IBM Plex Mono** at 13–14px and treated as first-class typographic content rather than relegated to fine print, the way a scientific journal treats a results table.
 
 The chromatic palette is aggressively narrow. White, near-black `#0a0a0a`, neutral grey `#f5f5f5`, and one deep blue `#2563eb` for inline links and the rare brand-hero CTA. A designer could implement the entire site with `text-black`, `text-neutral-500`, `bg-neutral-100`, and `text-blue-600` and miss almost nothing essential. The discipline is the brand — every additional hue would dilute the lab posture.
 
-Atmospheric vocabulary that captures the feeling: *lab-white, hairline-Inter, Plex-mono-benchmark, single-blue-action, research-preview, paper-restraint, instrument-grade, infrastructure-not-product, top-of-funnel-paper, technical-voice.* Every surface lands as if the page were a measurement device rather than a marketing document.
+Atmospheric vocabulary that captures the feeling: _lab-white, hairline-Inter, Plex-mono-benchmark, single-blue-action, research-preview, paper-restraint, instrument-grade, infrastructure-not-product, top-of-funnel-paper, technical-voice._ Every surface lands as if the page were a measurement device rather than a marketing document.
 
 **Key Characteristics**
+
 - Clinical white `#ffffff` canvas — never paper-cream, never off-white
 - Inter held to weight **500** at headline scale — never 700
 - IBM Plex Mono treated as content type — benchmarks belong to the type system
@@ -308,7 +324,7 @@ Atmospheric vocabulary that captures the feeling: *lab-white, hairline-Inter, Pl
 - 720px prose width on a 1200px page — broadsheet-narrow reading column
 - 96–128px section gutters — paper-style rhythm rather than dashboard density
 - Effectively no shadows — depth from `#fafafa` tonal step + `#e5e5e5` hairline
-- Restraint as the brand — what Cartesia *doesn't* show is the loudest signal
+- Restraint as the brand — what Cartesia _doesn't_ show is the loudest signal
 
 ## 2. Color Palette & Roles
 
@@ -377,29 +393,29 @@ Cartesia uses **neutral-black-tinted** shadows at extremely low opacity (0.04–
 
 ### Hierarchy
 
-| Role | Font | Size | Weight | Line Height | Letter Spacing | OT Features | Notes |
-|---|---|---|---|---|---|---|---|
-| display-hero | Inter | 96 | 500 | 1.02 | -0.035em | ss01 | Rare hero — research-preview launches |
-| display | Inter | 80 | 500 | 1.04 | -0.03em | — | Section openers |
-| h1 | Inter | 72 | 500 | 1.05 | -0.03em | — | Standard hero |
-| h2 | Inter | 48 | 500 | 1.1 | -0.02em | — | Section heading |
-| h3 | Inter | 32 | 500 | 1.2 | -0.015em | — | Subsection |
-| h4 | Inter | 24 | 500 | 1.3 | -0.01em | — | Card heading |
-| h5 | Inter | 18 | 500 | 1.4 | normal | — | Inline subheading |
-| eyebrow | Plex Mono | 12 | 500 | 1.4 | 0.06em | uppercase | Section label, kicker |
-| body-large | Inter | 18 | 400 | 1.55 | normal | — | Lede paragraph |
-| body | Inter | 15 | 400 | 1.5 | normal | — | Default body |
-| body-small | Inter | 14 | 400 | 1.5 | normal | — | Secondary copy |
-| caption | Inter | 13 | 400 | 1.4 | normal | — | Helper text, image captions |
-| caption-tabular | Plex Mono | 13 | 500 | 1.4 | normal | tnum | Spec-row data |
-| label | Inter | 13 | 500 | 1.3 | normal | — | Form labels, button text |
-| code | Plex Mono | 13 | 400 | 1.55 | normal | tnum zero | Inline + block code |
-| code-micro | Plex Mono | 11 | 400 | 1.4 | normal | — | Footnotes, citations |
-| benchmark | Plex Mono | 14 | 500 | 1.3 | normal | tnum | Latency / TTFB / param counts |
+| Role            | Font      | Size | Weight | Line Height | Letter Spacing | OT Features | Notes                                 |
+| --------------- | --------- | ---- | ------ | ----------- | -------------- | ----------- | ------------------------------------- |
+| display-hero    | Inter     | 96   | 500    | 1.02        | -0.035em       | ss01        | Rare hero — research-preview launches |
+| display         | Inter     | 80   | 500    | 1.04        | -0.03em        | —           | Section openers                       |
+| h1              | Inter     | 72   | 500    | 1.05        | -0.03em        | —           | Standard hero                         |
+| h2              | Inter     | 48   | 500    | 1.1         | -0.02em        | —           | Section heading                       |
+| h3              | Inter     | 32   | 500    | 1.2         | -0.015em       | —           | Subsection                            |
+| h4              | Inter     | 24   | 500    | 1.3         | -0.01em        | —           | Card heading                          |
+| h5              | Inter     | 18   | 500    | 1.4         | normal         | —           | Inline subheading                     |
+| eyebrow         | Plex Mono | 12   | 500    | 1.4         | 0.06em         | uppercase   | Section label, kicker                 |
+| body-large      | Inter     | 18   | 400    | 1.55        | normal         | —           | Lede paragraph                        |
+| body            | Inter     | 15   | 400    | 1.5         | normal         | —           | Default body                          |
+| body-small      | Inter     | 14   | 400    | 1.5         | normal         | —           | Secondary copy                        |
+| caption         | Inter     | 13   | 400    | 1.4         | normal         | —           | Helper text, image captions           |
+| caption-tabular | Plex Mono | 13   | 500    | 1.4         | normal         | tnum        | Spec-row data                         |
+| label           | Inter     | 13   | 500    | 1.3         | normal         | —           | Form labels, button text              |
+| code            | Plex Mono | 13   | 400    | 1.55        | normal         | tnum zero   | Inline + block code                   |
+| code-micro      | Plex Mono | 11   | 400    | 1.4         | normal         | —           | Footnotes, citations                  |
+| benchmark       | Plex Mono | 14   | 500    | 1.3         | normal         | tnum        | Latency / TTFB / param counts         |
 
 ### Principles
 
-- **Weight 500 is the entire voice.** The single biggest typographic decision is *not* using 700 at headline scale. Marketing-default Inter at 700 reads as "product launch"; Inter at 500 reads as "paper preview." Cartesia is the latter.
+- **Weight 500 is the entire voice.** The single biggest typographic decision is _not_ using 700 at headline scale. Marketing-default Inter at 700 reads as "product launch"; Inter at 500 reads as "paper preview." Cartesia is the latter.
 - **Mono is content, not decoration.** Benchmarks, latency, and param counts are first-class typographic citizens. They get tabular numbers, slashed zeros, and the same vertical rhythm as body copy.
 - **Negative tracking on display only.** `-0.03em` on h1, `-0.02em` on h2, scaling down to normal at body. Body is never compressed.
 - **Two-mode OpenType discipline.** Display uses `ss01` for single-storey `a` (cleaner at large sizes); mono uses `tnum + zero` for legible numerics.
@@ -491,28 +507,28 @@ The page alternates **white** and **`#fafafa` faint-grey** bands every 2–3 sec
 
 ## 6. Shapes & Radius Scale
 
-| Tier | Value | Use |
-|---|---|---|
-| Micro | 2px | Hairline tags, focus indicator inner-stroke |
-| Small | 4px | Inline tags, dense form chips |
-| Medium | 6px | Ghost buttons, nav pills |
-| Standard | 8px | Buttons (primary, secondary, blue), inputs |
-| Comfortable | 10px | Toasts, dense modals |
-| Card | 12px | Spec cards, code panels, content cards |
-| Pill | 9999px | Badges, status chips, mono benchmark badges |
+| Tier        | Value  | Use                                         |
+| ----------- | ------ | ------------------------------------------- |
+| Micro       | 2px    | Hairline tags, focus indicator inner-stroke |
+| Small       | 4px    | Inline tags, dense form chips               |
+| Medium      | 6px    | Ghost buttons, nav pills                    |
+| Standard    | 8px    | Buttons (primary, secondary, blue), inputs  |
+| Comfortable | 10px   | Toasts, dense modals                        |
+| Card        | 12px   | Spec cards, code panels, content cards      |
+| Pill        | 9999px | Badges, status chips, mono benchmark badges |
 
 Note the absence of larger radii — no 16px, no 20px, no 24px. Cartesia's radius vocabulary tops out at 12px for cards and 9999px for pills, with **8px the dominant control radius**. The tighter-than-typical radius (most modern SaaS sits at 10–12px on buttons) is itself part of the technical voice. Tighter corners read as instrument-grade.
 
 ## 7. Depth & Elevation
 
-| Level | Treatment | Use |
-|---|---|---|
-| 0 (flat) | No shadow, no border | Page bg, hero copy |
-| 1 (hairline) | `1px #e5e5e5` border, no shadow | Spec cards, default cards |
-| 2 (tonal) | `#fafafa` background tint, no shadow | Code panels, benchmark plots |
-| 3 (ambient) | `rgba(0,0,0,0.06) 0 4px 12px` | Toasts, dropdown menus |
-| 4 (elevated) | `rgba(0,0,0,0.08) 0 12px 28px -8px` | Tooltips when needed, popovers |
-| 5 (modal) | `rgba(0,0,0,0.12) 0 24px 48px -12px` | Modal panels |
+| Level        | Treatment                            | Use                            |
+| ------------ | ------------------------------------ | ------------------------------ |
+| 0 (flat)     | No shadow, no border                 | Page bg, hero copy             |
+| 1 (hairline) | `1px #e5e5e5` border, no shadow      | Spec cards, default cards      |
+| 2 (tonal)    | `#fafafa` background tint, no shadow | Code panels, benchmark plots   |
+| 3 (ambient)  | `rgba(0,0,0,0.06) 0 4px 12px`        | Toasts, dropdown menus         |
+| 4 (elevated) | `rgba(0,0,0,0.08) 0 12px 28px -8px`  | Tooltips when needed, popovers |
+| 5 (modal)    | `rgba(0,0,0,0.12) 0 24px 48px -12px` | Modal panels                   |
 
 ### Shadow Philosophy
 
@@ -556,15 +572,15 @@ The site is essentially static; there is no SPA-style route transition. Section 
 
 ### Contrast pairs (computed)
 
-| Pair | Ratio | WCAG |
-|---|---|---|
-| `#0a0a0a` on `#ffffff` (body) | 19.5:1 | AAA |
-| `#ffffff` on `#0a0a0a` (CTA) | 19.5:1 | AAA |
-| `#525252` on `#ffffff` (muted) | 7.6:1 | AAA |
-| `#737373` on `#ffffff` (soft) | 4.6:1 | AA at body |
-| `#2563eb` on `#ffffff` (link) | 8.6:1 | AAA |
-| `#ffffff` on `#2563eb` (blue CTA) | 4.5:1 | AA at body |
-| `#525252` on `#fafafa` (muted on soft) | 7.4:1 | AAA |
+| Pair                                   | Ratio  | WCAG       |
+| -------------------------------------- | ------ | ---------- |
+| `#0a0a0a` on `#ffffff` (body)          | 19.5:1 | AAA        |
+| `#ffffff` on `#0a0a0a` (CTA)           | 19.5:1 | AAA        |
+| `#525252` on `#ffffff` (muted)         | 7.6:1  | AAA        |
+| `#737373` on `#ffffff` (soft)          | 4.6:1  | AA at body |
+| `#2563eb` on `#ffffff` (link)          | 8.6:1  | AAA        |
+| `#ffffff` on `#2563eb` (blue CTA)      | 4.5:1  | AA at body |
+| `#525252` on `#fafafa` (muted on soft) | 7.4:1  | AAA        |
 
 ### Focus indicators
 
@@ -600,13 +616,13 @@ Honoured globally. See §8.
 
 ### Breakpoints
 
-| Name | Min-width | Notes |
-|---|---|---|
-| mobile | 0 | Single-column, 24px gutter |
-| tablet | 640px | 2-up feature grid, hero copy at 48px |
-| desktop | 1024px | 3-up grid, hero copy at 64px |
-| wide | 1280px | Full 12-column grid, hero copy at 72px |
-| max | 1440px | Container caps at 1200px, gutter expands |
+| Name    | Min-width | Notes                                    |
+| ------- | --------- | ---------------------------------------- |
+| mobile  | 0         | Single-column, 24px gutter               |
+| tablet  | 640px     | 2-up feature grid, hero copy at 48px     |
+| desktop | 1024px    | 3-up grid, hero copy at 64px             |
+| wide    | 1280px    | Full 12-column grid, hero copy at 72px   |
+| max     | 1440px    | Container caps at 1200px, gutter expands |
 
 ### Touch targets
 
@@ -646,7 +662,7 @@ Used sparingly on the spec card — the card swaps from horizontal-data-row layo
 
 ### CTA verb conventions
 
-The brand uses **specific** verbs: *Get*, *Try*, *Read*, *View*, *Talk*. Avoided: *Sign up*, *Learn more* (vague), *Discover*, *Unlock*, *Supercharge*. The ladder is:
+The brand uses **specific** verbs: _Get_, _Try_, _Read_, _View_, _Talk_. Avoided: _Sign up_, _Learn more_ (vague), _Discover_, _Unlock_, _Supercharge_. The ladder is:
 
 1. **Try Sonic** — top hero CTA, reserved for live-demo entry.
 2. **Get API key** — secondary hero CTA, the actual conversion path.
@@ -678,9 +694,10 @@ But none of this is shipped. **Light-only — no dark variant offered.**
 
 Cartesia's design is the deliberate inverse of the gradient-soaked AI landing page. The site reads like a research lab's homepage — clinical white canvas, hairline Inter at 500 weight rather than 700, mono captions for benchmarks, and a single near-black CTA that doubles as the brand mark. The chromatic restraint is aggressive: the entire palette is essentially `#000` / `#fff` with one deep blue (`#2563eb`) reserved for inline links and secondary accents. This places the brand visually closer to **Anthropic** and **Modal** than to **ElevenLabs** or **Suno**, signalling "we are infrastructure" rather than "we are creative tooling." Mono in IBM Plex Mono carries the technical voice — latency numbers, model parameter counts, API endpoints — and is what most clearly distinguishes Cartesia from the broader sea of minimal AI brands.
 
-The lineage also rejects two adjacent registers. Cartesia is *not* the consumer voice-AI register (no purple gradients, no character mascots, no live waveform animations), and it is *not* the creative-tool register (no playful illustrations, no "play with sound" copy). The market position — voice infrastructure for builders — demands the paper-preview register.
+The lineage also rejects two adjacent registers. Cartesia is _not_ the consumer voice-AI register (no purple gradients, no character mascots, no live waveform animations), and it is _not_ the creative-tool register (no playful illustrations, no "play with sound" copy). The market position — voice infrastructure for builders — demands the paper-preview register.
 
 **Named influences**:
+
 - **Anthropic** ([https://anthropic.com](https://anthropic.com)) — Cream-and-slate restraint translated into white-and-black; type-led marketing without imagery; long-form-prose-as-marketing pattern.
 - **Stripe** ([https://stripe.com](https://stripe.com)) — Single-confident-blue action discipline; data-as-proof; focus-ring colour vocabulary.
 - **Modal** ([https://modal.com](https://modal.com)) — Mono benchmarks treated as primary content; spec-table density.
@@ -738,17 +755,17 @@ focus-ring:   #2563eb
 
 ### Example Component Prompts
 
-1. *"Create a Cartesia-style hero section: white canvas `#ffffff`, headline in Inter weight 500 at 72px with -0.03em tracking, body in Inter 400 at 18px / 1.55 line-height, primary CTA as a near-black `#0a0a0a` pill at 8px radius with white text, secondary CTA as outlined `1px #e5e5e5` with the same text in `#0a0a0a`. Include a `90ms TTFB` mono badge in IBM Plex Mono at 11px / pill radius / `#f5f5f5` bg / `#525252` text."*
+1. _"Create a Cartesia-style hero section: white canvas `#ffffff`, headline in Inter weight 500 at 72px with -0.03em tracking, body in Inter 400 at 18px / 1.55 line-height, primary CTA as a near-black `#0a0a0a` pill at 8px radius with white text, secondary CTA as outlined `1px #e5e5e5` with the same text in `#0a0a0a`. Include a `90ms TTFB` mono badge in IBM Plex Mono at 11px / pill radius / `#f5f5f5` bg / `#525252` text."_
 
-2. *"Design a Cartesia-style benchmark spec card: white background, 12px radius, 1px `#e5e5e5` border, no shadow. Inside, three rows separated by hairline rules. Each row: `12px 0` padding, label in Inter 500 / 13px on the left, value in IBM Plex Mono 500 / 14px with tabular numbers on the right. Use `90ms`, `7B`, `16kHz` as sample values."*
+2. _"Design a Cartesia-style benchmark spec card: white background, 12px radius, 1px `#e5e5e5` border, no shadow. Inside, three rows separated by hairline rules. Each row: `12px 0` padding, label in Inter 500 / 13px on the left, value in IBM Plex Mono 500 / 14px with tabular numbers on the right. Use `90ms`, `7B`, `16kHz` as sample values."_
 
-3. *"Build a Cartesia-style API code block: `#fafafa` panel, 12px radius, no border, `24px` padding. Code in IBM Plex Mono 400 / 13px / 1.55 line-height. Add a copy button at top-right — ghost style, transparent bg, hover `#f5f5f5`."*
+3. _"Build a Cartesia-style API code block: `#fafafa` panel, 12px radius, no border, `24px` padding. Code in IBM Plex Mono 400 / 13px / 1.55 line-height. Add a copy button at top-right — ghost style, transparent bg, hover `#f5f5f5`."_
 
-4. *"Create a Cartesia-style nav bar: 56px height, white bg, no border, no shadow. Wordmark left in Inter 500, nav links right in Inter 500 / 14px / `#0a0a0a`. Ghost button hover `#f5f5f5` at 6px radius. Right-most CTA is a near-black pill 'Get API key'."*
+4. _"Create a Cartesia-style nav bar: 56px height, white bg, no border, no shadow. Wordmark left in Inter 500, nav links right in Inter 500 / 14px / `#0a0a0a`. Ghost button hover `#f5f5f5` at 6px radius. Right-most CTA is a near-black pill 'Get API key'."_
 
-5. *"Design a Cartesia-style benchmark plot: full-width container, `#fafafa` plot background, 12px radius. Horizontal bar chart with our model bars in `#2563eb` at 4px radius and competitor bars in `#e5e5e5` at the same radius. Bar labels in IBM Plex Mono 13px / `#0a0a0a` on the left; values in IBM Plex Mono 13px / `#0a0a0a` on the right with tabular numbers. Plot title in Inter 500 / 24px above."*
+5. _"Design a Cartesia-style benchmark plot: full-width container, `#fafafa` plot background, 12px radius. Horizontal bar chart with our model bars in `#2563eb` at 4px radius and competitor bars in `#e5e5e5` at the same radius. Bar labels in IBM Plex Mono 13px / `#0a0a0a` on the left; values in IBM Plex Mono 13px / `#0a0a0a` on the right with tabular numbers. Plot title in Inter 500 / 24px above."_
 
-6. *"Build a Cartesia-style pricing table: 3 columns, white cards with `1px #e5e5e5` border and 12px radius, 32px interior padding. Plan name in Inter 500 / 24px. Price in Inter 500 / 48px with tabular numbers. Feature list in Inter 400 / 15px / 1.5 line-height with `#525252` colour. Featured plan replaces border with `1px #2563eb` border (no shadow). CTA at the bottom of each card — near-black pill on free, deep-blue pill on Pro."*
+6. _"Build a Cartesia-style pricing table: 3 columns, white cards with `1px #e5e5e5` border and 12px radius, 32px interior padding. Plan name in Inter 500 / 24px. Price in Inter 500 / 48px with tabular numbers. Feature list in Inter 400 / 15px / 1.5 line-height with `#525252` colour. Featured plan replaces border with `1px #2563eb` border (no shadow). CTA at the bottom of each card — near-black pill on free, deep-blue pill on Pro."_
 
 ### Iteration Guide
 

@@ -1,51 +1,44 @@
 /** Current model document version — do not bump while AGENTS schema_version rule exists. */
 export const SCHEMA_VERSION = 1 as const;
 
-export type SolveStatus = "done" | "rejected_too_large" | "accepted";
+export type SolveStatus = 'done' | 'rejected_too_large' | 'accepted';
 
-export type VenuePreference = "auto" | "cloud" | "local";
-export type ResolvedVenue = "cloud" | "local";
+export type VenuePreference = 'auto' | 'cloud' | 'local';
+export type ResolvedVenue = 'cloud' | 'local';
 
 /** Solve algorithm family (UI tabs). */
-export type SolveMethod = "lp" | "ipm" | "ga" | "dln";
+export type SolveMethod = 'lp' | 'ipm' | 'ga' | 'dln';
 
 /** How the method is implemented: hand-rolled vs third-party library. */
-export type SolveEngine = "native" | "library";
+export type SolveEngine = 'native' | 'library';
 
-export const SOLVE_METHODS: SolveMethod[] = ["lp", "ipm", "ga", "dln"];
-export const SOLVE_ENGINES: SolveEngine[] = ["native", "library"];
+export const SOLVE_METHODS: SolveMethod[] = ['lp', 'ipm', 'ga', 'dln'];
+export const SOLVE_ENGINES: SolveEngine[] = ['native', 'library'];
 
 export function isSolveMethod(v: unknown): v is SolveMethod {
-  return v === "lp" || v === "ipm" || v === "ga" || v === "dln";
+  return v === 'lp' || v === 'ipm' || v === 'ga' || v === 'dln';
 }
 
 export function isSolveEngine(v: unknown): v is SolveEngine {
-  return v === "native" || v === "library";
+  return v === 'native' || v === 'library';
 }
 
 /** Package id before `@venue` in solver_meta.library. */
-export function libraryPackageId(
-  method: SolveMethod,
-  engine: SolveEngine,
-): string {
-  if (method === "lp") {
-    return engine === "library" ? "javascript-lp-solver" : "simplex-native";
+export function libraryPackageId(method: SolveMethod, engine: SolveEngine): string {
+  if (method === 'lp') {
+    return engine === 'library' ? 'javascript-lp-solver' : 'simplex-native';
   }
-  if (method === "ipm") {
-    return engine === "library" ? "interior-point-lib" : "interior-point";
+  if (method === 'ipm') {
+    return engine === 'library' ? 'interior-point-lib' : 'interior-point';
   }
-  if (method === "dln") {
-    return engine === "library" ? "dln-diagonal-lib" : "dln-diagonal";
+  if (method === 'dln') {
+    return engine === 'library' ? 'dln-diagonal-lib' : 'dln-diagonal';
   }
-  return engine === "library" ? "ga-evolutionary-lib" : "ga-evolutionary";
+  return engine === 'library' ? 'ga-evolutionary-lib' : 'ga-evolutionary';
 }
 
 /** library string identifies package + venue, e.g. `interior-point@local`. */
-export function libraryFor(
-  method: SolveMethod,
-  venue: ResolvedVenue,
-  engine: SolveEngine,
-): string {
+export function libraryFor(method: SolveMethod, venue: ResolvedVenue, engine: SolveEngine): string {
   return `${libraryPackageId(method, engine)}@${venue}`;
 }
 
@@ -71,7 +64,7 @@ export interface WhatIfDefaults {
   price_pct?: number | null;
 }
 
-export type MutationKind = "resource_change" | "modernization" | "price_change";
+export type MutationKind = 'resource_change' | 'modernization' | 'price_change';
 
 export interface Mutation {
   kind: MutationKind;
@@ -99,11 +92,11 @@ export type GaRunConfig = {
   crossoverProbability: number;
   mutationProbability: number;
   mutationSigma: number;
-  selectionMethod: "roulette" | "rank" | "tournament" | "elitism";
+  selectionMethod: 'roulette' | 'rank' | 'tournament' | 'elitism';
   tournamentProbability: number;
   tournamentSize: number;
   eliteFraction: number;
-  crossoverType: "uniform" | "one-point";
+  crossoverType: 'uniform' | 'one-point';
   uniformBias: number;
   penaltyM: number;
   /** null = random seed at run time (stored as the concrete seed that was used). */
@@ -113,10 +106,10 @@ export type GaRunConfig = {
   stagnationGenerations: number;
   useStagnation: boolean;
   /** UI preset id when launched from a preset. */
-  preset?: "fast" | "balanced" | "precise" | "custom";
+  preset?: 'fast' | 'balanced' | 'precise' | 'custom';
 };
 
-export type GaStopReason = "maxGenerations" | "stagnation";
+export type GaStopReason = 'maxGenerations' | 'stagnation';
 
 export type DlnRunConfig = {
   lambda: number;
@@ -124,16 +117,16 @@ export type DlnRunConfig = {
   tol: number;
   rowScale: boolean;
   maxIter: number;
-  preset?: "fast" | "precise" | "custom";
+  preset?: 'fast' | 'precise' | 'custom';
 };
 
-export type DlnStopReason = "tol" | "max_iter";
+export type DlnStopReason = 'tol' | 'max_iter';
 
 export type SolveRunProvenance =
-  | { method: "lp"; engine: SolveEngine }
-  | { method: "ipm"; engine: SolveEngine }
+  | { method: 'lp'; engine: SolveEngine }
+  | { method: 'ipm'; engine: SolveEngine }
   | {
-      method: "ga";
+      method: 'ga';
       engine: SolveEngine;
       config: GaRunConfig;
       stopReason?: GaStopReason;
@@ -142,7 +135,7 @@ export type SolveRunProvenance =
       populationSampled?: boolean;
     }
   | {
-      method: "dln";
+      method: 'dln';
       engine: SolveEngine;
       config: DlnRunConfig;
       stopReason?: DlnStopReason;
@@ -158,7 +151,7 @@ export interface SolverMeta {
   rejected_reason?: string;
   hint?: string;
   /** Present when plan x was post-rounded for display; duals remain from continuous LP. */
-  rounding?: "nearest";
+  rounding?: 'nearest';
   /** Explicit method id. */
   method?: SolveMethod;
   /** native = hand-rolled (viz); library = third-party (verify / default calc). */
@@ -182,7 +175,7 @@ export type SimplexTraceFrame = {
   rowLabels?: string[];
   entering?: string;
   leaving?: string;
-  problem?: "primal" | "dual";
+  problem?: 'primal' | 'dual';
   /** Primal solution vector at this frame (product order). */
   x?: number[];
 };
@@ -222,18 +215,18 @@ export type IpmTraceFrame = {
 
 export type SolveTrace =
   | {
-      method: "lp";
+      method: 'lp';
       /** Primal simplex frames. */
       frames: SimplexTraceFrame[];
       /** Dual simplex frames (shadow-price solve). */
       dual_frames?: SimplexTraceFrame[];
     }
   | {
-      method: "ga";
+      method: 'ga';
       generations: GaGenerationSnapshot[];
       meta?: GaTraceMeta;
     }
-  | { method: "ipm"; frames: IpmTraceFrame[] };
+  | { method: 'ipm'; frames: IpmTraceFrame[] };
 
 /** Optional run options passed into engines (GA/DLN hyperparameters). */
 export type SolveRunOptions = {

@@ -14,22 +14,16 @@ import {
   type SolveTrace,
   type WhatIfDefaults,
   type WhatIfRowData,
-} from "$lib/domain";
-import { getRoundPlanPreference, maybeRoundPlan } from "$lib/display";
-import { modelSourceKey } from "$lib/components/model/lp-tableau";
-import { resolveSolveMode } from "$lib/solver/mode";
-import { verifyAgainstLibrary, type VerifyReport } from "$lib/solver/verify";
-import {
-  GA_DEFAULT_SEED,
-  type GaPresetId,
-} from "$lib/solver/methods/ga/presets";
-import {
-  DLN_PRESET_DEFS,
-  type DlnPresetId,
-} from "$lib/solver/methods/dln/presets";
-import { t } from "$lib/i18n";
+} from '$lib/domain';
+import { getRoundPlanPreference, maybeRoundPlan } from '$lib/display';
+import { modelSourceKey } from '$lib/components/model/lp-tableau';
+import { resolveSolveMode } from '$lib/solver/mode';
+import { verifyAgainstLibrary, type VerifyReport } from '$lib/solver/verify';
+import { GA_DEFAULT_SEED, type GaPresetId } from '$lib/solver/methods/ga/presets';
+import { DLN_PRESET_DEFS, type DlnPresetId } from '$lib/solver/methods/dln/presets';
+import { t } from '$lib/i18n';
 
-export type SolveTabId = "plan" | "ipm" | "ga" | "dln";
+export type SolveTabId = 'plan' | 'ipm' | 'ga' | 'dln';
 
 /** Sensitivity table row (Task 13 а/б/в fields). */
 export type WhatIfRow = WhatIfRowData;
@@ -37,23 +31,23 @@ export type WhatIfRow = WhatIfRowData;
 /** Empty/whitespace → null (omit family). Valid number → fraction. */
 export function inputToPct(s: string): number | null {
   const trimmed = s.trim();
-  if (trimmed === "") return null;
+  if (trimmed === '') return null;
   const n = parseFloat(trimmed);
   return Number.isFinite(n) ? n / 100 : null;
 }
 
 export function tabToSolveMethod(tab: string): SolveMethod {
-  if (tab === "ipm") return "ipm";
-  if (tab === "ga") return "ga";
-  if (tab === "dln") return "dln";
-  return "lp";
+  if (tab === 'ipm') return 'ipm';
+  if (tab === 'ga') return 'ga';
+  if (tab === 'dln') return 'dln';
+  return 'lp';
 }
 
 export function solveMethodToTab(method: SolveMethod): SolveTabId {
-  if (method === "ipm") return "ipm";
-  if (method === "ga") return "ga";
-  if (method === "dln") return "dln";
-  return "plan";
+  if (method === 'ipm') return 'ipm';
+  if (method === 'ga') return 'ga';
+  if (method === 'dln') return 'dln';
+  return 'plan';
 }
 
 export function whatIfRowsFromMutations(
@@ -73,17 +67,13 @@ export function whatIfRowsFromMutations(
 }
 
 export type SolveTransportOpts = {
-  engine?: import("$lib/domain").SolveEngine;
+  engine?: import('$lib/domain').SolveEngine;
   cloud?: boolean;
-  options?: import("$lib/domain").SolveRunOptions;
+  options?: import('$lib/domain').SolveRunOptions;
 };
 
 export type SolveTransport = {
-  solve: (
-    model: Model,
-    method: SolveMethod,
-    opts?: SolveTransportOpts,
-  ) => Promise<SolveResponse>;
+  solve: (model: Model, method: SolveMethod, opts?: SolveTransportOpts) => Promise<SolveResponse>;
   runMutations: (
     model: Model,
     mutations: Mutation[],
@@ -123,11 +113,11 @@ export function createSolveSession(init?: {
   model?: Model | null;
   result?: SolveResult | null;
 }) {
-  let activeTab = $state(init?.activeTab ?? "plan");
+  let activeTab = $state(init?.activeTab ?? 'plan');
   let includeSensitivity = $state(init?.includeSensitivity ?? false);
   let roundPlan = $state(false);
   let busy = $state(false);
-  let error = $state("");
+  let error = $state('');
   let solveEpoch = $state(0);
   let model = $state<Model | null>(init?.model ?? null);
   let result = $state<SolveResult | null>(init?.result ?? null);
@@ -136,9 +126,9 @@ export function createSolveSession(init?: {
   let lastTrace = $state<SolveTrace | null>(null);
   let verifyReport = $state<VerifyReport | null>(null);
   let lastWasCloud = $state(false);
-  let gaPreset = $state<GaPresetId>("balanced");
+  let gaPreset = $state<GaPresetId>('balanced');
   let gaConfig = $state<Partial<GaRunConfig>>({ seed: GA_DEFAULT_SEED });
-  let dlnPreset = $state<DlnPresetId>("precise");
+  let dlnPreset = $state<DlnPresetId>('precise');
   let dlnConfig = $state<Partial<DlnRunConfig>>({
     lambda: DLN_PRESET_DEFS.precise.lambda,
     kappa: DLN_PRESET_DEFS.precise.kappa,
@@ -149,21 +139,16 @@ export function createSolveSession(init?: {
 
   const solveMethod = $derived(tabToSolveMethod(activeTab));
   const methodReady = $derived(
-    activeTab === "plan" ||
-      activeTab === "ipm" ||
-      activeTab === "ga" ||
-      activeTab === "dln",
+    activeTab === 'plan' || activeTab === 'ipm' || activeTab === 'ga' || activeTab === 'dln',
   );
-  const displayResult = $derived(
-    result && model ? maybeRoundPlan(model, result, roundPlan) : null,
-  );
+  const displayResult = $derived(result && model ? maybeRoundPlan(model, result, roundPlan) : null);
   const stepsAvailable = $derived(
     !lastWasCloud &&
       result != null &&
-      (solveMethod === "lp" ||
-        solveMethod === "ga" ||
-        solveMethod === "ipm" ||
-        solveMethod === "dln"),
+      (solveMethod === 'lp' ||
+        solveMethod === 'ga' ||
+        solveMethod === 'ipm' ||
+        solveMethod === 'dln'),
   );
 
   function gaSeed(): number | null {
@@ -171,26 +156,26 @@ export function createSolveSession(init?: {
   }
 
   function buildRunOptions(method: SolveMethod): SolveRunOptions | undefined {
-    if (method === "ga") {
+    if (method === 'ga') {
       // Named presets: send only id + seed so leftover custom fields cannot override.
-      if (gaPreset !== "custom") {
+      if (gaPreset !== 'custom') {
         return { ga: { preset: gaPreset, seed: gaSeed() } };
       }
       return {
         ga: {
-          preset: "custom",
+          preset: 'custom',
           seed: gaSeed(),
           ...gaConfig,
         },
       };
     }
-    if (method === "dln") {
-      if (dlnPreset !== "custom") {
+    if (method === 'dln') {
+      if (dlnPreset !== 'custom') {
         return { dln: { preset: dlnPreset } };
       }
       return {
         dln: {
-          preset: "custom",
+          preset: 'custom',
           ...dlnConfig,
         },
       };
@@ -204,7 +189,7 @@ export function createSolveSession(init?: {
 
   function replaceModel(next: Model, opts?: { clearDerived?: boolean }) {
     const clear = opts?.clearDerived ?? true;
-    const prevKey = model ? modelSourceKey(model) : "";
+    const prevKey = model ? modelSourceKey(model) : '';
     const nextKey = modelSourceKey(next);
     model = next;
     if (clear && nextKey !== prevKey) {
@@ -240,8 +225,7 @@ export function createSolveSession(init?: {
     model = cloneModel(next.model);
     result = next.result ?? null;
     if (next.activeTab != null) activeTab = next.activeTab;
-    if (next.includeSensitivity != null)
-      includeSensitivity = next.includeSensitivity;
+    if (next.includeSensitivity != null) includeSensitivity = next.includeSensitivity;
     whatIfItems = next.whatIfItems ?? [];
     lastResponse = next.lastResponse ?? null;
     lastTrace = next.lastResponse?.trace ?? null;
@@ -252,9 +236,9 @@ export function createSolveSession(init?: {
   function applyVerify(report: VerifyReport) {
     verifyReport = report;
     if (!report.anyMismatch) return;
-    console.warn("[solver_mismatch] native vs library", report);
-    if (typeof alert === "function") {
-      alert(t("solverMismatchAlert"));
+    console.warn('[solver_mismatch] native vs library', report);
+    if (typeof alert === 'function') {
+      alert(t('solverMismatchAlert'));
     }
   }
 
@@ -273,7 +257,7 @@ export function createSolveSession(init?: {
   ): Promise<SolveCycleResult | null> {
     if (!model || busy || !methodReady) return null;
     busy = true;
-    error = "";
+    error = '';
     try {
       const snapshot = $state.snapshot(model);
       const method = tabToSolveMethod(activeTab);
@@ -316,7 +300,7 @@ export function createSolveSession(init?: {
       }
 
       let mutationsResponse: RunMutationsResponse | null = null;
-      if (response.status === "done" && includeSensitivity) {
+      if (response.status === 'done' && includeSensitivity) {
         const mutations = buildDefaultMutations(snapshot);
         if (mutations.length > 0) {
           mutationsResponse = await transport.runMutations(
@@ -325,7 +309,7 @@ export function createSolveSession(init?: {
             method,
             transportOpts,
           );
-          if (mutationsResponse.status === "done") {
+          if (mutationsResponse.status === 'done') {
             whatIfItems = whatIfRowsFromMutations(
               mutationsResponse,
               snapshot,
@@ -334,35 +318,32 @@ export function createSolveSession(init?: {
           } else {
             const r = mutationsResponse.solver_meta.rejected_reason;
             error =
-              mutationsResponse.solver_meta.hint === "dln_unsupported" ||
-              (r && r.startsWith("dln_unsupported"))
-                ? t("dlnUnsupportedHint")
+              mutationsResponse.solver_meta.hint === 'dln_unsupported' ||
+              (r && r.startsWith('dln_unsupported'))
+                ? t('dlnUnsupportedHint')
                 : (r ?? mutationsResponse.status);
           }
         }
-      } else if (response.status !== "done") {
+      } else if (response.status !== 'done') {
         const r = response.solver_meta.rejected_reason;
         error =
-          response.solver_meta.hint === "dln_unsupported" ||
-          (r && r.startsWith("dln_unsupported"))
-            ? t("dlnUnsupportedHint")
+          response.solver_meta.hint === 'dln_unsupported' || (r && r.startsWith('dln_unsupported'))
+            ? t('dlnUnsupportedHint')
             : (r ?? response.status);
       }
 
       let report: VerifyReport | null = null;
       if (
         !cloud &&
-        method === "lp" &&
-        response.status === "done" &&
-        response.solver_meta.engine === "native"
+        method === 'lp' &&
+        response.status === 'done' &&
+        response.solver_meta.engine === 'native'
       ) {
         report = verifyAgainstLibrary(
           snapshot,
           response,
           method,
-          mutationsResponse?.status === "done"
-            ? mutationsResponse.items
-            : undefined,
+          mutationsResponse?.status === 'done' ? mutationsResponse.items : undefined,
         );
         applyVerify(report);
         await opts?.onVerify?.(report);
@@ -464,7 +445,7 @@ export function createSolveSession(init?: {
     },
     set gaPreset(v: GaPresetId) {
       gaPreset = v;
-      if (v !== "custom") {
+      if (v !== 'custom') {
         gaConfig = { seed: gaSeed() };
       }
     },
@@ -479,7 +460,7 @@ export function createSolveSession(init?: {
     },
     set dlnPreset(v: DlnPresetId) {
       dlnPreset = v;
-      if (v !== "custom") {
+      if (v !== 'custom') {
         const def = DLN_PRESET_DEFS[v];
         dlnConfig = {
           lambda: def.lambda,

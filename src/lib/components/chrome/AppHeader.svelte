@@ -1,49 +1,43 @@
 <script lang="ts">
-  import { Menu, Bell, LogOut, LogIn, Settings } from "@lucide/svelte";
-  import { page } from "$app/state";
-  import { t } from "$lib/i18n";
-  import Badge from "$lib/components/ui/Badge.svelte";
-  import {
-    chrome,
-    toggleNav,
-    openNotifications,
-  } from "$lib/chrome/chrome.svelte";
+  import { Menu, Bell, LogOut, LogIn, Settings } from '@lucide/svelte';
+  import { page } from '$app/state';
+  import { t } from '$lib/i18n';
+  import Badge from '$lib/components/ui/Badge.svelte';
+  import { chrome, toggleNav, openNotifications } from '$lib/chrome/chrome.svelte';
 
   let {
-    userEmail = "",
+    userEmail = '',
     userRole = null,
     onLogout,
   }: {
     userEmail?: string;
-    userRole?: "admin" | "mod" | "user" | null;
+    userRole?: 'admin' | 'mod' | 'user' | null;
     onLogout?: () => void;
   } = $props();
 
   const unreadLabel = $derived(
-    chrome.unread > 99 ? "99+" : chrome.unread > 0 ? String(chrome.unread) : "",
+    chrome.unread > 99 ? '99+' : chrome.unread > 0 ? String(chrome.unread) : '',
   );
 
-  const navExpanded = $derived(
-    chrome.isMobile ? chrome.mobileNavOpen : !chrome.navCollapsed,
-  );
+  const navExpanded = $derived(chrome.isMobile ? chrome.mobileNavOpen : !chrome.navCollapsed);
 
   const navAriaLabel = $derived(
     chrome.isMobile
       ? chrome.mobileNavOpen
-        ? t("closeNav")
-        : t("openNav")
+        ? t('closeNav')
+        : t('openNav')
       : chrome.navCollapsed
-        ? t("expandNav")
-        : t("collapseNav"),
+        ? t('expandNav')
+        : t('collapseNav'),
   );
 
   const listBack = $derived.by(() => {
     const routeId = page.route.id;
-    if (routeId === "/app/task/[id]") {
-      return { href: "/app/tasks", label: t("allTasks") };
+    if (routeId === '/app/task/[id]') {
+      return { href: '/app/tasks', label: t('allTasks') };
     }
-    if (routeId === "/app/templates/[id]") {
-      return { href: "/app/templates", label: t("allTemplates") };
+    if (routeId === '/app/templates/[id]') {
+      return { href: '/app/templates', label: t('allTemplates') };
     }
     return null;
   });
@@ -80,7 +74,7 @@
       type="button"
       class="relative inline-flex items-center justify-center rounded-[6px] text-text hover:bg-surface"
       style="width: var(--chrome-control-size); height: var(--chrome-control-size)"
-      aria-label={t("openNotifications")}
+      aria-label={t('openNotifications')}
       aria-expanded={chrome.notificationsOpen}
       aria-haspopup="dialog"
       onclick={openNotifications}
@@ -96,24 +90,19 @@
     </button>
 
     {#if userEmail}
-      <span
-        class="hidden max-w-[12rem] truncate px-2 text-sm text-text-muted sm:inline"
-        >{userEmail}</span
-      >
-      {#if userRole === "admin"}
-        <Badge variant="brand" class="hidden sm:inline-flex"
-          >{t("roleBadgeAdmin")}</Badge
-        >
-      {:else if userRole === "mod"}
-        <Badge variant="info" class="hidden sm:inline-flex"
-          >{t("roleBadgeMod")}</Badge
-        >
+      <span class="hidden max-w-[12rem] truncate px-2 text-sm text-text-muted sm:inline">
+        {userEmail}
+      </span>
+      {#if userRole === 'admin'}
+        <Badge variant="brand" class="hidden sm:inline-flex">{t('roleBadgeAdmin')}</Badge>
+      {:else if userRole === 'mod'}
+        <Badge variant="info" class="hidden sm:inline-flex">{t('roleBadgeMod')}</Badge>
       {/if}
       <a
         href="/app/settings"
         class="inline-flex items-center justify-center rounded-[6px] text-text hover:bg-surface"
         style="width: var(--chrome-control-size); height: var(--chrome-control-size)"
-        aria-label={t("settings")}
+        aria-label={t('settings')}
       >
         <Settings size={20} strokeWidth={1.75} aria-hidden="true" />
       </a>
@@ -121,7 +110,7 @@
         type="button"
         class="inline-flex items-center justify-center rounded-[6px] text-text hover:bg-surface"
         style="width: var(--chrome-control-size); height: var(--chrome-control-size)"
-        aria-label={t("logout")}
+        aria-label={t('logout')}
         onclick={() => onLogout?.()}
       >
         <LogOut size={20} strokeWidth={1.75} aria-hidden="true" />
@@ -131,7 +120,7 @@
         href="/login"
         class="inline-flex items-center justify-center rounded-[6px] text-text hover:bg-surface"
         style="width: var(--chrome-control-size); height: var(--chrome-control-size)"
-        aria-label={t("login")}
+        aria-label={t('login')}
       >
         <LogIn size={20} strokeWidth={1.75} aria-hidden="true" />
       </a>

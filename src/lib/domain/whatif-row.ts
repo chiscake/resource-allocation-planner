@@ -1,9 +1,6 @@
-import { formatMutationLabel } from "./mutations";
-import {
-  mutationBeforeAfter,
-  mutationBeforeAfterFromMutated,
-} from "./mutation-display";
-import type { Model, Mutation, SolveResult } from "./types";
+import { formatMutationLabel } from './mutations';
+import { mutationBeforeAfter, mutationBeforeAfterFromMutated } from './mutation-display';
+import type { Model, Mutation, SolveResult } from './types';
 
 /** Sensitivity row payload for the what-if table (UI). */
 export type WhatIfRowData = {
@@ -23,7 +20,7 @@ export type WhatIfRowData = {
    * price_change → null (not required by assignment).
    */
   shadowMetric: number | null;
-  shadowKind: "resource" | "modernization" | "none";
+  shadowKind: 'resource' | 'modernization' | 'none';
   criticalResources: string[];
 };
 
@@ -50,22 +47,18 @@ export function buildWhatIfRowData(input: {
 
   const Z = result?.Z ?? Number.NaN;
   const baseZ = baseResult?.Z ?? Number.NaN;
-  const deltaZ =
-    Number.isFinite(Z) && Number.isFinite(baseZ) ? Z - baseZ : Number.NaN;
+  const deltaZ = Number.isFinite(Z) && Number.isFinite(baseZ) ? Z - baseZ : Number.NaN;
 
   let shadowMetric: number | null = null;
-  let shadowKind: WhatIfRowData["shadowKind"] = "none";
+  let shadowKind: WhatIfRowData['shadowKind'] = 'none';
 
-  if (mutation.kind === "resource_change" && result?.shadow_prices) {
+  if (mutation.kind === 'resource_change' && result?.shadow_prices) {
     shadowMetric = result.shadow_prices[mutation.target] ?? 0;
-    shadowKind = "resource";
-  } else if (
-    mutation.kind === "modernization" &&
-    Number.isFinite(deltaZ)
-  ) {
+    shadowKind = 'resource';
+  } else if (mutation.kind === 'modernization' && Number.isFinite(deltaZ)) {
     // Допустимая «теневая» цена модернизации = прирост оптимальной прибыли.
     shadowMetric = deltaZ;
-    shadowKind = "modernization";
+    shadowKind = 'modernization';
   }
 
   return {
@@ -80,8 +73,6 @@ export function buildWhatIfRowData(input: {
     plan: result?.x ? { ...result.x } : emptyPlan(mutatedModel),
     shadowMetric,
     shadowKind,
-    criticalResources: result?.critical_resources
-      ? [...result.critical_resources]
-      : [],
+    criticalResources: result?.critical_resources ? [...result.critical_resources] : [],
   };
 }

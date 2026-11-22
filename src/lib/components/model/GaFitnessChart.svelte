@@ -1,7 +1,7 @@
 <script lang="ts">
-  import type { GaGenerationSnapshot } from "$lib/domain";
-  import Card from "$lib/components/ui/Card.svelte";
-  import { t } from "$lib/i18n";
+  import type { GaGenerationSnapshot } from '$lib/domain';
+  import Card from '$lib/components/ui/Card.svelte';
+  import { t } from '$lib/i18n';
 
   let {
     generations = [],
@@ -22,7 +22,7 @@
   const viewW = 640;
   const viewH = 260;
   const WORST_EXPAND = 1.25;
-  const clipId = "ga-fitness-plot-clip";
+  const clipId = 'ga-fitness-plot-clip';
 
   let hoverIndex = $state<number | null>(null);
   let hoverLocalX = $state<number | null>(null);
@@ -57,19 +57,14 @@
     const yMax = yMaxRaw + padY;
     return {
       xMin: points[0].generation,
-      xMax: Math.max(
-        points[points.length - 1].generation,
-        points[0].generation + 1,
-      ),
+      xMax: Math.max(points[points.length - 1].generation, points[0].generation + 1),
       yMin,
       yMax,
       worstClipped: worstMin < yMin + 1e-9 || worstMax > yMax - 1e-9,
     };
   });
 
-  const hoverPoint = $derived(
-    hoverIndex != null && points[hoverIndex] ? points[hoverIndex] : null,
-  );
+  const hoverPoint = $derived(hoverIndex != null && points[hoverIndex] ? points[hoverIndex] : null);
 
   const yTicks = $derived.by(() =>
     Array.from(
@@ -92,32 +87,25 @@
 
   function xScale(generation: number): number {
     const inner = viewW - pad.left - pad.right;
-    return (
-      pad.left +
-      ((generation - bounds.xMin) / (bounds.xMax - bounds.xMin || 1)) * inner
-    );
+    return pad.left + ((generation - bounds.xMin) / (bounds.xMax - bounds.xMin || 1)) * inner;
   }
 
   function yScale(value: number): number {
     const inner = viewH - pad.top - pad.bottom;
-    return (
-      pad.top +
-      (1 - (value - bounds.yMin) / (bounds.yMax - bounds.yMin || 1)) *
-        inner
-    );
+    return pad.top + (1 - (value - bounds.yMin) / (bounds.yMax - bounds.yMin || 1)) * inner;
   }
 
   function yScaleClamped(value: number): number {
     return yScale(Math.min(bounds.yMax, Math.max(bounds.yMin, value)));
   }
 
-  function linePath(key: "best" | "avg" | "worst"): string {
+  function linePath(key: 'best' | 'avg' | 'worst'): string {
     return points
       .map(
         (p, i) =>
-          `${i === 0 ? "M" : "L"}${xScale(p.generation).toFixed(2)} ${yScaleClamped(p[key]).toFixed(2)}`,
+          `${i === 0 ? 'M' : 'L'}${xScale(p.generation).toFixed(2)} ${yScaleClamped(p[key]).toFixed(2)}`,
       )
-      .join(" ");
+      .join(' ');
   }
 
   function formatValue(value: number): string {
@@ -145,8 +133,7 @@
     }
     const generation =
       bounds.xMin +
-      ((localX - pad.left) / (viewW - pad.left - pad.right)) *
-        (bounds.xMax - bounds.xMin);
+      ((localX - pad.left) / (viewW - pad.left - pad.right)) * (bounds.xMax - bounds.xMin);
     let nearest = 0;
     let distance = Infinity;
     for (let index = 0; index < points.length; index++) {
@@ -171,39 +158,36 @@
   }
 
   const tooltipStyle = $derived.by(() => {
-    if (!hoverPoint || hoverLocalX == null || !plotEl || !svgEl) return "";
+    if (!hoverPoint || hoverLocalX == null || !plotEl || !svgEl) return '';
     const matrix = svgEl.getScreenCTM();
-    if (!matrix) return "";
-    const x =
-      matrix.a * hoverLocalX +
-      matrix.e -
-      plotEl.getBoundingClientRect().left;
+    if (!matrix) return '';
+    const x = matrix.a * hoverLocalX + matrix.e - plotEl.getBoundingClientRect().left;
     const width = plotEl.getBoundingClientRect().width;
     const flip = x > width * 0.62;
-    return `left:${x + (flip ? -8 : 8)}px;top:12px;transform:translateX(${flip ? "-100%" : "0"});`;
+    return `left:${x + (flip ? -8 : 8)}px;top:12px;transform:translateX(${flip ? '-100%' : '0'});`;
   });
 </script>
 
 <Card>
   <div class="mb-2 flex flex-wrap items-start justify-between gap-2">
     <div>
-      <p class="text-sm font-medium text-text">{t("gaFitnessTitle")}</p>
+      <p class="text-sm font-medium text-text">{t('gaFitnessTitle')}</p>
       {#if bounds.worstClipped}
-        <p class="mt-0.5 text-xs text-text-soft">{t("gaFitnessWorstClipped")}</p>
+        <p class="mt-0.5 text-xs text-text-soft">{t('gaFitnessWorstClipped')}</p>
       {/if}
     </div>
     <div class="flex flex-wrap gap-3 text-xs text-text-muted">
       <span class="inline-flex items-center gap-1.5">
         <span class="inline-block h-0.5 w-4 bg-[#22C55E]"></span>
-        {t("gaFitnessBest")}
+        {t('gaFitnessBest')}
       </span>
       <span class="inline-flex items-center gap-1.5">
         <span class="inline-block h-0.5 w-4 bg-[#3B82F6]"></span>
-        {t("gaFitnessMean")}
+        {t('gaFitnessMean')}
       </span>
       <span class="inline-flex items-center gap-1.5">
         <span class="inline-block h-0.5 w-4 bg-[#EF4444]"></span>
-        {t("gaFitnessWorst")}
+        {t('gaFitnessWorst')}
       </span>
     </div>
   </div>
@@ -216,7 +200,7 @@
       onpointermove={onPointerMove}
       onpointerleave={onPointerLeave}
       role="img"
-      aria-label={t("gaFitnessTitle")}
+      aria-label={t('gaFitnessTitle')}
     >
       <svg
         bind:this={svgEl}
@@ -300,7 +284,7 @@
           class="fill-text-soft"
           font-size="11"
         >
-          {t("gaFitnessGenerationAxis")}
+          {t('gaFitnessGenerationAxis')}
         </text>
         <text
           x={14}
@@ -310,28 +294,13 @@
           font-size="11"
           transform={`rotate(-90 14 ${viewH / 2})`}
         >
-          {t("gaFitnessAxis")}
+          {t('gaFitnessAxis')}
         </text>
 
         <g clip-path={`url(#${clipId})`}>
-          <path
-            d={linePath("worst")}
-            fill="none"
-            stroke="#EF4444"
-            stroke-width="1.75"
-          />
-          <path
-            d={linePath("avg")}
-            fill="none"
-            stroke="#3B82F6"
-            stroke-width="1.75"
-          />
-          <path
-            d={linePath("best")}
-            fill="none"
-            stroke="#22C55E"
-            stroke-width="2.25"
-          />
+          <path d={linePath('worst')} fill="none" stroke="#EF4444" stroke-width="1.75" />
+          <path d={linePath('avg')} fill="none" stroke="#3B82F6" stroke-width="1.75" />
+          <path d={linePath('best')} fill="none" stroke="#22C55E" stroke-width="2.25" />
 
           {#if hoverPoint && hoverLocalX != null}
             {@const markerX = xScale(hoverPoint.generation)}
@@ -378,18 +347,19 @@
           style={tooltipStyle}
         >
           <p class="mb-1 font-medium text-text">
-            {t("gaFitnessGeneration")} {hoverPoint.generation}
+            {t('gaFitnessGeneration')}
+            {hoverPoint.generation}
           </p>
           <p class="flex items-center justify-between gap-4">
-            <span class="text-[#15803D]">{t("gaFitnessBest")}</span>
+            <span class="text-[#15803D]">{t('gaFitnessBest')}</span>
             <span class="font-mono text-text">{formatValue(hoverPoint.best)}</span>
           </p>
           <p class="flex items-center justify-between gap-4">
-            <span class="text-[#2563EB]">{t("gaFitnessMean")}</span>
+            <span class="text-[#2563EB]">{t('gaFitnessMean')}</span>
             <span class="font-mono text-text">{formatValue(hoverPoint.avg)}</span>
           </p>
           <p class="flex items-center justify-between gap-4">
-            <span class="text-[#B91C1C]">{t("gaFitnessWorst")}</span>
+            <span class="text-[#B91C1C]">{t('gaFitnessWorst')}</span>
             <span class="font-mono text-text">{formatValue(hoverPoint.worst)}</span>
           </p>
         </div>

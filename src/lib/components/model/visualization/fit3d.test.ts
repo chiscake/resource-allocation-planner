@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { boundingCenterScale, normalizePoint } from "./math";
+import { describe, expect, it } from 'vitest';
+import { boundingCenterScale, normalizePoint } from './math';
 
 /** Cross-product length of two 3-vectors (0 ⇒ parallel). */
 function crossLen(a: number[], b: number[]): number {
@@ -9,7 +9,7 @@ function crossLen(a: number[], b: number[]): number {
   return Math.hypot(cx, cy, cz);
 }
 
-describe("3D view fit for axes vs polytope", () => {
+describe('3D view fit for axes vs polytope', () => {
   const cubeVerts = [
     [0, 0, 0],
     [1, 0, 0],
@@ -21,7 +21,7 @@ describe("3D view fit for axes vs polytope", () => {
     [1, 1, 1],
   ];
 
-  it("keeps axis tip collinear with cube edge when fit excludes the tip", () => {
+  it('keeps axis tip collinear with cube edge when fit excludes the tip', () => {
     const origin = [0, 0, 0];
     const corner = [1, 0, 0];
     const tip = [1.08, 0, 0];
@@ -34,7 +34,7 @@ describe("3D view fit for axes vs polytope", () => {
     expect(crossLen(edge, axis)).toBeLessThan(1e-9);
   });
 
-  it("skews when tip is folded into the fit (regression of the old bug)", () => {
+  it('skews when tip is folded into the fit (regression of the old bug)', () => {
     const origin = [0, 0, 0];
     const corner = [1, 0, 0];
     const tip = [1.08, 0, 0];

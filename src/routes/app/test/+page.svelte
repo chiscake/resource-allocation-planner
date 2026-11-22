@@ -1,6 +1,6 @@
 <script lang="ts">
-  import PageHeader from "$lib/components/ui/PageHeader.svelte";
-  import Card from "$lib/components/ui/Card.svelte";
+  import PageHeader from '$lib/components/ui/PageHeader.svelte';
+  import Card from '$lib/components/ui/Card.svelte';
 </script>
 
 <svelte:head>

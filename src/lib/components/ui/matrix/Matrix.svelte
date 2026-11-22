@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { untrack } from "svelte";
-  import type { MatrixModel } from "./matrix-model.svelte";
-  import type { CellInputValidator, CellStyle } from "./types";
-  import { validators } from "./validators";
+  import { untrack } from 'svelte';
+  import type { MatrixModel } from './matrix-model.svelte';
+  import type { CellInputValidator, CellStyle } from './types';
+  import { validators } from './validators';
 
   /** Subtle gray for locked diagonal when no explicit background is set. */
-  const DIAGONAL_BG = "var(--color-surface-strong, #e5e5e5)";
-  const HEADER_BG = "var(--color-brand-faint, #eff6ff)";
+  const DIAGONAL_BG = 'var(--color-surface-strong, #e5e5e5)';
+  const HEADER_BG = 'var(--color-brand-faint, #eff6ff)';
 
   /** Floor / cap for auto-fit from header labels (px). Long labels wrap inside the cap. */
   const MIN_DATA_PX = 56; // 3.5rem
@@ -48,8 +48,8 @@
     cellPlaceholder,
     /** Native `title` tooltip for a cell (e.g. derived units). */
     cellTitle,
-    class: className = "",
-    maxHeight = "24rem",
+    class: className = '',
+    maxHeight = '24rem',
   }: {
     model: MatrixModel;
     /** When true, data cells are not editable. */
@@ -80,7 +80,7 @@
   });
 
   let editing = $state<{ row: number; col: number } | null>(null);
-  let draft = $state("");
+  let draft = $state('');
   /** Ignore blur commit when Tab moves focus to another cell (input unmounts). */
   let suppressBlurCommit = false;
 
@@ -98,9 +98,7 @@
 
   const editingIsHeader = $derived(
     editing != null &&
-      (editing.row === 0 ||
-        editing.col === 0 ||
-        isFreeText(editing.row, editing.col)),
+      (editing.row === 0 || editing.col === 0 || isFreeText(editing.row, editing.col)),
   );
 
   const numericInputMode = $derived(
@@ -180,53 +178,53 @@
   function acceptsCommit(raw: string, row: number, col: number): boolean {
     if (isHeaderCell(row, col)) return raw.trim().length > 0;
     if (isFreeText(row, col)) return true;
-    if (raw === "" || raw === "-" || raw === "." || raw === "-.") return false;
+    if (raw === '' || raw === '-' || raw === '.' || raw === '-.') return false;
     return acceptsDraft(raw, row, col);
   }
 
   function cellClass(row: number, col: number, style: CellStyle): string {
-    const parts = ["matrix-cell border border-border text-center align-middle"];
+    const parts = ['matrix-cell border border-border text-center align-middle'];
 
     if (col === 0) {
-      parts.push("matrix-cell-label");
+      parts.push('matrix-cell-label');
     } else {
-      parts.push("matrix-cell-data");
+      parts.push('matrix-cell-data');
     }
 
     if (row === 0) {
-      parts.push("matrix-cell-colhead");
+      parts.push('matrix-cell-colhead');
     } else {
-      parts.push("matrix-cell-body");
+      parts.push('matrix-cell-body');
     }
 
     if (row === 0 || col === 0) {
-      parts.push("matrix-cell-wrap font-medium");
+      parts.push('matrix-cell-wrap font-medium');
     } else {
-      parts.push("matrix-cell-numeric");
+      parts.push('matrix-cell-numeric');
     }
 
     if (style.bold) {
-      parts.push("font-medium");
+      parts.push('font-medium');
     }
 
     // Low sticky z kept inside `.matrix-scroll` isolation so chrome (sidebar z-30, drawer z-40/50) stays above.
     if (row === 0) {
-      parts.push("sticky top-0 z-[2]");
+      parts.push('sticky top-0 z-[2]');
     }
     if (col === 0) {
-      parts.push("sticky left-0 z-[1]");
+      parts.push('sticky left-0 z-[1]');
     }
     if (row === 0 && col === 0) {
-      parts.push("z-[3]");
+      parts.push('z-[3]');
     }
 
     if (editing?.row === row && editing?.col === col) {
-      parts.push("matrix-cell-editing");
+      parts.push('matrix-cell-editing');
     } else if (canEdit(row, col)) {
-      parts.push("cursor-text hover:bg-surface-hover");
+      parts.push('cursor-text hover:bg-surface-hover');
     }
 
-    return parts.join(" ");
+    return parts.join(' ');
   }
 
   function cellStyleAttr(row: number, col: number, style: CellStyle): string {
@@ -239,7 +237,7 @@
         bg = DIAGONAL_BG;
       }
     }
-    return bg ? `background-color: ${bg}` : "";
+    return bg ? `background-color: ${bg}` : '';
   }
 
   function startEdit(row: number, col: number): void {
@@ -253,8 +251,7 @@
     if (!editing) return;
     const { row, col } = editing;
     if (canEdit(row, col) && acceptsCommit(draft, row, col)) {
-      const value =
-        isHeaderCell(row, col) || isFreeText(row, col) ? draft.trim() : draft;
+      const value = isHeaderCell(row, col) || isFreeText(row, col) ? draft.trim() : draft;
       model.setValue(row, col, value);
     }
     // Invalid or empty draft → leave cell at last committed value (no write).
@@ -269,8 +266,7 @@
     if (!editing) return;
     const { row, col } = editing;
     if (canEdit(row, col) && acceptsCommit(draft, row, col)) {
-      const value =
-        isHeaderCell(row, col) || isFreeText(row, col) ? draft.trim() : draft;
+      const value = isHeaderCell(row, col) || isFreeText(row, col) ? draft.trim() : draft;
       model.setValue(row, col, value);
     }
     const next = findNeighbor(row, col, dir);
@@ -287,13 +283,13 @@
   }
 
   function onKeydown(e: KeyboardEvent): void {
-    if (e.key === "Tab") {
+    if (e.key === 'Tab') {
       e.preventDefault();
       moveEdit(e.shiftKey ? -1 : 1);
-    } else if (e.key === "Enter") {
+    } else if (e.key === 'Enter') {
       e.preventDefault();
       commitEdit();
-    } else if (e.key === "Escape") {
+    } else if (e.key === 'Escape') {
       e.preventDefault();
       cancelEdit();
     }
@@ -323,9 +319,7 @@
     const outer = parent?.clientWidth ?? 0;
     if (outer <= 0) return 0;
     const cs = getComputedStyle(host);
-    const borderX =
-      (parseFloat(cs.borderLeftWidth) || 0) +
-      (parseFloat(cs.borderRightWidth) || 0);
+    const borderX = (parseFloat(cs.borderLeftWidth) || 0) + (parseFloat(cs.borderRightWidth) || 0);
     return Math.max(0, outer - borderX);
   }
 
@@ -345,34 +339,34 @@
     headerH: number;
     bodyH: number;
   } {
-    const probe = document.createElement("div");
-    probe.setAttribute("aria-hidden", "true");
+    const probe = document.createElement('div');
+    probe.setAttribute('aria-hidden', 'true');
     probe.style.cssText = [
-      "position:absolute",
-      "visibility:hidden",
-      "left:-9999px",
-      "top:0",
-      "box-sizing:border-box",
-      "padding:0 0.35rem",
-      "line-height:1.25",
-      "font:" + font,
-      "font-weight:500",
-    ].join(";");
+      'position:absolute',
+      'visibility:hidden',
+      'left:-9999px',
+      'top:0',
+      'box-sizing:border-box',
+      'padding:0 0.35rem',
+      'line-height:1.25',
+      'font:' + font,
+      'font-weight:500',
+    ].join(';');
     document.body.appendChild(probe);
 
     const measureLine = (text: string): number => {
-      probe.style.width = "auto";
-      probe.style.whiteSpace = "nowrap";
-      probe.textContent = text.length > 0 ? text : "\u00a0";
+      probe.style.width = 'auto';
+      probe.style.whiteSpace = 'nowrap';
+      probe.textContent = text.length > 0 ? text : '\u00a0';
       return Math.ceil(probe.offsetWidth);
     };
 
     const measureBlock = (text: string, widthPx: number): number => {
       probe.style.width = `${widthPx}px`;
-      probe.style.whiteSpace = "normal";
-      probe.style.overflowWrap = "break";
-      probe.style.wordBreak = "normal";
-      probe.textContent = text.length > 0 ? text : "\u00a0";
+      probe.style.whiteSpace = 'normal';
+      probe.style.overflowWrap = 'break';
+      probe.style.wordBreak = 'normal';
+      probe.textContent = text.length > 0 ? text : '\u00a0';
       return Math.ceil(probe.offsetHeight);
     };
 
@@ -390,26 +384,19 @@
 
       let maxLabelLine = 0;
       for (let r = 0; r < rows; r++) {
-        maxLabelLine = Math.max(maxLabelLine, measureLine(cells[r]?.[0] ?? ""));
+        maxLabelLine = Math.max(maxLabelLine, measureLine(cells[r]?.[0] ?? ''));
       }
-      const labelW = clamp(
-        maxLabelLine + CELL_BOX_SLACK_PX,
-        MIN_LABEL_PX,
-        MAX_LABEL_PX,
-      );
+      const labelW = clamp(maxLabelLine + CELL_BOX_SLACK_PX, MIN_LABEL_PX, MAX_LABEL_PX);
 
       let maxDataLine = 0;
       for (let c = 1; c < cols; c++) {
-        maxDataLine = Math.max(maxDataLine, measureLine(cells[0]?.[c] ?? ""));
+        maxDataLine = Math.max(maxDataLine, measureLine(cells[0]?.[c] ?? ''));
       }
       if (isTextCell) {
         for (let r = 1; r < rows; r++) {
           for (let c = 1; c < cols; c++) {
             if (isTextCell(r, c)) {
-              maxDataLine = Math.max(
-                maxDataLine,
-                measureLine(cells[r]?.[c] ?? ""),
-              );
+              maxDataLine = Math.max(maxDataLine, measureLine(cells[r]?.[c] ?? ''));
             }
           }
         }
@@ -433,14 +420,14 @@
       }
 
       let headerH = MIN_ROW_PX;
-      headerH = Math.max(headerH, measureBlock(cells[0]?.[0] ?? "", labelW));
+      headerH = Math.max(headerH, measureBlock(cells[0]?.[0] ?? '', labelW));
       for (let c = 1; c < cols; c++) {
-        headerH = Math.max(headerH, measureBlock(cells[0]?.[c] ?? "", dataW));
+        headerH = Math.max(headerH, measureBlock(cells[0]?.[c] ?? '', dataW));
       }
 
       let bodyH = MIN_ROW_PX;
       for (let r = 1; r < rows; r++) {
-        bodyH = Math.max(bodyH, measureBlock(cells[r]?.[0] ?? "", labelW));
+        bodyH = Math.max(bodyH, measureBlock(cells[r]?.[0] ?? '', labelW));
       }
 
       return { labelW, dataW, headerH, bodyH };
@@ -454,7 +441,7 @@
     const host = scrollEl;
     if (!host) return;
 
-    const sample = host.querySelector(".matrix-table") ?? host;
+    const sample = host.querySelector('.matrix-table') ?? host;
     const cs = getComputedStyle(sample);
     const font = cs.font || `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
 
@@ -464,8 +451,7 @@
       untrack(() => {
         if (labelWidthPx !== next.labelW) labelWidthPx = next.labelW;
         if (dataWidthPx !== next.dataW) dataWidthPx = next.dataW;
-        if (headerRowHeightPx !== next.headerH)
-          headerRowHeightPx = next.headerH;
+        if (headerRowHeightPx !== next.headerH) headerRowHeightPx = next.headerH;
         if (bodyRowHeightPx !== next.bodyH) bodyRowHeightPx = next.bodyH;
       });
     };
@@ -509,14 +495,13 @@
                   {@attach autofocus}
                   bind:value={getDraft, setDraft}
                   class="matrix-input"
-                  inputmode={numericInputMode ? "decimal" : undefined}
+                  inputmode={numericInputMode ? 'decimal' : undefined}
                   onblur={commitEdit}
                   onkeydown={onKeydown}
                   onclick={(e) => e.stopPropagation()}
                 />
               {:else}
-                {@const hint =
-                  value === "" ? cellPlaceholder?.(r, c) : undefined}
+                {@const hint = value === '' ? cellPlaceholder?.(r, c) : undefined}
                 {#if hint}
                   <span class="matrix-display text-text-faint">{hint}</span>
                 {:else}

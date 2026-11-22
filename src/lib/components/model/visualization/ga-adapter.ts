@@ -1,8 +1,5 @@
-import type { Model, SolveResult, SolveTrace } from "$lib/domain";
-import {
-  computePcaBasis,
-  meanVec,
-} from "./math";
+import type { Model, SolveResult, SolveTrace } from '$lib/domain';
+import { computePcaBasis, meanVec } from './math';
 import {
   emptyBounds,
   expandBounds,
@@ -11,20 +8,20 @@ import {
   type SceneFace,
   type SceneFrame,
   type ScenePoint,
-} from "./types";
+} from './types';
 import {
   computeEdges,
   computeFaces3d,
   computeVertices,
   feasiblePolygon2d,
   getAllConstraints,
-} from "./polytope";
+} from './polytope';
 
 function defaultMode(dim: number): ProjectionMode {
-  if (dim <= 2) return "exact2d";
-  if (dim === 3) return "exact3d";
-  if (dim === 4) return "section3d";
-  return "selectedAxes";
+  if (dim <= 2) return 'exact2d';
+  if (dim === 3) return 'exact3d';
+  if (dim === 4) return 'section3d';
+  return 'selectedAxes';
 }
 
 export type GaSceneExtras = {
@@ -35,7 +32,7 @@ export type GaSceneExtras = {
 
 export function buildGaScene(
   model: Model,
-  trace: Extract<SolveTrace, { method: "ga" }> | null,
+  trace: Extract<SolveTrace, { method: 'ga' }> | null,
   opts?: {
     mode?: ProjectionMode;
     axisX?: number;
@@ -70,7 +67,7 @@ export function buildGaScene(
 
   let pcaBasis = opts?.pcaBasis;
   let pcaMean = opts?.pcaMean;
-  if (mode === "pca" && pool.length > 0 && (!pcaBasis || !pcaMean)) {
+  if (mode === 'pca' && pool.length > 0 && (!pcaBasis || !pcaMean)) {
     pcaMean = meanVec(pool);
     pcaBasis = computePcaBasis(pool, 2);
   }
@@ -89,11 +86,11 @@ export function buildGaScene(
           return poly.length >= 3
             ? [
                 {
-                  id: "feasible",
+                  id: 'feasible',
                   points2d: poly,
-                  kind: "feasible" as const,
-                  label: "ОДР",
-                  color: "#2563eb",
+                  kind: 'feasible' as const,
+                  label: 'ОДР',
+                  color: '#2563eb',
                   opacity: 0.12,
                 },
               ]
@@ -102,16 +99,9 @@ export function buildGaScene(
       : [];
 
   const staticFaces: SceneFace[] = [];
-  const staticEdgeLines: SceneFrame["lines"] = [];
-  if (
-    dim >= 3 &&
-    (mode === "exact3d" || mode === "selectedAxes")
-  ) {
-    const axes = [
-      axisX,
-      axisY,
-      axisZ ?? Math.min(2, dim - 1),
-    ];
+  const staticEdgeLines: SceneFrame['lines'] = [];
+  if (dim >= 3 && (mode === 'exact3d' || mode === 'selectedAxes')) {
+    const axes = [axisX, axisY, axisZ ?? Math.min(2, dim - 1)];
     const reducedCons = userCons.map((c) => ({
       a: axes.map((ai) => c.a[ai] ?? 0),
       b: c.b,
@@ -131,8 +121,8 @@ export function buildGaScene(
       staticEdgeLines.push({
         id: `e-${i}-${j}`,
         points: [modelVerts[i], modelVerts[j]],
-        kind: "edge",
-        color: "#4fd1c5",
+        kind: 'edge',
+        color: '#4fd1c5',
       });
     }
     const faces = computeFaces3d(verts, all);
@@ -146,9 +136,9 @@ export function buildGaScene(
           });
           return full;
         }),
-        kind: "feasible",
-        label: "ОДР",
-        color: "#2563eb",
+        kind: 'feasible',
+        label: 'ОДР',
+        color: '#2563eb',
         opacity: 0.14,
       });
     });
@@ -156,11 +146,7 @@ export function buildGaScene(
 
   generations.forEach((gen, idx) => {
     let pop = gen.population;
-    if (
-      mode === "section3d" &&
-      sectionAxis != null &&
-      dim >= 4
-    ) {
+    if (mode === 'section3d' && sectionAxis != null && dim >= 4) {
       pop = pop.filter(
         (ind) =>
           Math.abs(ind.genes[sectionAxis] - sectionValue) <=
@@ -171,9 +157,9 @@ export function buildGaScene(
     const points: ScenePoint[] = pop.map((ind, i) => ({
       id: `p-${gen.generation}-${i}`,
       coords: ind.genes,
-      kind: ind.feasible ? "feasible" : "infeasible",
+      kind: ind.feasible ? 'feasible' : 'infeasible',
       size: 4,
-      color: ind.feasible ? "#3B82F6" : "#E57373",
+      color: ind.feasible ? '#3B82F6' : '#E57373',
       meta: {
         fitness: ind.fitness,
         rawFitness: ind.rawFitness,
@@ -184,30 +170,30 @@ export function buildGaScene(
     points.push({
       id: `best-${gen.generation}`,
       coords: gen.population[gen.bestIndex]?.genes ?? gen.bestEver.genes,
-      kind: "best",
-      label: "Лучшая особь",
+      kind: 'best',
+      label: 'Лучшая особь',
       size: 7,
-      color: "#22C55E",
+      color: '#22C55E',
     });
 
     points.push({
       id: `best-ever-${gen.generation}`,
       coords: gen.bestEver.genes,
-      kind: "bestEver",
-      label: "Лучшая за всё время",
+      kind: 'bestEver',
+      label: 'Лучшая за всё время',
       size: 6,
-      color: "#15803d",
+      color: '#15803d',
     });
 
     if (opts?.lpOptimum?.x) {
       const coords = model.products.map((p) => opts.lpOptimum!.x[p] ?? 0);
       points.push({
-        id: "lp-opt",
+        id: 'lp-opt',
         coords,
-        kind: "baseline",
-        label: "LP оптимум",
+        kind: 'baseline',
+        label: 'LP оптимум',
         size: 7,
-        color: "#F59E0B",
+        color: '#F59E0B',
       });
       bounds = expandBounds(bounds, [coords]);
     }
@@ -230,7 +216,7 @@ export function buildGaScene(
         лучшее: gen.bestFitness,
         среднее: gen.meanFitness,
         худшее: gen.worstFitness,
-        "в ОДР": `${gen.feasibleCount}/${gen.population.length}`,
+        'в ОДР': `${gen.feasibleCount}/${gen.population.length}`,
       },
     });
   });
@@ -238,7 +224,7 @@ export function buildGaScene(
   if (frames.length === 0) {
     frames.push({
       stepIndex: 0,
-      stepLabel: "Нет данных",
+      stepLabel: 'Нет данных',
       points: [],
       lines: staticEdgeLines,
       regions: staticRegions,

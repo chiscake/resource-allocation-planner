@@ -1,21 +1,18 @@
 <script lang="ts">
-  import PageHeader from "$lib/components/ui/PageHeader.svelte";
-  import Button from "$lib/components/ui/Button.svelte";
-  import Card from "$lib/components/ui/Card.svelte";
-  import Angles4Controls from "$lib/components/model/visualization/Angles4Controls.svelte";
-  import SceneCanvas from "$lib/components/model/visualization/SceneCanvas.svelte";
-  import { buildLpScene } from "$lib/components/model/visualization/lp-adapter";
-  import {
-    DEFAULT_ANGLES4,
-    type Angles4,
-  } from "$lib/components/model/visualization/math";
-  import { SCHEMA_VERSION, type Model } from "$lib/domain";
+  import PageHeader from '$lib/components/ui/PageHeader.svelte';
+  import Button from '$lib/components/ui/Button.svelte';
+  import Card from '$lib/components/ui/Card.svelte';
+  import Angles4Controls from '$lib/components/model/visualization/Angles4Controls.svelte';
+  import SceneCanvas from '$lib/components/model/visualization/SceneCanvas.svelte';
+  import { buildLpScene } from '$lib/components/model/visualization/lp-adapter';
+  import { DEFAULT_ANGLES4, type Angles4 } from '$lib/components/model/visualization/math';
+  import { SCHEMA_VERSION, type Model } from '$lib/domain';
   import type {
     OptimizationScene,
     SceneViewDebug,
-  } from "$lib/components/model/visualization/types";
+  } from '$lib/components/model/visualization/types';
 
-  type DemoId = "cube" | "cutTesseract";
+  type DemoId = 'cube' | 'cutTesseract';
 
   let active = $state<DemoId | null>(null);
   let autoRotate = $state(true);
@@ -27,8 +24,8 @@
   function cubeModel(): Model {
     return {
       schema_version: SCHEMA_VERSION,
-      products: ["x", "y", "z"],
-      resources: ["x ≤ 1", "y ≤ 1", "z ≤ 1"],
+      products: ['x', 'y', 'z'],
+      resources: ['x ≤ 1', 'y ≤ 1', 'z ≤ 1'],
       A: [
         [1, 0, 0],
         [0, 1, 0],
@@ -47,20 +44,20 @@
   function cutTesseractModel(): Model {
     return {
       schema_version: SCHEMA_VERSION,
-      products: ["x", "y", "z", "w"],
+      products: ['x', 'y', 'z', 'w'],
       resources: [
-        "x ≤ 1",
-        "y ≤ 1",
-        "z ≤ 1",
-        "w ≤ 1",
-        "x+y+z+w ≤ 2.8",
-        "x+y+z+w ≥ 1.2",
-        "x+y ≤ 1.5",
-        "z+w ≤ 1.5",
-        "x+z ≤ 1.6",
-        "y+w ≤ 1.6",
-        "x+w ≤ 1.55",
-        "y+z ≤ 1.55",
+        'x ≤ 1',
+        'y ≤ 1',
+        'z ≤ 1',
+        'w ≤ 1',
+        'x+y+z+w ≤ 2.8',
+        'x+y+z+w ≥ 1.2',
+        'x+y ≤ 1.5',
+        'z+w ≤ 1.5',
+        'x+z ≤ 1.6',
+        'y+w ≤ 1.6',
+        'x+w ≤ 1.55',
+        'y+z ≤ 1.55',
       ],
       A: [
         [1, 0, 0, 0],
@@ -82,17 +79,17 @@
   }
 
   const scene = $derived.by((): OptimizationScene | null => {
-    if (active === "cube") {
+    if (active === 'cube') {
       return buildLpScene(cubeModel(), null, {
-        mode: "exact3d",
+        mode: 'exact3d',
         axisX: 0,
         axisY: 1,
         axisZ: 2,
       });
     }
-    if (active === "cutTesseract") {
+    if (active === 'cutTesseract') {
       return buildLpScene(cutTesseractModel(), null, {
-        mode: "project4d",
+        mode: 'project4d',
         axisX: 0,
         axisY: 1,
         axisZ: 2,
@@ -102,16 +99,16 @@
   });
 
   const demos: { id: DemoId; label: string; hint: string }[] = [
-    { id: "cube", label: "Куб (ОДР [0,1]³)", hint: "exact3d" },
+    { id: 'cube', label: 'Куб (ОДР [0,1]³)', hint: 'exact3d' },
     {
-      id: "cutTesseract",
-      label: "4D: срезанный гиперкуб",
-      hint: "project4d · ~52 верш.",
+      id: 'cutTesseract',
+      label: '4D: срезанный гиперкуб',
+      hint: 'project4d · ~52 верш.',
     },
   ];
 
   const debugText = $derived.by(() => {
-    if (!viewDebug) return "";
+    if (!viewDebug) return '';
     const round = (n: number) => Math.round(n * 1e6) / 1e6;
     const payload = {
       projection: viewDebug.projection,
@@ -126,13 +123,9 @@
         z: round(viewDebug.quat[3]),
         raw: viewDebug.quat.map(round),
       },
-      angles4: Object.fromEntries(
-        Object.entries(viewDebug.angles4).map(([k, v]) => [k, round(v)]),
-      ),
+      angles4: Object.fromEntries(Object.entries(viewDebug.angles4).map(([k, v]) => [k, round(v)])),
       axisW: viewDebug.axisW
-        ? Object.fromEntries(
-            Object.entries(viewDebug.axisW).map(([k, v]) => [k, round(v)]),
-          )
+        ? Object.fromEntries(Object.entries(viewDebug.axisW).map(([k, v]) => [k, round(v)]))
         : undefined,
       rot4: viewDebug.rot4?.map(round),
     };
@@ -143,9 +136,9 @@
     if (!debugText) return;
     try {
       await navigator.clipboard.writeText(debugText);
-      copyStatus = "Скопировано";
+      copyStatus = 'Скопировано';
     } catch {
-      copyStatus = "Не удалось скопировать";
+      copyStatus = 'Не удалось скопировать';
     }
     window.setTimeout(() => {
       copyStatus = null;
@@ -158,11 +151,9 @@
 </svelte:head>
 
 <div class="mb-4">
-  <a
-    href="/app/test"
-    class="text-xs text-brand underline-offset-2 hover:underline"
-    >← Тестовые наработки</a
-  >
+  <a href="/app/test" class="text-xs text-brand underline-offset-2 hover:underline">
+    ← Тестовые наработки
+  </a>
 </div>
 
 <PageHeader
@@ -174,7 +165,7 @@
   <aside class="flex w-full shrink-0 flex-col gap-2 lg:w-56">
     {#each demos as demo (demo.id)}
       <Button
-        variant={active === demo.id ? "primary" : "secondary"}
+        variant={active === demo.id ? 'primary' : 'secondary'}
         class="w-full justify-start"
         onclick={() => {
           active = demo.id;
@@ -188,14 +179,10 @@
     {/each}
     {#if active}
       <label class="mt-2 flex items-center gap-2 text-xs text-text-muted">
-        <input
-          type="checkbox"
-          class="size-4 accent-brand"
-          bind:checked={autoRotate}
-        />
+        <input type="checkbox" class="size-4 accent-brand" bind:checked={autoRotate} />
         Автоповорот
       </label>
-      {#if active === "cutTesseract"}
+      {#if active === 'cutTesseract'}
         <div class="mt-2 rounded-[6px] border border-border bg-bg-soft p-2">
           <Angles4Controls
             bind:angles4
@@ -234,9 +221,7 @@
           />
         </div>
       {:else}
-        <p
-          class="flex min-h-[400px] flex-1 items-center justify-center text-sm text-text-muted"
-        >
+        <p class="flex min-h-[400px] flex-1 items-center justify-center text-sm text-text-muted">
           Выберите сценарий слева.
         </p>
       {/if}
@@ -250,9 +235,7 @@
             {#if copyStatus}
               <span class="text-xs text-text-muted">{copyStatus}</span>
             {/if}
-            <Button variant="secondary" class="text-xs" onclick={copyDebug}>
-              Копировать JSON
-            </Button>
+            <Button variant="secondary" class="text-xs" onclick={copyDebug}>Копировать JSON</Button>
           </div>
         </div>
         <textarea
@@ -261,11 +244,10 @@
           spellcheck="false"
           value={debugText}
           onclick={(e) => (e.currentTarget as HTMLTextAreaElement).select()}
-          aria-label="Метаданные вида (JSON)"
-        ></textarea>
+          aria-label="Метаданные вида (JSON)"></textarea>
         <p class="mt-1.5 text-[11px] text-text-muted">
-          Клик по полю — выделить всё. В 4D смотрите axisW / rot4: w-кольца
-          на гизмо — скрытая компонента (сплошное = +w, пунктир = −w).
+          Клик по полю — выделить всё. В 4D смотрите axisW / rot4: w-кольца на гизмо — скрытая
+          компонента (сплошное = +w, пунктир = −w).
         </p>
       </Card>
     {/if}

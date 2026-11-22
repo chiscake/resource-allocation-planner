@@ -17,22 +17,18 @@ import type {
   Model,
   SolveResult,
   SolveTrace,
-} from "$lib/domain";
-import {
-  buildSolveResult,
-  usageViolation,
-  variableBounds,
-} from "../../shared/resultBuild";
-import { solveLocalLpDuals } from "../../shared/lpDuals";
+} from '$lib/domain';
+import { buildSolveResult, usageViolation, variableBounds } from '../../shared/resultBuild';
+import { solveLocalLpDuals } from '../../shared/lpDuals';
 import {
   GA_TRACE_MAX_INDIVIDUALS,
   GA_TRACE_MAX_POP_PER_GEN,
   hyperToRunConfig,
   type GaPresetId,
-} from "./presets";
+} from './presets';
 
-export type SelectionMethod = "roulette" | "rank" | "tournament" | "elitism";
-export type CrossoverType = "uniform" | "one-point";
+export type SelectionMethod = 'roulette' | 'rank' | 'tournament' | 'elitism';
+export type CrossoverType = 'uniform' | 'one-point';
 
 export interface GaHyperparameters {
   populationSize: number;
@@ -58,11 +54,11 @@ export const DEFAULT_GA_HYPERPARAMS: GaHyperparameters = {
   crossoverProbability: 0.85,
   mutationProbability: 0.25,
   mutationSigma: 0.15, // fraction of per-gene bound
-  selectionMethod: "elitism",
+  selectionMethod: 'elitism',
   tournamentProbability: 0.8,
   tournamentSize: 3,
   eliteFraction: 0.1,
-  crossoverType: "uniform",
+  crossoverType: 'uniform',
   uniformBias: 0.5,
   penaltyM: 1e4,
   seed: 13,
@@ -168,7 +164,8 @@ function tournamentSelect(population: Individual[], ctx: GaContext): Individual 
     () => population[Math.floor(rng() * population.length)],
   );
   candidates.sort((a, b) => compareFitness(b.fitness, a.fitness));
-  if (rng() < hyperparameters.tournamentProbability) return { ...candidates[0], genes: [...candidates[0].genes] };
+  if (rng() < hyperparameters.tournamentProbability)
+    return { ...candidates[0], genes: [...candidates[0].genes] };
   const worst = candidates[candidates.length - 1];
   return { ...worst, genes: [...worst.genes] };
 }
@@ -204,12 +201,12 @@ function rankSelect(population: Individual[], ctx: GaContext): Individual {
 
 function selectParent(population: Individual[], ctx: GaContext): Individual {
   switch (ctx.hyperparameters.selectionMethod) {
-    case "tournament":
+    case 'tournament':
       return tournamentSelect(population, ctx);
-    case "rank":
+    case 'rank':
       return rankSelect(population, ctx);
-    case "roulette":
-    case "elitism":
+    case 'roulette':
+    case 'elitism':
     default:
       return rouletteSelect(population, ctx);
   }
@@ -222,12 +219,12 @@ function crossover(parentA: Individual, parentB: Individual, ctx: GaContext): nu
 
   const child = [...parentA.genes];
   switch (hyperparameters.crossoverType) {
-    case "one-point": {
+    case 'one-point': {
       const point = Math.max(1, Math.floor(rng() * n));
       for (let i = point; i < n; i++) child[i] = parentB.genes[i];
       break;
     }
-    case "uniform":
+    case 'uniform':
     default:
       for (let i = 0; i < n; i++) {
         child[i] = rng() < hyperparameters.uniformBias ? parentB.genes[i] : parentA.genes[i];
@@ -253,7 +250,7 @@ function nextGeneration(population: Individual[], ctx: GaContext): Individual[] 
   const { hyperparameters } = ctx;
   const sorted = [...population].sort((a, b) => compareFitness(b.fitness, a.fitness));
   const eliteCount =
-    hyperparameters.selectionMethod === "elitism"
+    hyperparameters.selectionMethod === 'elitism'
       ? Math.max(1, Math.floor(hyperparameters.eliteFraction * hyperparameters.populationSize))
       : 0;
 
@@ -374,10 +371,10 @@ export function solveGaRaw(
   // Materialize random seed so provenance is reproducible.
   const concreteSeed =
     hyperparameters.seed == null
-      ? (Math.floor(Math.random() * 0xffffffff) >>> 0)
+      ? Math.floor(Math.random() * 0xffffffff) >>> 0
       : hyperparameters.seed;
   const runHyper: GaHyperparameters = { ...hyperparameters, seed: concreteSeed };
-  const preset = opts?.preset ?? "custom";
+  const preset = opts?.preset ?? 'custom';
   const config = hyperToRunConfig(runHyper, preset);
   const collectTrace = opts?.collectTrace !== false;
 
@@ -391,16 +388,13 @@ export function solveGaRaw(
   let population = initPopulation(ctx);
   let best = population.reduce((a, b) => (a.fitness >= b.fitness ? a : b));
   let stagnation = 0;
-  let stopReason: GaStopReason = "maxGenerations";
+  let stopReason: GaStopReason = 'maxGenerations';
   let generationsRun = 0;
   let populationSampled = false;
 
   const generations: GaGenerationSnapshot[] = [];
   const maxTotal = GA_TRACE_MAX_INDIVIDUALS;
-  const maxPerGen = Math.min(
-    GA_TRACE_MAX_POP_PER_GEN,
-    runHyper.populationSize,
-  );
+  const maxPerGen = Math.min(GA_TRACE_MAX_POP_PER_GEN, runHyper.populationSize);
   // Reserve budget across expected generations (pessimistic).
   const expectedGens = runHyper.maxGenerations + 1;
   const budgetPerGen = Math.max(
@@ -409,13 +403,7 @@ export function solveGaRaw(
   );
 
   if (collectTrace) {
-    const { snap, sampled } = buildGenerationSnapshot(
-      0,
-      population,
-      best,
-      budgetPerGen,
-      ctx.rng,
-    );
+    const { snap, sampled } = buildGenerationSnapshot(0, population, best, budgetPerGen, ctx.rng);
     generations.push(snap);
     populationSampled = populationSampled || sampled;
   }
@@ -423,9 +411,7 @@ export function solveGaRaw(
   for (let generation = 1; generation <= runHyper.maxGenerations; generation++) {
     population = nextGeneration(population, ctx);
     generationsRun = generation;
-    const genBest = population.reduce((a, b) =>
-      a.fitness >= b.fitness ? a : b,
-    );
+    const genBest = population.reduce((a, b) => (a.fitness >= b.fitness ? a : b));
     if (genBest.fitness > best.fitness + 1e-12) {
       best = genBest;
       stagnation = 0;
@@ -445,11 +431,8 @@ export function solveGaRaw(
       populationSampled = populationSampled || sampled;
     }
 
-    if (
-      runHyper.useStagnation &&
-      stagnation >= runHyper.stagnationGenerations
-    ) {
-      stopReason = "stagnation";
+    if (runHyper.useStagnation && stagnation >= runHyper.stagnationGenerations) {
+      stopReason = 'stagnation';
       break;
     }
   }
@@ -473,7 +456,7 @@ export function solveGaRaw(
   return {
     x: best.genes,
     meta,
-    trace: { method: "ga", generations, meta: traceMeta },
+    trace: { method: 'ga', generations, meta: traceMeta },
   };
 }
 

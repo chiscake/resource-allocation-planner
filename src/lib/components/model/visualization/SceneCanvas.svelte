@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { SvelteMap } from "svelte/reactivity";
+  import { SvelteMap } from 'svelte/reactivity';
   import type {
     OptimizationScene,
     SceneLine,
     ScenePoint,
     SceneRegion,
     SceneViewDebug,
-  } from "./types";
+  } from './types';
   import {
     boundingCenterScale,
     normalizePoint,
@@ -31,15 +31,15 @@
     type Angles4,
     type Mat4,
     type Quat,
-  } from "./math";
-  import { computePcaBasis, meanVec } from "./ga-adapter";
+  } from './math';
+  import { computePcaBasis, meanVec } from './ga-adapter';
   import {
     getVizRotationMode,
     setVizRotationMode,
     type VizRotationMode,
-  } from "$lib/display/vizPrefs";
-  import { t } from "$lib/i18n";
-  import ViewGizmo from "./ViewGizmo.svelte";
+  } from '$lib/display/vizPrefs';
+  import { t } from '$lib/i18n';
+  import ViewGizmo from './ViewGizmo.svelte';
 
   let {
     scene,
@@ -50,7 +50,7 @@
     onPointClick,
     viewDebug = $bindable(null),
     /** Height/sizing classes for the plot surface only (not the selection strip). */
-    plotClass = "min-h-[200px] h-full",
+    plotClass = 'min-h-[200px] h-full',
     /** When true, root fills parent height (fullscreen / flex hosts). */
     fill = false,
   }: {
@@ -80,7 +80,7 @@
   let zoom = $state(0.5);
   let panX = $state(0);
   let panY = $state(0);
-  let cursor = $state("grab");
+  let cursor = $state('grab');
   let rotationMode = $state<VizRotationMode>(getVizRotationMode());
   /** Single view orientation (Blender-style); orbit method only changes mouse mapping. */
   let quat = $state<Quat>([...DEFAULT_QUAT] as Quat);
@@ -117,11 +117,11 @@
   });
   const MIN_ZOOM = 0.2;
   const OBJECTIVE_LEVEL_BOUNDS_EXTENSION = 0.2;
-  type SelectionKey = { type: "point" | "line" | "region"; id: string };
+  type SelectionKey = { type: 'point' | 'line' | 'region'; id: string };
   type SelectedItem =
-    | { type: "point"; item: ScenePoint }
-    | { type: "line"; item: SceneLine }
-    | { type: "region"; item: SceneRegion };
+    | { type: 'point'; item: ScenePoint }
+    | { type: 'line'; item: SceneLine }
+    | { type: 'region'; item: SceneRegion };
   let hoveredKey = $state<SelectionKey | null>(null);
   let selectedKey = $state<SelectionKey | null>(null);
   let legendOpen = $state(false);
@@ -134,7 +134,7 @@
   let coordinateTooltip = $state<CoordinateTooltip | null>(null);
   let coordinateTooltipEl: HTMLDivElement | undefined = $state();
 
-  type DragMode = "rotate" | "pan" | null;
+  type DragMode = 'rotate' | 'pan' | null;
   let dragMode: DragMode = null;
   let lastX = 0;
   let lastY = 0;
@@ -145,12 +145,11 @@
   const pointers = new SvelteMap<number, { x: number; y: number }>();
 
   const frame = $derived(
-    scene.frames[Math.min(stepIndex, Math.max(0, scene.frames.length - 1))] ??
-      null,
+    scene.frames[Math.min(stepIndex, Math.max(0, scene.frames.length - 1))] ?? null,
   );
 
   const objectiveLevels = $derived.by(() => {
-    if (scene.mode !== "exact2d" || objectiveCoefficients.length < 2) return [];
+    if (scene.mode !== 'exact2d' || objectiveCoefficients.length < 2) return [];
     const ax = scene.axisX;
     const ay = scene.axisY;
     const a = objectiveCoefficients[ax] ?? 0;
@@ -170,12 +169,7 @@
     const clipX1 = xCenter + maxZoomOutXRange / 2 + xExtension;
     const clipY0 = yCenter - maxZoomOutYRange / 2 - yExtension;
     const clipY1 = yCenter + maxZoomOutYRange / 2 + yExtension;
-    const baseValues = [
-      a * x0 + b * y0,
-      a * x0 + b * y1,
-      a * x1 + b * y0,
-      a * x1 + b * y1,
-    ];
+    const baseValues = [a * x0 + b * y0, a * x0 + b * y1, a * x1 + b * y0, a * x1 + b * y1];
     const lo = Math.min(...baseValues);
     const hi = Math.max(...baseValues);
     if (hi - lo < 1e-9) return [];
@@ -200,9 +194,9 @@
       .map((level, i) => ({
         id: `objective-level-${i}`,
         points: clipLevelLine(a, b, level, clipX0, clipX1, clipY0, clipY1),
-        kind: "level" as const,
-        label: t("vizObjectiveLevels"),
-        color: "#7f77dd",
+        kind: 'level' as const,
+        label: t('vizObjectiveLevels'),
+        color: '#7f77dd',
         dash: true,
       }))
       .filter((line) => line.points.length === 2);
@@ -211,23 +205,21 @@
   const activeKey = $derived(hoveredKey ?? selectedKey);
   const selectedItem = $derived.by((): SelectedItem | null => {
     if (!frame || !activeKey) return null;
-    if (activeKey.type === "point") {
+    if (activeKey.type === 'point') {
       const item = frame.points.find((point) => point.id === activeKey.id);
-      return item ? { type: "point", item } : null;
+      return item ? { type: 'point', item } : null;
     }
-    if (activeKey.type === "line") {
-      const item = [...frame.lines, ...objectiveLevels].find(
-        (line) => line.id === activeKey.id,
-      );
-      return item ? { type: "line", item } : null;
+    if (activeKey.type === 'line') {
+      const item = [...frame.lines, ...objectiveLevels].find((line) => line.id === activeKey.id);
+      return item ? { type: 'line', item } : null;
     }
     const item = frame.regions.find((region) => region.id === activeKey.id);
-    return item ? { type: "region", item } : null;
+    return item ? { type: 'region', item } : null;
   });
 
   type LegendItem = {
     id: string;
-    marker: "point" | "line" | "region";
+    marker: 'point' | 'line' | 'region';
     label: string;
     color: string;
     opacity: number;
@@ -236,49 +228,49 @@
     if (!frame) return [] as LegendItem[];
     const items = new SvelteMap<string, LegendItem>();
     for (const region of frame.regions) {
-      const id = `region:${region.kind}:${region.color ?? ""}`;
+      const id = `region:${region.kind}:${region.color ?? ''}`;
       if (!items.has(id)) {
         items.set(id, {
           id,
-          marker: "region",
+          marker: 'region',
           label: region.label ?? kindLabel(region.kind),
-          color: region.color ?? "#2563eb",
+          color: region.color ?? '#2563eb',
           opacity: region.opacity ?? 0.2,
         });
       }
     }
     for (const face of frame.faces ?? []) {
-      const id = `face:${face.kind}:${face.color ?? ""}`;
+      const id = `face:${face.kind}:${face.color ?? ''}`;
       if (!items.has(id)) {
         items.set(id, {
           id,
-          marker: "region",
+          marker: 'region',
           label: face.label ?? kindLabel(face.kind),
-          color: face.color ?? "#2563eb",
+          color: face.color ?? '#2563eb',
           opacity: face.opacity ?? 0.2,
         });
       }
     }
     for (const line of [...frame.lines, ...objectiveLevels]) {
-      const id = `line:${line.kind}:${line.color ?? ""}`;
+      const id = `line:${line.kind}:${line.color ?? ''}`;
       if (!items.has(id)) {
         items.set(id, {
           id,
-          marker: "line",
+          marker: 'line',
           label: line.label ?? kindLabel(line.kind),
-          color: line.color ?? "#737373",
+          color: line.color ?? '#737373',
           opacity: 1,
         });
       }
     }
     for (const point of frame.points) {
-      const id = `point:${point.kind}:${point.color ?? ""}`;
+      const id = `point:${point.kind}:${point.color ?? ''}`;
       if (!items.has(id)) {
         items.set(id, {
           id,
-          marker: "point",
+          marker: 'point',
           label: point.label ?? pointKindLabel(point.kind),
-          color: point.color ?? "#333333",
+          color: point.color ?? '#333333',
           opacity: 1,
         });
       }
@@ -286,12 +278,12 @@
     return [...items.values()];
   });
 
-  const is4dMode = $derived(scene.mode === "project4d" && scene.dim >= 4);
+  const is4dMode = $derived(scene.mode === 'project4d' && scene.dim >= 4);
   const is3dMode = $derived(
-    scene.mode === "exact3d" ||
-      scene.mode === "section3d" ||
-      scene.mode === "project4d" ||
-      (scene.mode === "selectedAxes" && scene.dim >= 3),
+    scene.mode === 'exact3d' ||
+      scene.mode === 'section3d' ||
+      scene.mode === 'project4d' ||
+      (scene.mode === 'selectedAxes' && scene.dim >= 3),
   );
 
   /**
@@ -301,11 +293,11 @@
    */
   const fit3d = $derived.by(() => {
     const mode = scene.mode;
-    if (mode !== "exact3d" && mode !== "section3d" && mode !== "selectedAxes") {
+    if (mode !== 'exact3d' && mode !== 'section3d' && mode !== 'selectedAxes') {
       return null;
     }
     const axes =
-      mode === "selectedAxes" || mode === "section3d"
+      mode === 'selectedAxes' || mode === 'section3d'
         ? [scene.axisX, scene.axisY, scene.axisZ ?? scene.axisX].filter(
             (v): v is number => v != null,
           )
@@ -338,7 +330,7 @@
   });
 
   const pca = $derived.by(() => {
-    if (scene.mode !== "pca") return null;
+    if (scene.mode !== 'pca') return null;
     const pool = scene.frames.flatMap((f) => f.points.map((p) => p.coords));
     if (pool.length === 0) return null;
     return { mean: meanVec(pool), basis: computePcaBasis(pool, 2) };
@@ -346,43 +338,43 @@
 
   function kindLabel(kind: string): string {
     switch (kind) {
-      case "feasible":
-        return t("vizKindFeasible");
-      case "infeasible":
-        return t("vizKindInfeasible");
-      case "best":
-        return t("vizKindBest");
-      case "bestEver":
-        return t("vizKindBestEver");
-      case "trajectory":
-        return t("vizKindTrajectory");
-      case "optimum":
-        return t("vizKindOptimum");
-      case "baseline":
-        return t("vizKindBaseline");
-      case "vertex":
-        return t("vizKindVertex");
-      case "compare":
-        return t("vizKindCompare");
-      case "constraint":
-        return t("vizKindConstraint");
-      case "edge":
-        return t("vizKindEdge");
-      case "axis":
-        return t("vizKindAxis");
-      case "level":
-        return t("vizObjectiveLevels");
+      case 'feasible':
+        return t('vizKindFeasible');
+      case 'infeasible':
+        return t('vizKindInfeasible');
+      case 'best':
+        return t('vizKindBest');
+      case 'bestEver':
+        return t('vizKindBestEver');
+      case 'trajectory':
+        return t('vizKindTrajectory');
+      case 'optimum':
+        return t('vizKindOptimum');
+      case 'baseline':
+        return t('vizKindBaseline');
+      case 'vertex':
+        return t('vizKindVertex');
+      case 'compare':
+        return t('vizKindCompare');
+      case 'constraint':
+        return t('vizKindConstraint');
+      case 'edge':
+        return t('vizKindEdge');
+      case 'axis':
+        return t('vizKindAxis');
+      case 'level':
+        return t('vizObjectiveLevels');
       default:
         return kind;
     }
   }
 
   function pointKindLabel(kind: string): string {
-    return kind === "feasible" ? t("vizKindFeasiblePoint") : kindLabel(kind);
+    return kind === 'feasible' ? t('vizKindFeasiblePoint') : kindLabel(kind);
   }
 
   function metaLabel(key: string): string {
-    if (key === "rawFitness") return t("vizRawFitness");
+    if (key === 'rawFitness') return t('vizRawFitness');
     return key;
   }
 
@@ -490,20 +482,20 @@
 
   $effect(() => {
     const wrap = wrapEl;
-    if (!wrap || typeof ResizeObserver === "undefined") return;
+    if (!wrap || typeof ResizeObserver === 'undefined') return;
     syncCanvasSize();
     const ro = new ResizeObserver(() => syncCanvasSize());
     ro.observe(wrap);
     const onResize = () => syncCanvasSize();
-    window.addEventListener("resize", onResize);
+    window.addEventListener('resize', onResize);
     return () => {
       ro.disconnect();
-      window.removeEventListener("resize", onResize);
+      window.removeEventListener('resize', onResize);
     };
   });
 
   function selectedAxesIndices(): number[] {
-    if (scene.mode === "selectedAxes" || scene.mode === "section3d") {
+    if (scene.mode === 'selectedAxes' || scene.mode === 'section3d') {
       return [scene.axisX, scene.axisY, scene.axisZ ?? scene.axisX].filter(
         (v): v is number => v != null,
       );
@@ -528,7 +520,7 @@
     const mode = scene.mode;
     const dim = scene.dim;
 
-    if (mode === "exact2d" || (mode === "selectedAxes" && dim <= 2)) {
+    if (mode === 'exact2d' || (mode === 'selectedAxes' && dim <= 2)) {
       const x = coords[scene.axisX] ?? 0;
       const y = coords[scene.axisY] ?? 0;
       const { min, max } = scene.bounds;
@@ -536,31 +528,26 @@
       const plotH = H;
       const sx =
         panX +
-        ((x - min[scene.axisX]) /
-          Math.max(1e-9, max[scene.axisX] - min[scene.axisX])) *
+        ((x - min[scene.axisX]) / Math.max(1e-9, max[scene.axisX] - min[scene.axisX])) *
           plotW *
           zoom +
         (plotW * (1 - zoom)) / 2;
       const sy =
         H +
         panY -
-        ((y - min[scene.axisY]) /
-          Math.max(1e-9, max[scene.axisY] - min[scene.axisY])) *
+        ((y - min[scene.axisY]) / Math.max(1e-9, max[scene.axisY] - min[scene.axisY])) *
           plotH *
           zoom -
         (plotH * (1 - zoom)) / 2;
       return { x: sx, y: sy, depth: 0 };
     }
 
-    if (mode === "pca" && pca) {
+    if (mode === 'pca' && pca) {
       const proj = projectPca(coords, pca.basis, pca.mean);
       const raw = scene.frames.flatMap((f) =>
         f.points.map((p) => projectPca(p.coords, pca.basis, pca.mean)),
       );
-      const { center, scale } = boundingCenterScale(
-        raw.length ? raw : [proj],
-        1,
-      );
+      const { center, scale } = boundingCenterScale(raw.length ? raw : [proj], 1);
       const n = normalizePoint(proj, center, scale);
       return {
         x: cx + n[0] * scale2d,
@@ -569,24 +556,18 @@
       };
     }
 
-    if (mode === "parallel") {
+    if (mode === 'parallel') {
       return { x: cx, y: cy, depth: 0 };
     }
 
     let p3: number[];
-    if (mode === "project4d" && dim >= 4) {
-      const rawPts = frame?.points.map((p) => p.coords.slice(0, 4)) ?? [
-        coords.slice(0, 4),
-      ];
+    if (mode === 'project4d' && dim >= 4) {
+      const rawPts = frame?.points.map((p) => p.coords.slice(0, 4)) ?? [coords.slice(0, 4)];
       const { center, scale } = boundingCenterScale(rawPts, 1);
       const n = normalizePoint(coords.slice(0, 4), center, scale);
       const r = mat4Apply(rot4, n);
       p3 = project4to3(r, 3.4);
-    } else if (
-      mode === "exact3d" ||
-      mode === "section3d" ||
-      mode === "selectedAxes"
-    ) {
+    } else if (mode === 'exact3d' || mode === 'section3d' || mode === 'selectedAxes') {
       const axes = selectedAxesIndices();
       const selected = selectAxes(coords, axes);
       while (selected.length < 3) selected.push(0);
@@ -597,7 +578,7 @@
       p3 = [coords[0] ?? 0, coords[1] ?? 0, coords[2] ?? 0];
     }
     // 3D: true orthographic after quat. 4D path keeps perspective on the 3-slice.
-    if (mode === "project4d") {
+    if (mode === 'project4d') {
       return project3to2(p3, 3.4, scale2d, cx, cy);
     }
     return projectViewOrtho(p3, scale2d, cx, cy);
@@ -655,7 +636,7 @@
       angles4: { ...angles4 },
       rot4: is4dMode ? [...rot4] : undefined,
       axisW: is4dMode ? axisW : undefined,
-      projection: is4dMode ? "perspective4d" : "viewOrtho",
+      projection: is4dMode ? 'perspective4d' : 'viewOrtho',
     };
   });
 
@@ -676,14 +657,14 @@
     void activeKey;
     void objectiveLevels;
 
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext('2d');
     if (!ctx) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const W = cssW;
     const H = cssH;
     ctx.clearRect(0, 0, W, H);
 
-    ctx.strokeStyle = "rgba(0,0,0,0.05)";
+    ctx.strokeStyle = 'rgba(0,0,0,0.05)';
     ctx.lineWidth = 1;
     for (let gx = 0; gx <= W; gx += 40) {
       ctx.beginPath();
@@ -698,7 +679,7 @@
       ctx.stroke();
     }
 
-    if (scene.mode === "parallel") {
+    if (scene.mode === 'parallel') {
       drawParallel(ctx, W, H);
       return;
     }
@@ -717,9 +698,9 @@
       ctx.closePath();
       ctx.fillStyle = region.color
         ? hexToRgba(region.color, region.opacity ?? 0.12)
-        : "rgba(37,99,235,0.12)";
+        : 'rgba(37,99,235,0.12)';
       ctx.fill();
-      ctx.strokeStyle = region.color ?? "#2563eb";
+      ctx.strokeStyle = region.color ?? '#2563eb';
       ctx.lineWidth = 1;
       ctx.globalAlpha = 0.45;
       ctx.stroke();
@@ -728,23 +709,20 @@
 
     const faceData = (frame.faces ?? []).map((face) => {
       const proj = face.points.map((p) => toScreenCoords(p));
-      const depth =
-        proj.reduce((s, p) => s + p.depth, 0) / Math.max(1, proj.length);
+      const depth = proj.reduce((s, p) => s + p.depth, 0) / Math.max(1, proj.length);
       return { face, proj, depth };
     });
     faceData.sort((a, b) => a.depth - b.depth);
     for (const { face, proj } of faceData) {
       if (proj.length < 3) continue;
       ctx.beginPath();
-      proj.forEach((p, i) =>
-        i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y),
-      );
+      proj.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
       ctx.closePath();
       ctx.fillStyle = face.color
         ? hexToRgba(face.color, face.opacity ?? 0.14)
-        : "rgba(37,99,235,0.14)";
+        : 'rgba(37,99,235,0.14)';
       ctx.fill();
-      ctx.strokeStyle = face.color ?? "#2563eb";
+      ctx.strokeStyle = face.color ?? '#2563eb';
       ctx.globalAlpha = 0.35;
       ctx.lineWidth = 1;
       ctx.stroke();
@@ -757,23 +735,19 @@
 
     const lineData = [...frame.lines, ...objectiveLevels].map((line) => {
       const proj = line.points.map((p) => toScreenCoords(p));
-      const depth =
-        proj.reduce((s, p) => s + p.depth, 0) / Math.max(1, proj.length);
+      const depth = proj.reduce((s, p) => s + p.depth, 0) / Math.max(1, proj.length);
       return { line, proj, depth };
     });
     lineData.sort((a, b) => a.depth - b.depth);
     for (const { line, proj } of lineData) {
       if (proj.length < 2) continue;
       ctx.beginPath();
-      proj.forEach((p, i) =>
-        i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y),
-      );
-      ctx.strokeStyle = line.color ?? "#737373";
-      const highlighted =
-        activeKey?.type === "line" && activeKey.id === line.id;
-      ctx.lineWidth = highlighted ? 4 : line.kind === "trajectory" ? 2.2 : 1.4;
-      ctx.globalAlpha = highlighted ? 1 : line.kind === "level" ? 0.58 : 1;
-      if (line.dash || line.kind === "level") ctx.setLineDash([5, 4]);
+      proj.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
+      ctx.strokeStyle = line.color ?? '#737373';
+      const highlighted = activeKey?.type === 'line' && activeKey.id === line.id;
+      ctx.lineWidth = highlighted ? 4 : line.kind === 'trajectory' ? 2.2 : 1.4;
+      ctx.globalAlpha = highlighted ? 1 : line.kind === 'level' ? 0.58 : 1;
+      if (line.dash || line.kind === 'level') ctx.setLineDash([5, 4]);
       else ctx.setLineDash([]);
       ctx.stroke();
       ctx.setLineDash([]);
@@ -785,25 +759,25 @@
       .sort((a, b) => a.s.depth - b.s.depth);
     for (const { p, s } of pts) {
       ctx.beginPath();
-      ctx.fillStyle = p.color ?? "#333";
+      ctx.fillStyle = p.color ?? '#333';
       ctx.arc(s.x, s.y, p.size ?? 4, 0, Math.PI * 2);
       ctx.fill();
-      if (activeKey?.type === "point" && activeKey.id === p.id) {
+      if (activeKey?.type === 'point' && activeKey.id === p.id) {
         ctx.beginPath();
         ctx.arc(s.x, s.y, (p.size ?? 4) + 4, 0, Math.PI * 2);
-        ctx.strokeStyle = p.color ?? "#333";
+        ctx.strokeStyle = p.color ?? '#333';
         ctx.lineWidth = 2.5;
         ctx.stroke();
       }
-      if (p.kind === "best" || p.kind === "baseline" || p.kind === "bestEver") {
-        ctx.strokeStyle = "#fff";
+      if (p.kind === 'best' || p.kind === 'baseline' || p.kind === 'bestEver') {
+        ctx.strokeStyle = '#fff';
         ctx.lineWidth = 1.5;
         ctx.stroke();
       }
     }
 
-    ctx.fillStyle = "#525252";
-    ctx.font = "12px IBM Plex Mono, ui-monospace, monospace";
+    ctx.fillStyle = '#525252';
+    ctx.font = '12px IBM Plex Mono, ui-monospace, monospace';
     const xName = scene.productNames[scene.axisX] ?? `x${scene.axisX + 1}`;
     const yName = scene.productNames[scene.axisY] ?? `x${scene.axisY + 1}`;
     ctx.fillText(xName, W - 12 - ctx.measureText(xName).width, H - 12);
@@ -813,27 +787,24 @@
   function drawAxes3d(ctx: CanvasRenderingContext2D) {
     const axes = selectedAxesIndices();
     const origin = new Array(scene.dim).fill(0);
-    const colors = ["#ef4444", "#22c55e", "#3b82f6"];
+    const colors = ['#ef4444', '#22c55e', '#3b82f6'];
     const o = toScreenCoords(origin);
     axes.forEach((ai, i) => {
       const tip = origin.slice();
-      const span = Math.max(
-        1e-6,
-        (scene.bounds.max[ai] ?? 1) - (scene.bounds.min[ai] ?? 0),
-      );
+      const span = Math.max(1e-6, (scene.bounds.max[ai] ?? 1) - (scene.bounds.min[ai] ?? 0));
       tip[ai] = (scene.bounds.max[ai] ?? 1) + span * 0.08;
       const tipScreen = toScreenCoords(tip);
       ctx.beginPath();
       ctx.moveTo(o.x, o.y);
       ctx.lineTo(tipScreen.x, tipScreen.y);
-      ctx.strokeStyle = colors[i] ?? "#737373";
+      ctx.strokeStyle = colors[i] ?? '#737373';
       ctx.lineWidth = 1.8;
       ctx.globalAlpha = 0.9;
       ctx.stroke();
       ctx.globalAlpha = 1;
       const label = scene.productNames[ai] ?? `x${ai + 1}`;
-      ctx.fillStyle = colors[i] ?? "#525252";
-      ctx.font = "11px IBM Plex Mono, ui-monospace, monospace";
+      ctx.fillStyle = colors[i] ?? '#525252';
+      ctx.font = '11px IBM Plex Mono, ui-monospace, monospace';
       ctx.fillText(label, tipScreen.x + 6, tipScreen.y - 4);
     });
   }
@@ -844,7 +815,7 @@
     const pad = 40;
     const span = (W - pad * 2) * zoom;
     const x0 = pad + panX + ((W - pad * 2) * (1 - zoom)) / 2;
-    ctx.strokeStyle = "#d4d4d4";
+    ctx.strokeStyle = '#d4d4d4';
     ctx.lineWidth = 1;
     for (let i = 0; i < n; i++) {
       const x = x0 + (i / Math.max(1, n - 1)) * span;
@@ -852,8 +823,8 @@
       ctx.moveTo(x, pad + panY);
       ctx.lineTo(x, H - pad + panY);
       ctx.stroke();
-      ctx.fillStyle = "#525252";
-      ctx.font = "10px IBM Plex Mono, monospace";
+      ctx.fillStyle = '#525252';
+      ctx.font = '10px IBM Plex Mono, monospace';
       const label = scene.productNames[i] ?? `x${i + 1}`;
       ctx.fillText(label.slice(0, 10), x - 20, H - 18 + panY);
     }
@@ -868,23 +839,22 @@
         if (i === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
       }
-      ctx.strokeStyle = p.color ?? "#3B82F6";
-      ctx.globalAlpha =
-        p.kind === "best" || p.kind === "bestEver" ? 0.95 : 0.25;
-      ctx.lineWidth = p.kind === "best" || p.kind === "bestEver" ? 2 : 1;
+      ctx.strokeStyle = p.color ?? '#3B82F6';
+      ctx.globalAlpha = p.kind === 'best' || p.kind === 'bestEver' ? 0.95 : 0.25;
+      ctx.lineWidth = p.kind === 'best' || p.kind === 'bestEver' ? 2 : 1;
       ctx.stroke();
       ctx.globalAlpha = 1;
     }
   }
 
   function hexToRgba(hex: string, a: number): string {
-    const h = hex.replace("#", "");
+    const h = hex.replace('#', '');
     const full =
       h.length === 3
         ? h
-            .split("")
+            .split('')
             .map((c) => c + c)
-            .join("")
+            .join('')
         : h;
     const n = parseInt(full, 16);
     const r = (n >> 16) & 255;
@@ -911,15 +881,12 @@
     const dy = b.y - a.y;
     const length2 = dx * dx + dy * dy;
     if (length2 < 1e-9) return Math.hypot(x - a.x, y - a.y);
-    const u = Math.max(
-      0,
-      Math.min(1, ((x - a.x) * dx + (y - a.y) * dy) / length2),
-    );
+    const u = Math.max(0, Math.min(1, ((x - a.x) * dx + (y - a.y) * dy) / length2));
     return Math.hypot(x - (a.x + u * dx), y - (a.y + u * dy));
   }
 
   function hitTest(local: { x: number; y: number }): SelectionKey | null {
-    if (!frame || scene.mode === "parallel") return null;
+    if (!frame || scene.mode === 'parallel') return null;
     let pointHit: SelectionKey | null = null;
     let pointDistance = 13;
     for (const point of frame.points) {
@@ -927,7 +894,7 @@
       const distance = Math.hypot(screen.x - local.x, screen.y - local.y);
       if (distance < pointDistance) {
         pointDistance = distance;
-        pointHit = { type: "point", id: point.id };
+        pointHit = { type: 'point', id: point.id };
       }
     }
     if (pointHit) return pointHit;
@@ -935,18 +902,13 @@
     let lineHit: SelectionKey | null = null;
     let lineDistance = 8;
     for (const line of frame.lines) {
-      if (line.kind === "level") continue;
+      if (line.kind === 'level') continue;
       const projected = line.points.map(toScreenCoords);
       for (let i = 1; i < projected.length; i++) {
-        const distance = pointToSegmentDistance(
-          local.x,
-          local.y,
-          projected[i - 1],
-          projected[i],
-        );
+        const distance = pointToSegmentDistance(local.x, local.y, projected[i - 1], projected[i]);
         if (distance < lineDistance) {
           lineDistance = distance;
-          lineHit = { type: "line", id: line.id };
+          lineHit = { type: 'line', id: line.id };
         }
       }
     }
@@ -955,10 +917,10 @@
   }
 
   function formatValue(value: unknown): string {
-    if (typeof value === "number") {
-      return Number.isFinite(value) ? Number(value.toFixed(4)).toString() : "—";
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? Number(value.toFixed(4)).toString() : '—';
     }
-    if (typeof value === "boolean") return value ? "✓" : "—";
+    if (typeof value === 'boolean') return value ? '✓' : '—';
     return String(value);
   }
 
@@ -966,10 +928,7 @@
     zoom = Math.min(8, Math.max(MIN_ZOOM, zoom * factor));
   }
 
-  function updateCoordinateTooltip(
-    local: { x: number; y: number },
-    hit: SelectionKey | null,
-  ) {
+  function updateCoordinateTooltip(local: { x: number; y: number }, hit: SelectionKey | null) {
     if (!frame) {
       coordinateTooltip = null;
       return;
@@ -978,11 +937,9 @@
     const axisNames = (indices: number[]) =>
       indices.map((ai) => scene.productNames[ai] ?? `x${ai + 1}`);
 
-    if (scene.mode === "exact2d") {
+    if (scene.mode === 'exact2d') {
       const point =
-        hit?.type === "point"
-          ? frame.points.find((item) => item.id === hit.id)
-          : undefined;
+        hit?.type === 'point' ? frame.points.find((item) => item.id === hit.id) : undefined;
       if (point) {
         coordinateTooltip = {
           screenX: local.x,
@@ -1036,9 +993,7 @@
 
     const axes = selectedAxesIndices();
     const point =
-      hit?.type === "point"
-        ? frame.points.find((item) => item.id === hit.id)
-        : undefined;
+      hit?.type === 'point' ? frame.points.find((item) => item.id === hit.id) : undefined;
     if (point) {
       coordinateTooltip = {
         screenX: local.x,
@@ -1068,9 +1023,7 @@
         while (c.length < 3) c.push(0);
         return boundingCenterScale([c], 1);
       })();
-    const modelSelected = modelN.map(
-      (v, i) => v / fit.scale + (fit.center[i] ?? 0),
-    );
+    const modelSelected = modelN.map((v, i) => v / fit.scale + (fit.center[i] ?? 0));
     coordinateTooltip = {
       screenX: local.x,
       screenY: local.y,
@@ -1108,7 +1061,7 @@
       pinchDist0 = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
       pinchZoom0 = zoom;
       dragMode = null;
-      cursor = "grab";
+      cursor = 'grab';
       return;
     }
 
@@ -1123,8 +1076,8 @@
       ? e.button === 1 || e.button === 2 || e.altKey
       : e.button === 1 || e.button === 2 || e.altKey || e.shiftKey || !is3dMode;
     orbitShift = is4dMode && e.shiftKey && !pan;
-    dragMode = pan ? "pan" : "rotate";
-    cursor = "grabbing";
+    dragMode = pan ? 'pan' : 'rotate';
+    cursor = 'grabbing';
   }
 
   function onPointerMove(e: PointerEvent) {
@@ -1133,7 +1086,7 @@
         const local = clientToLocal(e);
         hoveredKey = hitTest(local);
         updateCoordinateTooltip(local, hoveredKey);
-        cursor = hoveredKey ? "pointer" : "grab";
+        cursor = hoveredKey ? 'pointer' : 'grab';
       }
       return;
     }
@@ -1142,11 +1095,7 @@
     if (pointers.size === 2 && pinchDist0 != null) {
       const pts = [...pointers.values()];
       const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
-      if (dist > 1)
-        zoom = Math.min(
-          8,
-          Math.max(MIN_ZOOM, pinchZoom0 * (dist / pinchDist0)),
-        );
+      if (dist > 1) zoom = Math.min(8, Math.max(MIN_ZOOM, pinchZoom0 * (dist / pinchDist0)));
       return;
     }
 
@@ -1157,7 +1106,7 @@
     lastY = e.clientY;
     if (Math.abs(dx) + Math.abs(dy) > 2) dragMoved = true;
 
-    if (dragMode === "pan") {
+    if (dragMode === 'pan') {
       panX += dx;
       panY += dy;
       return;
@@ -1168,7 +1117,7 @@
       orbitAngles4(dx, dy, orbitShift || e.shiftKey);
       return;
     }
-    if (rotationMode === "trackball") {
+    if (rotationMode === 'trackball') {
       const lastLocal = {
         x:
           ((lastX - dx - (canvasEl?.getBoundingClientRect().left ?? 0)) /
@@ -1196,7 +1145,7 @@
     if (activePointerId === e.pointerId) {
       activePointerId = null;
       dragMode = null;
-      cursor = "grab";
+      cursor = 'grab';
     }
     try {
       canvasEl?.releasePointerCapture(e.pointerId);
@@ -1219,16 +1168,14 @@
     if (!frame || !canvasEl || dragMoved) return;
     selectedKey = hitTest(clientToLocal(e));
     hoveredKey = null;
-    if (selectedKey?.type === "point") {
+    if (selectedKey?.type === 'point') {
       const point = frame.points.find((item) => item.id === selectedKey?.id);
       if (point) onPointClick?.(point);
     }
   }
 </script>
 
-<div
-  class="flex w-full flex-col gap-2{fill ? ' h-full min-h-0' : ''}"
->
+<div class="flex w-full flex-col gap-2{fill ? ' h-full min-h-0' : ''}">
   <div
     bind:this={wrapEl}
     class="relative w-full overflow-hidden rounded-[8px] border border-border bg-bg-soft {plotClass}"
@@ -1251,57 +1198,55 @@
       ondblclick={onDblClick}
       onclick={onClick}
       oncontextmenu={(e) => e.preventDefault()}
-      aria-label={t("geometryTitle")}
+      aria-label={t('geometryTitle')}
     ></canvas>
     <div class="pointer-events-none absolute inset-0 z-10">
-      <div
-        class="pointer-events-none absolute left-2 top-2 flex items-center gap-1.5"
-      >
+      <div class="pointer-events-none absolute left-2 top-2 flex items-center gap-1.5">
         <button
           type="button"
           class="pointer-events-auto rounded-[6px] border border-border bg-bg/95 px-2 py-1 text-[11px] text-text shadow-sm hover:bg-bg"
-          title={t("vizResetView")}
-          aria-label={t("vizResetView")}
+          title={t('vizResetView')}
+          aria-label={t('vizResetView')}
           onclick={(e) => {
             e.stopPropagation();
             resetView();
           }}
         >
-          {t("vizResetView")}
+          {t('vizResetView')}
         </button>
         {#if is3dMode && !is4dMode}
           <div
             class="pointer-events-auto flex overflow-hidden rounded-[6px] border border-border bg-bg/95 text-[11px] shadow-sm"
             role="group"
-            aria-label={t("vizRotationMode")}
+            aria-label={t('vizRotationMode')}
           >
             <button
               type="button"
               class="px-2 py-1 {rotationMode === 'turntable'
                 ? 'bg-brand text-white'
                 : 'text-text-muted hover:bg-bg-soft'}"
-              title={t("vizRotationTurntableTitle")}
-              aria-pressed={rotationMode === "turntable"}
+              title={t('vizRotationTurntableTitle')}
+              aria-pressed={rotationMode === 'turntable'}
               onclick={(e) => {
                 e.stopPropagation();
-                setRotationMode("turntable");
+                setRotationMode('turntable');
               }}
             >
-              {t("vizRotationTurntable")}
+              {t('vizRotationTurntable')}
             </button>
             <button
               type="button"
               class="px-2 py-1 {rotationMode === 'trackball'
                 ? 'bg-brand text-white'
                 : 'text-text-muted hover:bg-bg-soft'}"
-              title={t("vizRotationTrackballTitle")}
-              aria-pressed={rotationMode === "trackball"}
+              title={t('vizRotationTrackballTitle')}
+              aria-pressed={rotationMode === 'trackball'}
               onclick={(e) => {
                 e.stopPropagation();
-                setRotationMode("trackball");
+                setRotationMode('trackball');
               }}
             >
-              {t("vizRotationTrackball")}
+              {t('vizRotationTrackball')}
             </button>
           </div>
         {/if}
@@ -1320,12 +1265,7 @@
           }}
         />
       {:else if is3dMode}
-        <ViewGizmo
-          {quat}
-          size={120}
-          onSnap={onGizmoSnap}
-          onInteract={onGizmoInteract}
-        />
+        <ViewGizmo {quat} size={120} onSnap={onGizmoSnap} onInteract={onGizmoInteract} />
       {/if}
       <div
         class="pointer-events-none absolute bottom-2 left-2 flex max-w-[min(100%-1rem,22rem)] flex-col items-start gap-1.5"
@@ -1340,26 +1280,26 @@
             legendOpen = !legendOpen;
           }}
         >
-          {legendOpen ? t("vizLegendHide") : t("vizLegend")}
+          {legendOpen ? t('vizLegendHide') : t('vizLegend')}
         </button>
         {#if legendOpen}
           <div
             id="viz-legend-panel"
             class="pointer-events-auto max-h-[min(40vh,14rem)] overflow-y-auto rounded-[8px] border border-border bg-bg/95 p-2.5 shadow-sm"
             role="region"
-            aria-label={t("vizLegend")}
+            aria-label={t('vizLegend')}
           >
             {#if legendItems.length > 0}
               <ul class="flex flex-col gap-1.5 text-xs text-text-muted">
                 {#each legendItems as item (item.id)}
                   <li class="flex items-center gap-1.5">
-                    {#if item.marker === "point"}
+                    {#if item.marker === 'point'}
                       <span
                         class="size-2.5 shrink-0 rounded-full border border-white shadow-[0_0_0_1px_rgba(0,0,0,0.12)]"
                         style:background-color={item.color}
                         style:opacity={item.opacity}
                       ></span>
-                    {:else if item.marker === "line"}
+                    {:else if item.marker === 'line'}
                       <span
                         class="h-0.5 w-5 shrink-0 rounded"
                         style:background-color={item.color}
@@ -1383,7 +1323,7 @@
                 ? 'mt-2 border-t border-border-soft pt-2'
                 : ''}"
             >
-              {is4dMode ? t("vizInteractHint4d") : t("vizInteractHint")}
+              {is4dMode ? t('vizInteractHint4d') : t('vizInteractHint')}
             </p>
           </div>
         {/if}
@@ -1401,49 +1341,43 @@
         <p class="whitespace-nowrap font-mono text-text-muted">
           {coordinateTooltip.values
             .map((item) => `${item.name}=${formatValue(item.value)}`)
-            .join(" · ")}
+            .join(' · ')}
         </p>
       </div>
     {/if}
   </div>
 
   <section
-    class="shrink-0 border-t border-border-soft pt-2 text-xs{fill
-      ? ' min-h-[2.75rem]'
-      : ''}"
+    class="shrink-0 border-t border-border-soft pt-2 text-xs{fill ? ' min-h-[2.75rem]' : ''}"
     aria-live="polite"
   >
     {#if selectedItem}
-      <div
-        class="flex flex-wrap items-baseline gap-x-3 gap-y-1{fill
-          ? ' line-clamp-2'
-          : ''}"
-      >
+      <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1{fill ? ' line-clamp-2' : ''}">
         <h4 class="font-medium text-text">
           {selectedItem.item.label ??
-            (selectedItem.type === "point"
+            (selectedItem.type === 'point'
               ? pointKindLabel(selectedItem.item.kind)
               : kindLabel(selectedItem.item.kind))}
         </h4>
         <span class="text-text-muted">
-          {selectedItem.type === "point"
-            ? t("vizKindPoint")
-            : selectedItem.type === "line"
-              ? t("vizKindLine")
-              : t("vizKindRegion")}
+          {selectedItem.type === 'point'
+            ? t('vizKindPoint')
+            : selectedItem.type === 'line'
+              ? t('vizKindLine')
+              : t('vizKindRegion')}
         </span>
-        {#if selectedItem.type === "point"}
+        {#if selectedItem.type === 'point'}
           <span class="font-mono text-text-muted">
-            {t("vizCoordinates")}:
+            {t('vizCoordinates')}:
             {selectedItem.item.coords
               .map(
                 (value, index) =>
                   `${scene.productNames[index] ?? `x${index + 1}`}=${formatValue(value)}`,
               )
-              .join(" · ")}
+              .join(' · ')}
           </span>
           {#if selectedItem.item.meta}
-            {#each Object.entries(selectedItem.item.meta).filter(([key]) => key !== "feasible") as [key, value] (key)}
+            {#each Object.entries(selectedItem.item.meta).filter(([key]) => key !== 'feasible') as [key, value] (key)}
               <span class="text-text-muted">
                 {metaLabel(key)}:
                 <span class="font-mono text-text">{formatValue(value)}</span>
@@ -1453,7 +1387,7 @@
         {/if}
       </div>
     {:else}
-      <p class="text-text-muted">{t("vizHoverPrompt")}</p>
+      <p class="text-text-muted">{t('vizHoverPrompt')}</p>
     {/if}
   </section>
 </div>

@@ -7,17 +7,17 @@ import {
   type SolveEngine,
   type SolveMethod,
   type SolveRunOptions,
-} from "$lib/domain";
-import type { ResolvedVenue } from "$lib/domain/types";
-import { SOLVE_LIMITS } from "./limits";
-import { defaultEngine } from "./registry";
-import { solveLocal } from "./run";
+} from '$lib/domain';
+import type { ResolvedVenue } from '$lib/domain/types';
+import { SOLVE_LIMITS } from './limits';
+import { defaultEngine } from './registry';
+import { solveLocal } from './run';
 
 export function runMutationsLocal(
   base: Model,
   mutations: Mutation[],
-  venue: ResolvedVenue = "local",
-  method: SolveMethod = "lp",
+  venue: ResolvedVenue = 'local',
+  method: SolveMethod = 'lp',
   engine?: SolveEngine,
   options?: SolveRunOptions,
 ): RunMutationsResponse {
@@ -26,7 +26,7 @@ export function runMutationsLocal(
   const lib = libraryFor(method, venue, eng);
   if (mutations.length > SOLVE_LIMITS.mutationMaxK) {
     return {
-      status: "rejected_too_large",
+      status: 'rejected_too_large',
       items: [],
       solver_meta: {
         venue,
@@ -43,7 +43,7 @@ export function runMutationsLocal(
   for (const mutation of mutations) {
     if (performance.now() - started > SOLVE_LIMITS.mutationBudgetMs) {
       return {
-        status: "rejected_too_large",
+        status: 'rejected_too_large',
         items,
         solver_meta: {
           venue,
@@ -51,16 +51,16 @@ export function runMutationsLocal(
           method,
           engine: eng,
           duration_ms: performance.now() - started,
-          rejected_reason: "package_timeout",
+          rejected_reason: 'package_timeout',
         },
       };
     }
     const model = applyMutation(base, mutation);
     const response = solveLocal(model, venue, 0, method, eng, options);
     items.push({ mutation, model, response });
-    if (response.status === "rejected_too_large") {
+    if (response.status === 'rejected_too_large') {
       return {
-        status: "rejected_too_large",
+        status: 'rejected_too_large',
         items,
         solver_meta: {
           venue,
@@ -75,7 +75,7 @@ export function runMutationsLocal(
   }
 
   return {
-    status: "done",
+    status: 'done',
     items,
     solver_meta: {
       venue,

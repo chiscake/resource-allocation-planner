@@ -1,14 +1,14 @@
-import { defineConfig } from "vite";
-import { sveltekit } from "@sveltejs/kit/vite";
-import tailwindcss from "@tailwindcss/vite";
-import process from "node:process";
-import fs from "node:fs";
-import path from "node:path";
-import dotenv from "dotenv";
+import { defineConfig } from 'vite';
+import { sveltekit } from '@sveltejs/kit/vite';
+import tailwindcss from '@tailwindcss/vite';
+import process from 'node:process';
+import fs from 'node:fs';
+import path from 'node:path';
+import dotenv from 'dotenv';
 
 /** Committed pointer: one path to the env file Vite should load. */
-const ENV_FILE_POINTER = "vite.env-file";
-const DEFAULT_ENV_FILE = ".env.local";
+const ENV_FILE_POINTER = 'vite.env-file';
+const DEFAULT_ENV_FILE = '.env.local';
 
 function resolveViteEnvFile(): string {
   const fromEnv = process.env.RAP_ENV_FILE?.trim();
@@ -17,10 +17,10 @@ function resolveViteEnvFile(): string {
   const pointer = path.resolve(process.cwd(), ENV_FILE_POINTER);
   if (fs.existsSync(pointer)) {
     const line = fs
-      .readFileSync(pointer, "utf8")
+      .readFileSync(pointer, 'utf8')
       .split(/\r?\n/)
       .map((l) => l.trim())
-      .find((l) => l.length > 0 && !l.startsWith("#"));
+      .find((l) => l.length > 0 && !l.startsWith('#'));
     if (line) return line;
   }
   return DEFAULT_ENV_FILE;
@@ -54,14 +54,14 @@ export default defineConfig({
   server: {
     port: 5400,
     strictPort: true,
-    host: host || "0.0.0.0",
+    host: host || '0.0.0.0',
     hmr: {
-      protocol: "ws",
-      host: host || "127.0.0.1",
+      protocol: 'ws',
+      host: host || '127.0.0.1',
       port: 5401,
     },
     watch: {
-      ignored: ["**/src-tauri/**"],
+      ignored: ['**/src-tauri/**'],
     },
   },
 });

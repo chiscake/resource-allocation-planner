@@ -2,8 +2,8 @@
  * Dual LP via javascript-lp-solver — used by GA for shadow prices
  * (GA is a primal heuristic; duals come from the continuous dual LP).
  */
-import solver from "javascript-lp-solver";
-import type { Model } from "$lib/domain";
+import solver from 'javascript-lp-solver';
+import type { Model } from '$lib/domain';
 
 export function solveLocalLpDuals(model: Model): number[] {
   const constraints: Record<string, { min: number }> = {};
@@ -19,8 +19,8 @@ export function solveLocalLpDuals(model: Model): number[] {
     variables[`y_${i}`] = v;
   }
   const dual = solver.Solve({
-    optimize: "cost",
-    opType: "min",
+    optimize: 'cost',
+    opType: 'min',
     constraints,
     variables,
   }) as Record<string, unknown>;

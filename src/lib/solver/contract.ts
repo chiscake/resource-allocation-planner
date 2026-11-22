@@ -6,7 +6,7 @@ import type {
   SolveRunOptions,
   SolveRunProvenance,
   SolveTrace,
-} from "$lib/domain";
+} from '$lib/domain';
 
 /** Callback for progressive native viz frames (GA generations, simplex steps, …). */
 export type TraceSink = (trace: SolveTrace) => void;
@@ -24,9 +24,7 @@ export type EngineFail = {
   hint?: string;
 };
 
-export type EngineOutcome =
-  | { ok: true; value: EngineOk }
-  | { ok: false; fail: EngineFail };
+export type EngineOutcome = { ok: true; value: EngineOk } | { ok: false; fail: EngineFail };
 
 /**
  * One method×engine implementation.
@@ -40,11 +38,7 @@ export interface SolverEngine {
    * Optional streaming seam for native viz. Default runners call `solve` then
    * push `value.trace` once if present.
    */
-  solveStreaming?(
-    model: Model,
-    onFrame: TraceSink,
-    options?: SolveRunOptions,
-  ): EngineOutcome;
+  solveStreaming?(model: Model, onFrame: TraceSink, options?: SolveRunOptions): EngineOutcome;
 }
 
 export function engineOk(value: EngineOk): EngineOutcome {

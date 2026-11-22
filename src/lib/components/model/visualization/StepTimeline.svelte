@@ -1,10 +1,10 @@
 <script lang="ts">
-  import Button from "$lib/components/ui/Button.svelte";
+  import Button from '$lib/components/ui/Button.svelte';
 
   let {
     index = $bindable(0),
     maxIndex = 0,
-    label = "",
+    label = '',
     playing = $bindable(false),
     speedMs = 700,
   }: {
@@ -37,14 +37,18 @@
       onclick={() => {
         playing = false;
         index = Math.max(0, index - 1);
-      }}>‹</Button
+      }}
     >
+      ‹
+    </Button>
     <Button
       variant="secondary"
       class="!px-3 !py-1"
       disabled={maxIndex <= 0 || index >= maxIndex}
-      onclick={() => (playing = !playing)}>{playing ? "❚❚" : "▶"}</Button
+      onclick={() => (playing = !playing)}
     >
+      {playing ? '❚❚' : '▶'}
+    </Button>
     <Button
       variant="ghost"
       class="!px-2 !py-1"
@@ -52,19 +56,21 @@
       onclick={() => {
         playing = false;
         index = Math.min(maxIndex, index + 1);
-      }}>›</Button
+      }}
     >
+      ›
+    </Button>
     <Button
       variant="ghost"
       class="!px-2 !py-1"
       onclick={() => {
         playing = false;
         index = 0;
-      }}>↺</Button
+      }}
     >
-    <span class="font-mono text-xs text-text-muted"
-      >{label || `${index} / ${maxIndex}`}</span
-    >
+      ↺
+    </Button>
+    <span class="font-mono text-xs text-text-muted">{label || `${index} / ${maxIndex}`}</span>
   </div>
   <input
     type="range"

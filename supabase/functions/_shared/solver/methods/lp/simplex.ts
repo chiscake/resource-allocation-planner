@@ -18,7 +18,7 @@ export type SimplexOutcome =
     }
   | {
       ok: false;
-      reason: "infeasible" | "unbounded" | "iteration_limit";
+      reason: 'infeasible' | 'unbounded' | 'iteration_limit';
       frames: SimplexTraceFrame[];
     };
 
@@ -32,7 +32,7 @@ type Tableau = {
   colLabels: string[];
   artCols: Set<number>;
   frames: SimplexTraceFrame[];
-  problem: "primal" | "dual";
+  problem: 'primal' | 'dual';
   phase: 1 | 2;
 };
 
@@ -44,12 +44,7 @@ function roundEps(v: number): number {
   return Math.abs(v) < EPS ? 0 : v;
 }
 
-function captureFrame(
-  tab: Tableau,
-  note: string,
-  entering?: string,
-  leaving?: string,
-): void {
+function captureFrame(tab: Tableau, note: string, entering?: string, leaving?: string): void {
   if (tab.frames.length >= MAX_FRAMES) return;
   const { T, m, ncols, basis, colLabels, problem, phase } = tab;
   const Z = roundEps(T[m][ncols]);
@@ -62,10 +57,7 @@ function captureFrame(
     phase,
     Z,
     colLabels: colLabels.slice(),
-    rowLabels: [
-      ...basis.map((bi) => colLabels[bi] ?? `v${bi}`),
-      "Z",
-    ],
+    rowLabels: [...basis.map((bi) => colLabels[bi] ?? `v${bi}`), 'Z'],
     entering,
     leaving,
     problem,
@@ -73,12 +65,7 @@ function captureFrame(
 }
 
 /** Bland: smallest eligible index with negative reduced cost (max form). */
-function pickEntering(
-  T: number[][],
-  m: number,
-  ncols: number,
-  forbidden?: Set<number>,
-): number {
+function pickEntering(T: number[][], m: number, ncols: number, forbidden?: Set<number>): number {
   let enter = -1;
   for (let j = 0; j < ncols; j++) {
     if (forbidden?.has(j)) continue;
@@ -110,10 +97,7 @@ function pickLeaving(
     const ratio = T[i][ncols] / a;
     if (ratio < -EPS) continue;
     const bIdx = basis[i];
-    if (
-      ratio < bestRatio - EPS ||
-      (Math.abs(ratio - bestRatio) <= EPS && bIdx < bestBasisIdx)
-    ) {
+    if (ratio < bestRatio - EPS || (Math.abs(ratio - bestRatio) <= EPS && bIdx < bestBasisIdx)) {
       bestRatio = ratio;
       bestRow = i;
       bestBasisIdx = bIdx;
@@ -144,16 +128,16 @@ function runPhase(
   tab: Tableau,
   phaseNote: string,
   forbidEnter?: Set<number>,
-): "optimal" | "unbounded" | "iteration_limit" {
+): 'optimal' | 'unbounded' | 'iteration_limit' {
   const { T, m, ncols, colLabels } = tab;
   captureFrame(tab, `${phaseNote}: initial tableau`);
 
   for (let iter = 0; iter < MAX_PIVOTS; iter++) {
     const enter = pickEntering(T, m, ncols, forbidEnter);
-    if (enter < 0) return "optimal";
+    if (enter < 0) return 'optimal';
 
     const leave = pickLeaving(T, m, ncols, enter, tab.basis);
-    if (leave < 0) return "unbounded";
+    if (leave < 0) return 'unbounded';
 
     const enterLabel = colLabels[enter] ?? `c${enter}`;
     const leaveLabel = colLabels[tab.basis[leave]] ?? `r${leave}`;
@@ -165,7 +149,7 @@ function runPhase(
       leaveLabel,
     );
   }
-  return "iteration_limit";
+  return 'iteration_limit';
 }
 
 /**
@@ -177,23 +161,18 @@ function buildTableau(
   b: number[],
   c: number[],
   varLabels: string[],
-  problem: "primal" | "dual",
+  problem: 'primal' | 'dual',
 ): Tableau {
   const m = A.length;
   const n = c.length;
   const needArt: boolean[] = b.map((bi) => bi < -EPS);
   const artCount = needArt.filter(Boolean).length;
 
-  const colLabels: string[] = [
-    ...varLabels,
-    ...Array.from({ length: m }, (_, i) => `s${i}`),
-  ];
+  const colLabels: string[] = [...varLabels, ...Array.from({ length: m }, (_, i) => `s${i}`)];
   for (let k = 0; k < artCount; k++) colLabels.push(`a${k}`);
 
   const ncols = n + m + artCount;
-  const T: number[][] = Array.from({ length: m + 1 }, () =>
-    Array(ncols + 1).fill(0),
-  );
+  const T: number[][] = Array.from({ length: m + 1 }, () => Array(ncols + 1).fill(0));
   const basis: number[] = new Array(m);
   const artCols = new Set<number>();
   let artIdx = 0;
@@ -275,12 +254,12 @@ export function solveMaxWithTrace(
   b: number[],
   c: number[],
   varLabels: string[],
-  problem: "primal" | "dual",
+  problem: 'primal' | 'dual',
 ): SimplexOutcome {
   if (A.length === 0) {
     // Unconstrained max over x≥0: unbounded unless c≤0
     if (c.some((cj) => cj > EPS)) {
-      return { ok: false, reason: "unbounded", frames: [] };
+      return { ok: false, reason: 'unbounded', frames: [] };
     }
     return {
       ok: true,
@@ -288,7 +267,7 @@ export function solveMaxWithTrace(
       Z: 0,
       frames: [
         {
-          note: "empty constraints; optimum at origin",
+          note: 'empty constraints; optimum at origin',
           phase: 2,
           Z: 0,
           problem,
@@ -303,13 +282,13 @@ export function solveMaxWithTrace(
   if (tab.artCols.size > 0) {
     tab.phase = 1;
     setPhase1Objective(tab);
-    const p1 = runPhase(tab, "Phase 1");
-    if (p1 === "iteration_limit") {
-      return { ok: false, reason: "iteration_limit", frames: tab.frames };
+    const p1 = runPhase(tab, 'Phase 1');
+    if (p1 === 'iteration_limit') {
+      return { ok: false, reason: 'iteration_limit', frames: tab.frames };
     }
-    if (p1 === "unbounded") {
+    if (p1 === 'unbounded') {
       // Phase-1 unbounded should not happen for a proper auxiliary LP
-      return { ok: false, reason: "infeasible", frames: tab.frames };
+      return { ok: false, reason: 'infeasible', frames: tab.frames };
     }
     const w = tab.T[tab.m][tab.ncols];
     // Feasible iff artificial sum ≈ 0 and no artificial remains basic with positive level
@@ -321,8 +300,8 @@ export function solveMaxWithTrace(
       }
     }
     if (w < -EPS || artInBasis) {
-      captureFrame(tab, "Phase 1: infeasible (w < 0 or artificial basic)");
-      return { ok: false, reason: "infeasible", frames: tab.frames };
+      captureFrame(tab, 'Phase 1: infeasible (w < 0 or artificial basic)');
+      return { ok: false, reason: 'infeasible', frames: tab.frames };
     }
     // Drive remaining zero-level artificials out if possible (optional cleanup)
     for (let i = 0; i < tab.m; i++) {
@@ -353,13 +332,13 @@ export function solveMaxWithTrace(
   tab.phase = 2;
   setPhase2Objective(tab, c);
   // Artificials must not re-enter in phase 2.
-  const p2 = runPhase(tab, "Phase 2", tab.artCols);
-  if (p2 === "iteration_limit") {
-    return { ok: false, reason: "iteration_limit", frames: tab.frames };
+  const p2 = runPhase(tab, 'Phase 2', tab.artCols);
+  if (p2 === 'iteration_limit') {
+    return { ok: false, reason: 'iteration_limit', frames: tab.frames };
   }
-  if (p2 === "unbounded") {
-    captureFrame(tab, "Phase 2: unbounded");
-    return { ok: false, reason: "unbounded", frames: tab.frames };
+  if (p2 === 'unbounded') {
+    captureFrame(tab, 'Phase 2: unbounded');
+    return { ok: false, reason: 'unbounded', frames: tab.frames };
   }
 
   const x = extractDecision(tab);
@@ -373,7 +352,7 @@ export function solvePrimalWithTrace(model: Model): SimplexOutcome {
     model.b,
     model.c,
     model.products.map((p, j) => `x:${p}`),
-    "primal",
+    'primal',
   );
 }
 
@@ -394,7 +373,7 @@ export function solveDualWithTrace(model: Model): SimplexOutcome {
     bDual,
     cDual,
     model.resources.map((r) => `y:${r}`),
-    "dual",
+    'dual',
   );
   if (!dual.ok) return dual;
   // Dual objective we maximized is −bᵀy; report primal-dual Z = bᵀy = −Z_max
@@ -428,9 +407,7 @@ export function solveLpNative(model: Model): {
     };
   }
 
-  const yVec = dual.ok
-    ? dual.x
-    : model.resources.map(() => 0);
+  const yVec = dual.ok ? dual.x : model.resources.map(() => 0);
 
   return {
     result: buildSolveResult(model, primal.x, yVec, true),

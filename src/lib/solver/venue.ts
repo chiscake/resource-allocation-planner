@@ -1,7 +1,7 @@
-import type { ResolvedVenue } from "$lib/domain/types";
+import type { ResolvedVenue } from '$lib/domain/types';
 
 export function isOnline(): boolean {
-  if (typeof navigator === "undefined") return true;
+  if (typeof navigator === 'undefined') return true;
   return navigator.onLine;
 }
 
@@ -10,11 +10,8 @@ export function isOnline(): boolean {
  * Pass `forceCloud: true` for an authenticated one-shot Edge solve.
  * Offline → local even if forceCloud was requested.
  */
-export function resolveVenue(options?: {
-  forceCloud?: boolean;
-  online?: boolean;
-}): ResolvedVenue {
+export function resolveVenue(options?: { forceCloud?: boolean; online?: boolean }): ResolvedVenue {
   const online = options?.online ?? isOnline();
-  if (options?.forceCloud && online) return "cloud";
-  return "local";
+  if (options?.forceCloud && online) return 'cloud';
+  return 'local';
 }

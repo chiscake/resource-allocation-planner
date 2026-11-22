@@ -73,7 +73,7 @@ export type IpmRaw = IpmSolveOk | IpmSolveFail;
 export function solveIpmRaw(model: Model): IpmRaw {
   const m = model.resources.length;
   const n = model.products.length;
-  if (m === 0 || n === 0) return { ok: false, reason: "empty" };
+  if (m === 0 || n === 0) return { ok: false, reason: 'empty' };
 
   const A = model.A;
   const b = model.b.slice();
@@ -81,7 +81,7 @@ export function solveIpmRaw(model: Model): IpmRaw {
 
   // Feasibility: b >= 0 required for nonnegative slack start
   for (let i = 0; i < m; i++) {
-    if (b[i] < -EPS) return { ok: false, reason: "negative_rhs" };
+    if (b[i] < -EPS) return { ok: false, reason: 'negative_rhs' };
   }
 
   // Starting point (Mehrotra-style heuristic)
@@ -183,15 +183,17 @@ export function solveIpmRaw(model: Model): IpmRaw {
       dyAff,
       dzAff,
     );
-    if (!solved) return { ok: false, reason: "newton_fail" };
+    if (!solved) return { ok: false, reason: 'newton_fail' };
 
     // Step length affine
     const alphaPAff = maxStep(x, dxAff, s, dsAff);
     const alphaDAff = maxStep(y, dyAff, z, dzAff);
 
     let muAff = 0;
-    for (let j = 0; j < n; j++) muAff += (x[j] + alphaPAff * dxAff[j]) * (z[j] + alphaDAff * dzAff[j]);
-    for (let i = 0; i < m; i++) muAff += (s[i] + alphaPAff * dsAff[i]) * (y[i] + alphaDAff * dyAff[i]);
+    for (let j = 0; j < n; j++)
+      muAff += (x[j] + alphaPAff * dxAff[j]) * (z[j] + alphaDAff * dzAff[j]);
+    for (let i = 0; i < m; i++)
+      muAff += (s[i] + alphaPAff * dsAff[i]) * (y[i] + alphaDAff * dyAff[i]);
     muAff /= n + m;
     const sigma = Math.pow(muAff / Math.max(mu, EPS), 3);
     const muTarget = sigma * mu;
@@ -206,10 +208,8 @@ export function solveIpmRaw(model: Model): IpmRaw {
     const ds = zeros(m);
     const dy = zeros(m);
     const dz = zeros(n);
-    if (
-      !newtonStep(A, x, s, y, z, rp, rd, rxi, rsi, dx, ds, dy, dz)
-    ) {
-      return { ok: false, reason: "newton_fail" };
+    if (!newtonStep(A, x, s, y, z, rp, rd, rxi, rsi, dx, ds, dy, dz)) {
+      return { ok: false, reason: 'newton_fail' };
     }
 
     const alphaP = 0.995 * maxStep(x, dx, s, ds);
@@ -242,12 +242,7 @@ export function solveIpmRaw(model: Model): IpmRaw {
   return { ok: true, x: xOut, y: yOut, Z, feasible, iterations };
 }
 
-function maxStep(
-  u: number[],
-  du: number[],
-  v: number[],
-  dv: number[],
-): number {
+function maxStep(u: number[], du: number[], v: number[], dv: number[]): number {
   let alpha = 1;
   for (let i = 0; i < u.length; i++) {
     if (du[i] < -EPS) alpha = Math.min(alpha, -u[i] / du[i]);

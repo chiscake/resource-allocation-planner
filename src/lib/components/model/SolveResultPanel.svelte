@@ -1,30 +1,19 @@
 <script lang="ts">
-  import type { Snippet } from "svelte";
-  import { tick } from "svelte";
-  import { prefersReducedMotion } from "svelte/motion";
-  import { ChevronDown } from "@lucide/svelte";
-  import type {
-    Model,
-    SolveMethod,
-    SolveResult,
-    SolveTrace,
-    WhatIfRowData,
-  } from "$lib/domain";
-  import type { VerifyReport } from "$lib/solver/verify";
-  import {
-    labeledProduct,
-    labeledResource,
-    objectiveUnit,
-    shadowUnit,
-  } from "$lib/display/units";
-  import { t } from "$lib/i18n";
-  import Card from "$lib/components/ui/Card.svelte";
-  import { formatPlanNumber } from "./format-plan-number";
-  import SimplexStepsPanel from "./SimplexStepsPanel.svelte";
-  import GaStepsPanel from "./GaStepsPanel.svelte";
-  import LibraryVerifyPanel from "./LibraryVerifyPanel.svelte";
-  import GeometryPanel from "./visualization/GeometryPanel.svelte";
-  import ResultExportActions from "./ResultExportActions.svelte";
+  import type { Snippet } from 'svelte';
+  import { tick } from 'svelte';
+  import { prefersReducedMotion } from 'svelte/motion';
+  import { ChevronDown } from '@lucide/svelte';
+  import type { Model, SolveMethod, SolveResult, SolveTrace, WhatIfRowData } from '$lib/domain';
+  import type { VerifyReport } from '$lib/solver/verify';
+  import { labeledProduct, labeledResource, objectiveUnit, shadowUnit } from '$lib/display/units';
+  import { t } from '$lib/i18n';
+  import Card from '$lib/components/ui/Card.svelte';
+  import { formatPlanNumber } from './format-plan-number';
+  import SimplexStepsPanel from './SimplexStepsPanel.svelte';
+  import GaStepsPanel from './GaStepsPanel.svelte';
+  import LibraryVerifyPanel from './LibraryVerifyPanel.svelte';
+  import GeometryPanel from './visualization/GeometryPanel.svelte';
+  import ResultExportActions from './ResultExportActions.svelte';
 
   const ZERO_EPS = 1e-9;
 
@@ -38,7 +27,7 @@
     trace = null,
     stepsAvailable = false,
     verifyReport = null,
-    solveMethod = "lp",
+    solveMethod = 'lp',
     gapVsLp = null,
     onRequestSteps,
     exportTitle = null,
@@ -83,18 +72,14 @@
     const prices = result.shadow_prices;
     if (!prices) return [] as [string, number][];
     const keys = resourceOrder?.length ? resourceOrder : Object.keys(prices);
-    return keys
-      .filter((k) => k in prices)
-      .map((k) => [k, prices[k] ?? 0] as [string, number]);
+    return keys.filter((k) => k in prices).map((k) => [k, prices[k] ?? 0] as [string, number]);
   });
 
   const slackEntries = $derived.by(() => {
     const slack = result.resource_slack;
     if (!slack) return [] as [string, number][];
     const keys = resourceOrder?.length ? resourceOrder : Object.keys(slack);
-    return keys
-      .filter((k) => k in slack)
-      .map((k) => [k, slack[k] ?? 0] as [string, number]);
+    return keys.filter((k) => k in slack).map((k) => [k, slack[k] ?? 0] as [string, number]);
   });
 
   const zUnit = $derived(objectiveUnit(model));
@@ -154,10 +139,8 @@
 <Card>
   <div class="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
     <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-      <span class="text-sm font-medium text-text-muted">{t("zMax")}</span>
-      <span
-        class="font-mono text-4xl font-semibold tabular-nums tracking-tight text-brand"
-      >
+      <span class="text-sm font-medium text-text-muted">{t('zMax')}</span>
+      <span class="font-mono text-4xl font-semibold tabular-nums tracking-tight text-brand">
         {formatPlanNumber(result.Z)}
       </span>
       {#if zUnit}
@@ -179,15 +162,15 @@
 
   {#if solverLibrary}
     <p class="mt-2 text-xs text-text-soft">
-      {t("solverLibrary")}: {solverLibrary}
+      {t('solverLibrary')}: {solverLibrary}
     </p>
   {/if}
 
   <div class="mt-6">
-    <p class="mb-2 text-sm font-medium text-text">{t("guestPlan")}</p>
+    <p class="mb-2 text-sm font-medium text-text">{t('guestPlan')}</p>
 
     {#if roundPlan && !result.feasible}
-      <p class="mb-3 text-sm text-warning-text">{t("roundPlanInfeasible")}</p>
+      <p class="mb-3 text-sm text-warning-text">{t('roundPlanInfeasible')}</p>
     {/if}
 
     <table class="w-full text-sm">
@@ -210,7 +193,7 @@
 
   {#if result.critical_resources.length}
     <div class="mt-6">
-      <p class="mb-2 text-sm font-medium text-text">{t("criticalResources")}</p>
+      <p class="mb-2 text-sm font-medium text-text">{t('criticalResources')}</p>
       <ul class="flex flex-col gap-1.5">
         {#each result.critical_resources as name (name)}
           <li class="text-sm text-text">{labeledResource(model, name)}</li>
@@ -219,23 +202,19 @@
     </div>
   {:else}
     <div class="mt-6">
-      <p class="mb-1 text-sm font-medium text-text">{t("criticalResources")}</p>
+      <p class="mb-1 text-sm font-medium text-text">{t('criticalResources')}</p>
       <p class="text-sm text-text-muted">—</p>
     </div>
   {/if}
 
   {#if shadowEntries.length}
     <div class="mt-6">
-      <p class="mb-2 text-sm font-medium text-text">{t("shadowPrices")}</p>
+      <p class="mb-2 text-sm font-medium text-text">{t('shadowPrices')}</p>
       <table class="w-full text-sm">
         <tbody>
           {#each shadowEntries as [name, value] (name)}
             <tr class="border-b border-border-soft last:border-0">
-              <td
-                class="py-1.5 pr-3 {criticalSet.has(name)
-                  ? 'text-text'
-                  : 'text-text-muted'}"
-              >
+              <td class="py-1.5 pr-3 {criticalSet.has(name) ? 'text-text' : 'text-text-muted'}">
                 {labeledResource(model, name)}
               </td>
               <td class="py-1.5 text-right font-mono tabular-nums text-text">
@@ -253,7 +232,7 @@
 
   {#if slackEntries.length}
     <div class="mt-6">
-      <p class="mb-2 text-sm font-medium text-text">{t("resourceSlack")}</p>
+      <p class="mb-2 text-sm font-medium text-text">{t('resourceSlack')}</p>
       <table class="w-full text-sm">
         <tbody>
           {#each slackEntries as [name, value] (name)}
@@ -271,7 +250,7 @@
     </div>
   {/if}
 
-  {#if model && solveMethod === "lp" && stepsAvailable}
+  {#if model && solveMethod === 'lp' && stepsAvailable}
     <div class="mt-6">
       <div class="flex items-center gap-3">
         <span class="h-px min-w-4 flex-1 bg-border" aria-hidden="true"></span>
@@ -282,13 +261,13 @@
           onclick={onGeometryToggle}
         >
           <span>
-            {geometryOpen ? t("geometryToggleHide") : t("geometryToggle")}
+            {geometryOpen ? t('geometryToggleHide') : t('geometryToggle')}
           </span>
           <ChevronDown
             class={[
-              "size-3.5 shrink-0 transition-transform duration-[320ms] ease-[cubic-bezier(0.16,1,0.3,1)]",
-              geometryOpen && "rotate-180",
-              prefersReducedMotion.current && "transition-none",
+              'size-3.5 shrink-0 transition-transform duration-[320ms] ease-[cubic-bezier(0.16,1,0.3,1)]',
+              geometryOpen && 'rotate-180',
+              prefersReducedMotion.current && 'transition-none',
             ]}
             aria-hidden="true"
           />
@@ -298,10 +277,10 @@
       {#if geometryMounted}
         <div
           class={[
-            "grid transition-[grid-template-rows] duration-[320ms] ease-[cubic-bezier(0.16,1,0.3,1)]",
-            prefersReducedMotion.current && "transition-none",
+            'grid transition-[grid-template-rows] duration-[320ms] ease-[cubic-bezier(0.16,1,0.3,1)]',
+            prefersReducedMotion.current && 'transition-none',
           ]}
-          style:grid-template-rows={geometryOpen ? "1fr" : "0fr"}
+          style:grid-template-rows={geometryOpen ? '1fr' : '0fr'}
         >
           <div class="min-h-0 overflow-hidden">
             <div class="mt-3">
@@ -325,18 +304,13 @@
           onclick={onStepsToggle}
         >
           <span>
-            {stepsPreparing
-              ? t("loading")
-              : stepsOpen
-                ? t("solveDetailsHide")
-                : t("solveDetails")}
+            {stepsPreparing ? t('loading') : stepsOpen ? t('solveDetailsHide') : t('solveDetails')}
           </span>
           <ChevronDown
             class={[
-              "size-3.5 shrink-0 transition-transform duration-[320ms] ease-[cubic-bezier(0.16,1,0.3,1)]",
-              stepsOpen && "rotate-180",
-              (stepsPreparing || prefersReducedMotion.current) &&
-                "transition-none",
+              'size-3.5 shrink-0 transition-transform duration-[320ms] ease-[cubic-bezier(0.16,1,0.3,1)]',
+              stepsOpen && 'rotate-180',
+              (stepsPreparing || prefersReducedMotion.current) && 'transition-none',
             ]}
             aria-hidden="true"
           />
@@ -346,19 +320,19 @@
       {#if stepsMounted}
         <div
           class={[
-            "grid transition-[grid-template-rows] duration-[320ms] ease-[cubic-bezier(0.16,1,0.3,1)]",
-            prefersReducedMotion.current && "transition-none",
+            'grid transition-[grid-template-rows] duration-[320ms] ease-[cubic-bezier(0.16,1,0.3,1)]',
+            prefersReducedMotion.current && 'transition-none',
           ]}
-          style:grid-template-rows={stepsOpen ? "1fr" : "0fr"}
+          style:grid-template-rows={stepsOpen ? '1fr' : '0fr'}
         >
           <div class="min-h-0 overflow-hidden">
             <div class="mt-3">
-              {#if solveMethod === "ga" && model}
+              {#if solveMethod === 'ga' && model}
                 <GaStepsPanel {model} {trace} lpOptimum={null} {gapVsLp} />
-              {:else if solveMethod === "lp"}
+              {:else if solveMethod === 'lp'}
                 <SimplexStepsPanel {trace} />
               {:else}
-                <p class="text-sm text-text-muted">{t("solveDetailsEmpty")}</p>
+                <p class="text-sm text-text-muted">{t('solveDetailsEmpty')}</p>
               {/if}
             </div>
           </div>

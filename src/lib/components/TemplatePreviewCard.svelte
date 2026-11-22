@@ -1,7 +1,7 @@
 <script lang="ts">
-  import type { Snippet } from "svelte";
-  import type { Model } from "$lib/domain";
-  import MatrixThumb from "$lib/components/model/MatrixThumb.svelte";
+  import type { Snippet } from 'svelte';
+  import type { Model } from '$lib/domain';
+  import MatrixThumb from '$lib/components/model/MatrixThumb.svelte';
 
   let {
     title,
@@ -10,7 +10,7 @@
     subtitle,
     titleBadge,
     actions,
-    class: className = "",
+    class: className = '',
   }: {
     title: string;
     model?: Model | null;
@@ -33,10 +33,7 @@
       class="outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-border-focus"
       {href}
     >
-      <MatrixThumb
-        {model}
-        class="rounded-none border-0 border-b border-border"
-      />
+      <MatrixThumb {model} class="rounded-none border-0 border-b border-border" />
     </a>
   {:else}
     <MatrixThumb {model} class="rounded-none border-0 border-b border-border" />
@@ -47,13 +44,14 @@
       {#if href}
         <a
           class="min-w-0 flex-1 line-clamp-2 text-sm leading-6 font-medium text-text outline-none group-hover:text-brand focus-visible:ring-2 focus-visible:ring-border-focus"
-          {href}>{title}</a
+          {href}
         >
+          {title}
+        </a>
       {:else}
-        <span
-          class="min-w-0 flex-1 line-clamp-2 text-sm leading-6 font-medium text-text"
-          >{title}</span
-        >
+        <span class="min-w-0 flex-1 line-clamp-2 text-sm leading-6 font-medium text-text">
+          {title}
+        </span>
       {/if}
       {#if titleBadge}
         <div class="flex h-6 shrink-0 items-center">
