@@ -176,7 +176,7 @@
   >
     <button
       type="button"
-      class="inline-flex shrink-0 items-center justify-center rounded-[6px] text-text hover:bg-surface"
+      class="inline-flex shrink-0 items-center justify-center rounded-md text-text hover:bg-surface"
       style="width: var(--chrome-control-size); height: var(--chrome-control-size)"
       aria-label={t('back')}
       onclick={() => void goto('/app')}

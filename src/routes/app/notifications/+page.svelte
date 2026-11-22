@@ -88,7 +88,7 @@
               <p class="font-medium">{n.title}</p>
               {#if n.body}<p class="mt-1 text-sm text-text-muted">{n.body}</p>{/if}
               {#if !n.read_at}
-                <Button variant="ghost" class="mt-2 !px-0" onclick={() => markRead(n.id)}>
+                <Button variant="ghost" class="mt-2 px-0!" onclick={() => markRead(n.id)}>
                   {t('markRead')}
                 </Button>
               {/if}

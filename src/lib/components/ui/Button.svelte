@@ -37,7 +37,7 @@
       'rounded-[8px] border border-border bg-transparent px-5 py-2.5 text-text hover:bg-bg-soft active:bg-surface',
     danger:
       'rounded-[8px] border border-danger-bg bg-danger-bg px-5 py-2.5 text-danger-text hover:bg-danger-text hover:text-white active:bg-danger-text',
-    ghost: 'rounded-[6px] px-3 py-2 text-text hover:bg-surface hover:text-text-muted',
+    ghost: 'rounded-md px-3 py-2 text-text hover:bg-surface hover:text-text-muted',
   };
 
   const classes = $derived(`${base} ${variants[variant]} ${className}`);

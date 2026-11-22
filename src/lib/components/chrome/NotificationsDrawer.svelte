@@ -175,13 +175,13 @@
     <div class="flex h-14 shrink-0 items-center gap-2 border-b border-border px-4">
       <h2 class="min-w-0 flex-1 truncate text-sm font-medium">{t('notifications')}</h2>
       {#if unreadCount > 0}
-        <Button variant="ghost" class="!px-2 !py-1 text-sm" onclick={markAllRead}>
+        <Button variant="ghost" class="px-2! py-1! text-sm" onclick={markAllRead}>
           {t('markAllRead')}
         </Button>
       {/if}
       <button
         type="button"
-        class="inline-flex size-9 shrink-0 items-center justify-center rounded-[6px] text-text hover:bg-surface"
+        class="inline-flex size-9 shrink-0 items-center justify-center rounded-md text-text hover:bg-surface"
         aria-label={t('closeNotifications')}
         onclick={closeNotifications}
       >
@@ -217,7 +217,7 @@
                     <p class="mt-1 text-sm text-text-muted">{n.body}</p>
                   {/if}
                   {#if !n.read_at}
-                    <Button variant="ghost" class="mt-2 !px-0" onclick={() => markRead(n.id)}>
+                    <Button variant="ghost" class="mt-2 px-0!" onclick={() => markRead(n.id)}>
                       {t('markRead')}
                     </Button>
                   {/if}

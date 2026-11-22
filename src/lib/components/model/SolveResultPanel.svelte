@@ -256,7 +256,7 @@
         <span class="h-px min-w-4 flex-1 bg-border" aria-hidden="true"></span>
         <button
           type="button"
-          class="inline-flex shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-[6px] border border-border bg-bg px-3 py-1.5 text-xs font-medium text-text-soft transition-colors duration-200 hover:bg-bg-soft hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-offset-2 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
+          class="inline-flex shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-md border border-border bg-bg px-3 py-1.5 text-xs font-medium text-text-soft transition-colors duration-200 hover:bg-bg-soft hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-offset-2 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
           aria-expanded={geometryOpen}
           onclick={onGeometryToggle}
         >
@@ -298,7 +298,7 @@
         <span class="h-px min-w-4 flex-1 bg-border" aria-hidden="true"></span>
         <button
           type="button"
-          class="inline-flex shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-[6px] border border-border bg-bg px-3 py-1.5 text-xs font-medium text-text-soft transition-colors duration-200 hover:bg-bg-soft hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-offset-2 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
+          class="inline-flex shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-md border border-border bg-bg px-3 py-1.5 text-xs font-medium text-text-soft transition-colors duration-200 hover:bg-bg-soft hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-offset-2 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
           aria-expanded={stepsOpen}
           disabled={stepsPreparing}
           onclick={onStepsToggle}

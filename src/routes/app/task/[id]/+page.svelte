@@ -1087,7 +1087,7 @@
         {@const favoriteLabel = node!.is_favorite ? t('unfavorite') : t('favorite')}
         <Button
           variant="secondary"
-          class="!px-2.5 !py-2.5"
+          class="px-2.5! py-2.5!"
           disabled={session.busy}
           aria-label={favoriteLabel}
           title={favoriteLabel}
@@ -1103,7 +1103,7 @@
         </Button>
         <Button
           variant="secondary"
-          class="!px-2.5 !py-2.5"
+          class="px-2.5! py-2.5!"
           disabled={session.busy}
           aria-label={t('fork')}
           title={t('fork')}
@@ -1113,7 +1113,7 @@
         </Button>
         <Button
           variant="danger"
-          class="!px-2.5 !py-2.5"
+          class="px-2.5! py-2.5!"
           disabled={session.busy}
           aria-label={t('trashToBin')}
           title={t('trashToBin')}

@@ -183,7 +183,7 @@
         Автоповорот
       </label>
       {#if active === 'cutTesseract'}
-        <div class="mt-2 rounded-[6px] border border-border bg-bg-soft p-2">
+        <div class="mt-2 rounded-md border border-border bg-bg-soft p-2">
           <Angles4Controls
             bind:angles4
             onChange={() => {
@@ -239,7 +239,7 @@
           </div>
         </div>
         <textarea
-          class="h-56 w-full resize-y rounded-[6px] border border-border bg-bg-soft p-2 font-mono text-[11px] leading-relaxed text-text"
+          class="h-56 w-full resize-y rounded-md border border-border bg-bg-soft p-2 font-mono text-[11px] leading-relaxed text-text"
           readonly
           spellcheck="false"
           value={debugText}

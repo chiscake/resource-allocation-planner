@@ -1204,7 +1204,7 @@
       <div class="pointer-events-none absolute left-2 top-2 flex items-center gap-1.5">
         <button
           type="button"
-          class="pointer-events-auto rounded-[6px] border border-border bg-bg/95 px-2 py-1 text-[11px] text-text shadow-sm hover:bg-bg"
+          class="pointer-events-auto rounded-md border border-border bg-bg/95 px-2 py-1 text-[11px] text-text shadow-sm hover:bg-bg"
           title={t('vizResetView')}
           aria-label={t('vizResetView')}
           onclick={(e) => {
@@ -1216,7 +1216,7 @@
         </button>
         {#if is3dMode && !is4dMode}
           <div
-            class="pointer-events-auto flex overflow-hidden rounded-[6px] border border-border bg-bg/95 text-[11px] shadow-sm"
+            class="pointer-events-auto flex overflow-hidden rounded-md border border-border bg-bg/95 text-[11px] shadow-sm"
             role="group"
             aria-label={t('vizRotationMode')}
           >
@@ -1272,7 +1272,7 @@
       >
         <button
           type="button"
-          class="pointer-events-auto rounded-[6px] border border-border bg-bg/95 px-2 py-1 text-[11px] text-text shadow-sm hover:bg-bg"
+          class="pointer-events-auto rounded-md border border-border bg-bg/95 px-2 py-1 text-[11px] text-text shadow-sm hover:bg-bg"
           aria-expanded={legendOpen}
           aria-controls="viz-legend-panel"
           onclick={(e) => {
@@ -1332,7 +1332,7 @@
     {#if coordinateTooltip}
       <div
         bind:this={coordinateTooltipEl}
-        class="pointer-events-none absolute z-20 rounded-[6px] border border-border bg-bg px-2.5 py-2 text-xs shadow-lg"
+        class="pointer-events-none absolute z-20 rounded-md border border-border bg-bg px-2.5 py-2 text-xs shadow-lg"
         style={coordinateTooltipStyle(coordinateTooltip)}
       >
         {#if coordinateTooltip.label}

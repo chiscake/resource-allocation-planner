@@ -127,7 +127,7 @@
             {#if userId === c.author_id}
               <Button
                 variant="ghost"
-                class="!px-2 !py-0.5 text-xs text-danger-text"
+                class="px-2! py-0.5! text-xs text-danger-text"
                 disabled={busy}
                 onclick={() => remove(c.id)}
               >

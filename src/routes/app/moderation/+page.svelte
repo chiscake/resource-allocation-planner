@@ -91,12 +91,12 @@
             href="/app/templates/{r.id}"
           >
             {#snippet actions()}
-              <Button variant="secondary" class="!px-3 !py-1.5" href="/app/templates/{r.id}">
+              <Button variant="secondary" class="px-3! py-1.5!" href="/app/templates/{r.id}">
                 {t('viewTemplate')}
               </Button>
               <Button
                 variant="primary"
-                class="!px-3 !py-1.5"
+                class="px-3! py-1.5!"
                 disabled={busyId === r.id}
                 onclick={() => onModerate(r.id, 'approve')}
               >
@@ -104,7 +104,7 @@
               </Button>
               <Button
                 variant="secondary"
-                class="!px-3 !py-1.5"
+                class="px-3! py-1.5!"
                 disabled={busyId === r.id}
                 onclick={() => onModerate(r.id, 'reject')}
               >

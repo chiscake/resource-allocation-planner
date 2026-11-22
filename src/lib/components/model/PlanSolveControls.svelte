@@ -111,7 +111,7 @@
   <div class="mt-3">
     <label for="ga-preset" class="mb-1 block text-sm text-text-muted">{t('gaPreset')}</label>
     <div class="flex flex-wrap items-center gap-3">
-      <div class="min-w-[14rem] flex-1 sm:max-w-xs">
+      <div class="min-w-56 flex-1 sm:max-w-xs">
         <Select id="ga-preset" bind:value={gaPreset} options={presetOptions} />
       </div>
       <label class="flex shrink-0 items-center gap-2 text-sm">
@@ -180,7 +180,7 @@
   <div class="mt-3">
     <label for="dln-preset" class="mb-1 block text-sm text-text-muted">{t('dlnPreset')}</label>
     <div class="flex flex-wrap items-center gap-3">
-      <div class="min-w-[14rem] flex-1 sm:max-w-xs">
+      <div class="min-w-56 flex-1 sm:max-w-xs">
         <Select id="dln-preset" bind:value={dlnPreset} options={dlnPresetOptions} />
       </div>
     </div>
@@ -310,7 +310,7 @@
     {#if useCloudSplit}
       <div class="inline-flex overflow-hidden rounded-[8px]">
         <Button
-          class="!rounded-none !rounded-l-[8px]"
+          class="rounded-none! rounded-l-[8px]!"
           disabled={busy || !methodReady}
           onclick={onSolve}
         >

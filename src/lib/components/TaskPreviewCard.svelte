@@ -68,7 +68,7 @@
     {#if onDelete}
       <CardIconButton
         tone="danger"
-        class="!shrink-0"
+        class="shrink-0!"
         aria-label={t('deleteCard')}
         title={t('deleteCard')}
         onclick={(e) => {

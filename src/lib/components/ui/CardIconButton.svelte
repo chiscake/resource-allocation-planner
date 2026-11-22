@@ -25,13 +25,13 @@
   } = $props();
 
   const toneClass = $derived(
-    tone === 'danger' ? '!text-danger-text hover:!bg-danger-bg hover:!text-danger-text' : '',
+    tone === 'danger' ? 'text-danger-text! hover:bg-danger-bg! hover:text-danger-text!' : '',
   );
 </script>
 
 <Button
   variant="ghost"
-  class="!px-2.5 !py-2.5 {toneClass} {className}"
+  class="px-2.5! py-2.5! {toneClass} {className}"
   {disabled}
   {href}
   {onclick}

@@ -21,7 +21,7 @@
       type="button"
       role="tab"
       aria-selected={active === item.id}
-      class="rounded-[6px] px-3 py-1.5 text-sm font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-offset-2 {active ===
+      class="rounded-md px-3 py-1.5 text-sm font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-offset-2 {active ===
       item.id
         ? 'bg-selected-bg text-text'
         : 'text-text-muted hover:bg-surface hover:text-text'}"

@@ -149,7 +149,7 @@
               <div class="flex w-full items-center gap-2">
                 <Button
                   variant="primary"
-                  class="!px-3 !py-1.5"
+                  class="px-3! py-1.5!"
                   disabled={busyId === r.id || creating}
                   onclick={() => useTemplate(r.id)}
                 >

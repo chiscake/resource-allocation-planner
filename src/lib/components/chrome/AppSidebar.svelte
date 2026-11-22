@@ -141,7 +141,7 @@
       <a
         href={item.href}
         class={[
-          'flex items-center rounded-[6px] text-sm font-medium transition-colors duration-200',
+          'flex items-center rounded-md text-sm font-medium transition-colors duration-200',
           active ? 'bg-selected-bg text-brand' : 'text-text hover:bg-surface',
           'max-md:gap-1',
           chrome.navCollapsed ? 'md:gap-0' : 'md:gap-1',
@@ -187,7 +187,7 @@
         <a
           href="/login"
           class={[
-            'flex items-center rounded-[6px] text-sm font-medium text-text-faint transition-colors duration-200 hover:bg-surface hover:text-text-soft',
+            'flex items-center rounded-md text-sm font-medium text-text-faint transition-colors duration-200 hover:bg-surface hover:text-text-soft',
             'max-md:gap-1',
             chrome.navCollapsed ? 'md:gap-0' : 'md:gap-1',
           ]}

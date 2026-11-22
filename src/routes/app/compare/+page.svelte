@@ -97,7 +97,7 @@
   <Card>
     <div class="flex flex-col gap-3">
       <div class="flex flex-wrap items-end gap-3">
-        <div class="min-w-[12rem] flex-1">
+        <div class="min-w-48 flex-1">
           <label class="mb-1 block text-xs text-text-muted" for="compare-a">
             {t('compareScenarioA')}
           </label>
@@ -108,7 +108,7 @@
             placeholder={t('comparePickA')}
           />
         </div>
-        <div class="min-w-[12rem] flex-1">
+        <div class="min-w-48 flex-1">
           <label class="mb-1 block text-xs text-text-muted" for="compare-b">
             {t('compareScenarioB')}
           </label>
@@ -166,7 +166,7 @@
             >
               {nodeTitle(s.node_ids[0])} · {nodeTitle(s.node_ids[1])}
             </button>
-            <Button variant="ghost" class="!text-danger-text" onclick={() => hardDelete(s.id)}>
+            <Button variant="ghost" class="text-danger-text!" onclick={() => hardDelete(s.id)}>
               {t('hardDelete')}
             </Button>
           </Card>

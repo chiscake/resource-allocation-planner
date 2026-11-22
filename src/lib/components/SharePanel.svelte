@@ -49,11 +49,7 @@
     </div>
   {/if}
   <div class="mt-4 flex flex-wrap gap-2">
-    <Input
-      class="min-w-[12rem] flex-1"
-      placeholder={t('grantPlaceholder')}
-      bind:value={grantValue}
-    />
+    <Input class="min-w-48 flex-1" placeholder={t('grantPlaceholder')} bind:value={grantValue} />
     <Button variant="secondary" onclick={onGrant}>{t('grantAccess')}</Button>
   </div>
   <p class="mt-2 text-xs text-text-muted">{t('grantHint')}</p>

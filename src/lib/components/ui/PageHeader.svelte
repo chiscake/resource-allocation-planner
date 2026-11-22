@@ -94,7 +94,7 @@
         </h1>
         <Button
           variant="ghost"
-          class="!px-2 !py-2 shrink-0 text-text-soft opacity-35 hover:opacity-100 hover:text-text-muted"
+          class="px-2! py-2! shrink-0 text-text-soft opacity-35 hover:opacity-100 hover:text-text-muted"
           aria-label={t('editTitle')}
           title={t('editTitle')}
           onclick={startEdit}

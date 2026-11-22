@@ -32,7 +32,7 @@
   <div class="flex flex-wrap items-center gap-2">
     <Button
       variant="ghost"
-      class="!px-2 !py-1"
+      class="px-2! py-1!"
       disabled={index <= 0}
       onclick={() => {
         playing = false;
@@ -43,7 +43,7 @@
     </Button>
     <Button
       variant="secondary"
-      class="!px-3 !py-1"
+      class="px-3! py-1!"
       disabled={maxIndex <= 0 || index >= maxIndex}
       onclick={() => (playing = !playing)}
     >
@@ -51,7 +51,7 @@
     </Button>
     <Button
       variant="ghost"
-      class="!px-2 !py-1"
+      class="px-2! py-1!"
       disabled={index >= maxIndex}
       onclick={() => {
         playing = false;
@@ -62,7 +62,7 @@
     </Button>
     <Button
       variant="ghost"
-      class="!px-2 !py-1"
+      class="px-2! py-1!"
       onclick={() => {
         playing = false;
         index = 0;

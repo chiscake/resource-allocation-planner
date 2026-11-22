@@ -116,7 +116,7 @@
           <Card padding={false} class="flex items-center justify-between gap-2 px-4 py-3">
             <a class="text-brand hover:underline" href="/app/task/{n.id}">{n.title}</a>
             {#if isOrgOwner && n.owner_id !== myId}
-              <Button variant="ghost" class="!text-danger-text" onclick={() => hideAsOrgOwner(n)}>
+              <Button variant="ghost" class="text-danger-text!" onclick={() => hideAsOrgOwner(n)}>
                 {t('hide')}
               </Button>
             {/if}

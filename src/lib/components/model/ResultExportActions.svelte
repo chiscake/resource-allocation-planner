@@ -68,7 +68,7 @@
     <span class="mr-1 text-xs text-text-soft">{t('exportResult')}</span>
     <Button
       variant="secondary"
-      class="!px-2.5 !py-1.5 !text-xs"
+      class="px-2.5! py-1.5! text-xs!"
       disabled={busy !== null}
       onclick={() => void run('xlsx')}
     >
@@ -77,7 +77,7 @@
     </Button>
     <Button
       variant="secondary"
-      class="!px-2.5 !py-1.5 !text-xs"
+      class="px-2.5! py-1.5! text-xs!"
       disabled={busy !== null}
       onclick={() => void run('pdf')}
     >

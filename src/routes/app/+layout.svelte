@@ -56,7 +56,7 @@
   });
 </script>
 
-<div class={['flex h-dvh flex-col overflow-hidden bg-bg', showQuickLogin && 'pb-[3.25rem]']}>
+<div class={['flex h-dvh flex-col overflow-hidden bg-bg', showQuickLogin && 'pb-13']}>
   <AppHeader {userEmail} {userRole} onLogout={logout} />
   <div class="relative flex min-h-0 flex-1 overflow-hidden">
     <AppSidebar {isAdmin} {isMod} {signedIn} />

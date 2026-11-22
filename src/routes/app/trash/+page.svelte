@@ -89,7 +89,7 @@
             </div>
             <div class="flex gap-2">
               <Button variant="ghost" onclick={() => restore(r)}>{t('restore')}</Button>
-              <Button variant="ghost" class="!text-danger-text" onclick={() => hardDelete(r.id)}>
+              <Button variant="ghost" class="text-danger-text!" onclick={() => hardDelete(r.id)}>
                 {t('hardDelete')}
               </Button>
             </div>

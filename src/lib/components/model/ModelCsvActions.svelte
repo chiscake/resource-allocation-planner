@@ -78,7 +78,7 @@
 <div class="flex flex-wrap items-center gap-2">
   <Button
     variant="secondary"
-    class="!px-3 !py-1.5 !text-xs"
+    class="px-3! py-1.5! text-xs!"
     {disabled}
     title={t('csvImportHint')}
     onclick={pickFile}
@@ -86,11 +86,11 @@
     <FileUp size={14} strokeWidth={1.75} aria-hidden="true" />
     <span class="ml-1.5">{t('csvImport')}</span>
   </Button>
-  <Button variant="ghost" class="!px-3 !py-1.5 !text-xs" onclick={downloadModel}>
+  <Button variant="ghost" class="px-3! py-1.5! text-xs!" onclick={downloadModel}>
     <Download size={14} strokeWidth={1.75} aria-hidden="true" />
     <span class="ml-1.5">{t('csvExportModel')}</span>
   </Button>
-  <Button variant="ghost" class="!px-3 !py-1.5 !text-xs" onclick={downloadTemplate}>
+  <Button variant="ghost" class="px-3! py-1.5! text-xs!" onclick={downloadTemplate}>
     <FileSpreadsheet size={14} strokeWidth={1.75} aria-hidden="true" />
     <span class="ml-1.5">{t('csvTemplate')}</span>
   </Button>

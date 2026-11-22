@@ -211,7 +211,7 @@
 
     <div>
       <Button
-        class="!px-6 !py-3 text-base"
+        class="px-6! py-3! text-base"
         onclick={() => {
           void createEmptySolveNodeAndOpen();
         }}

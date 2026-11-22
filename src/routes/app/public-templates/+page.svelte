@@ -176,7 +176,7 @@
 
   {#if canManage}
     <div class="flex flex-wrap items-end gap-2 rounded-[12px] border border-border bg-bg-soft p-3">
-      <label class="flex min-w-[12rem] flex-1 flex-col gap-1.5">
+      <label class="flex min-w-48 flex-1 flex-col gap-1.5">
         <span class="text-sm font-medium text-text">{t('publishDirectPick')}</span>
         {#if personal.length === 0}
           <span class="text-sm text-text-soft">{t('noPersonalToPublish')}</span>
@@ -211,7 +211,7 @@
             {#snippet actions()}
               <Button
                 variant="primary"
-                class="!px-3 !py-1.5"
+                class="px-3! py-1.5!"
                 disabled={busyId === r.id}
                 onclick={() => useTemplate(r.id)}
               >

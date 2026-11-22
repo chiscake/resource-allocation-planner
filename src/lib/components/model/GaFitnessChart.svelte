@@ -343,7 +343,7 @@
 
       {#if hoverPoint}
         <div
-          class="pointer-events-none absolute z-10 min-w-40 rounded-[6px] border border-border bg-bg px-2.5 py-2 text-xs shadow-lg"
+          class="pointer-events-none absolute z-10 min-w-40 rounded-md border border-border bg-bg px-2.5 py-2 text-xs shadow-lg"
           style={tooltipStyle}
         >
           <p class="mb-1 font-medium text-text">

@@ -119,7 +119,7 @@
   );
 
   function tabClass(id: WhatIfTab): string {
-    return tab === id ? '!bg-brand-soft !text-brand' : '!text-text-muted hover:!bg-surface';
+    return tab === id ? 'bg-brand-soft! text-brand!' : 'text-text-muted! hover:bg-surface!';
   }
 </script>
 
@@ -144,7 +144,7 @@
           {#if showGoToCurrent && currentGenerationIndex != null}
             <Button
               variant="secondary"
-              class="!px-2.5 !py-1 text-xs"
+              class="px-2.5! py-1! text-xs"
               onclick={() => onGenerationChange(currentGenerationIndex)}
             >
               {t('whatIfGoToCurrent')}
@@ -153,7 +153,7 @@
           <div class="flex items-center gap-3">
             <Button
               variant="ghost"
-              class="!px-2 !py-1"
+              class="px-2! py-1!"
               disabled={generationIndex <= 0}
               onclick={() => onGenerationChange(generationIndex - 1)}
             >
@@ -162,7 +162,7 @@
             <span class="font-mono text-sm">{generationIndex + 1}/{generationCount}</span>
             <Button
               variant="ghost"
-              class="!px-2 !py-1"
+              class="px-2! py-1!"
               disabled={generationIndex >= generationCount - 1}
               onclick={() => onGenerationChange(generationIndex + 1)}
             >
@@ -180,7 +180,7 @@
             {t('whatIfBaseMatrix')}
           </p>
           {#if showRestore && onRestore}
-            <Button variant="secondary" class="!px-3 !py-1.5 text-sm" onclick={onRestore}>
+            <Button variant="secondary" class="px-3! py-1.5! text-sm" onclick={onRestore}>
               {t('whatIfRestoreBase')}
             </Button>
           {/if}
@@ -195,14 +195,14 @@
       <div class="mb-4 flex flex-wrap items-center gap-1">
         <Button
           variant="ghost"
-          class="!px-2.5 !py-1 text-xs {tabClass('both')}"
+          class="px-2.5! py-1! text-xs {tabClass('both')}"
           onclick={() => (tab = 'both')}
         >
           {t('tabWhatIfBoth')}
         </Button>
         <Button
           variant="ghost"
-          class="!px-2.5 !py-1 text-xs {tabClass('interactive')}"
+          class="px-2.5! py-1! text-xs {tabClass('interactive')}"
           disabled={!interactiveEnabled && tab !== 'interactive'}
           title={!interactiveEnabled ? t('whatIfPastInteractiveHint') : undefined}
           onclick={() => (tab = 'interactive')}
@@ -211,7 +211,7 @@
         </Button>
         <Button
           variant="ghost"
-          class="!px-2.5 !py-1 text-xs {tabClass('pack')}"
+          class="px-2.5! py-1! text-xs {tabClass('pack')}"
           onclick={() => (tab = 'pack')}
         >
           {t('tabWhatIfPack')}

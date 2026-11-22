@@ -594,13 +594,13 @@
         <h2 class="font-medium">{t('adminUsers')}</h2>
         {#if selectedIds.length > 0}
           <div class="flex flex-wrap items-center gap-2">
-            <Button variant="secondary" class="!px-3 !py-1.5 text-xs" onclick={askBulkBlock}>
+            <Button variant="secondary" class="px-3! py-1.5! text-xs" onclick={askBulkBlock}>
               {t('adminBulkBlock')}
             </Button>
-            <Button variant="secondary" class="!px-3 !py-1.5 text-xs" onclick={askBulkUnblock}>
+            <Button variant="secondary" class="px-3! py-1.5! text-xs" onclick={askBulkUnblock}>
               {t('adminBulkUnblock')}
             </Button>
-            <Button variant="danger" class="!px-3 !py-1.5 text-xs" onclick={askBulkDelete}>
+            <Button variant="danger" class="px-3! py-1.5! text-xs" onclick={askBulkDelete}>
               {t('adminBulkDelete')}
             </Button>
           </div>
@@ -689,7 +689,7 @@
         {/if}
       {:else}
         <div class="overflow-x-auto">
-          <table class="w-full min-w-[64rem] border-collapse text-left text-sm">
+          <table class="w-full min-w-5xl border-collapse text-left text-sm">
             <thead>
               <tr class="border-b border-border text-text-muted">
                 <th class="w-10 px-2 py-2 font-medium">
@@ -783,7 +783,7 @@
                     {/if}
                   </button>
                 </th>
-                <th class="w-[9.5rem] min-w-[9.5rem] px-2 py-2" aria-sort={ariaSortFor('blocked')}>
+                <th class="w-38 min-w-38 px-2 py-2" aria-sort={ariaSortFor('blocked')}>
                   <button
                     type="button"
                     class={sortHeaderClass('blocked')}
@@ -840,7 +840,7 @@
                     {#if name}
                       <button
                         type="button"
-                        class="max-w-[12rem] cursor-pointer truncate text-left hover:underline"
+                        class="max-w-48 cursor-pointer truncate text-left hover:underline"
                         title={name}
                         aria-label={`${t('copyValue')}: ${name}`}
                         onclick={() => copyCell(name)}
@@ -871,7 +871,7 @@
                   <td class="px-2 py-2 whitespace-nowrap">
                     {u.last_sign_in_at ? formatDate(u.last_sign_in_at) : t('adminNeverSignedIn')}
                   </td>
-                  <td class="w-[9.5rem] min-w-[9.5rem] px-2 py-2">
+                  <td class="w-38 min-w-38 px-2 py-2">
                     {#if u.blocked}
                       <Badge variant="danger">{t('adminStatusBlocked')}</Badge>
                     {:else}
@@ -894,7 +894,7 @@
                       <div class="relative inline-flex justify-end">
                         <Button
                           variant="ghost"
-                          class="!px-1.5 !py-1"
+                          class="px-1.5! py-1!"
                           title={t('adminMoreActions')}
                           aria-label={t('adminMoreActions')}
                           aria-expanded={menuOpenId === u.id}
@@ -905,7 +905,7 @@
                         {#if menuOpenId === u.id}
                           <!-- svelte-ignore a11y_no_static_element_interactions -->
                           <div
-                            class="absolute right-0 z-20 mt-1 min-w-[14rem] rounded-[8px] border border-border bg-bg py-1 shadow-lg"
+                            class="absolute right-0 z-20 mt-1 min-w-56 rounded-[8px] border border-border bg-bg py-1 shadow-lg"
                             onpointerdown={(e) => e.stopPropagation()}
                           >
                             {#if role === 'user'}
@@ -971,7 +971,7 @@
           <div class="flex items-center gap-2">
             <Button
               variant="secondary"
-              class="!px-3 !py-1.5 text-xs"
+              class="px-3! py-1.5! text-xs"
               disabled={clampedPage <= 1}
               onclick={() => {
                 page = Math.max(1, clampedPage - 1);
@@ -981,7 +981,7 @@
             </Button>
             <Button
               variant="secondary"
-              class="!px-3 !py-1.5 text-xs"
+              class="px-3! py-1.5! text-xs"
               disabled={clampedPage >= pageCount}
               onclick={() => {
                 page = Math.min(pageCount, clampedPage + 1);
@@ -1003,14 +1003,14 @@
         <li class="flex flex-wrap items-center gap-2">
           <span class="text-text-soft">({tpl.system_kind})</span>
           <Input
-            class="min-w-[12rem] flex-1"
+            class="min-w-48 flex-1"
             bind:value={editTitle[tpl.id]}
             disabled={!isAdmin}
           />
           {#if isAdmin}
             <Button
               variant="secondary"
-              class="!px-3 !py-1.5 text-xs"
+              class="px-3! py-1.5! text-xs"
               onclick={() => saveTemplate(tpl.id)}
             >
               {t("save")}

@@ -54,7 +54,7 @@
   const colCount = 6;
 
   function sortBtnClass(mode: SortMode): string {
-    return sortMode === mode ? '!bg-brand-soft !text-brand' : '!text-text-muted hover:!bg-surface';
+    return sortMode === mode ? 'bg-brand-soft! text-brand!' : 'text-text-muted! hover:bg-surface!';
   }
 
   function isExpanded(key: string): boolean {
@@ -108,14 +108,14 @@
   <div class="flex flex-wrap items-center gap-1">
     <Button
       variant="ghost"
-      class="!px-2.5 !py-1 text-xs {sortBtnClass('kind')}"
+      class="px-2.5! py-1! text-xs {sortBtnClass('kind')}"
       onclick={() => (sortMode = 'kind')}
     >
       {t('whatIfSortByKind')}
     </Button>
     <Button
       variant="ghost"
-      class="!px-2.5 !py-1 text-xs {sortBtnClass('zDesc')}"
+      class="px-2.5! py-1! text-xs {sortBtnClass('zDesc')}"
       onclick={() => (sortMode = 'zDesc')}
     >
       {t('whatIfSortByZ')}

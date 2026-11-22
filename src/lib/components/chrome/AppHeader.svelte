@@ -49,7 +49,7 @@
 >
   <button
     type="button"
-    class="inline-flex shrink-0 items-center justify-center rounded-[6px] text-text hover:bg-surface"
+    class="inline-flex shrink-0 items-center justify-center rounded-md text-text hover:bg-surface"
     style="width: var(--chrome-control-size); height: var(--chrome-control-size)"
     aria-label={navAriaLabel}
     aria-expanded={navExpanded}
@@ -62,7 +62,7 @@
   {#if listBack}
     <a
       href={listBack.href}
-      class="truncate rounded-[6px] px-2 py-1.5 text-sm font-medium text-text-muted hover:bg-surface hover:text-text"
+      class="truncate rounded-md px-2 py-1.5 text-sm font-medium text-text-muted hover:bg-surface hover:text-text"
     >
       {listBack.label}
     </a>
@@ -72,7 +72,7 @@
     <button
       id="chrome-notifications-trigger"
       type="button"
-      class="relative inline-flex items-center justify-center rounded-[6px] text-text hover:bg-surface"
+      class="relative inline-flex items-center justify-center rounded-md text-text hover:bg-surface"
       style="width: var(--chrome-control-size); height: var(--chrome-control-size)"
       aria-label={t('openNotifications')}
       aria-expanded={chrome.notificationsOpen}
@@ -90,7 +90,7 @@
     </button>
 
     {#if userEmail}
-      <span class="hidden max-w-[12rem] truncate px-2 text-sm text-text-muted sm:inline">
+      <span class="hidden max-w-48 truncate px-2 text-sm text-text-muted sm:inline">
         {userEmail}
       </span>
       {#if userRole === 'admin'}
@@ -100,7 +100,7 @@
       {/if}
       <a
         href="/app/settings"
-        class="inline-flex items-center justify-center rounded-[6px] text-text hover:bg-surface"
+        class="inline-flex items-center justify-center rounded-md text-text hover:bg-surface"
         style="width: var(--chrome-control-size); height: var(--chrome-control-size)"
         aria-label={t('settings')}
       >
@@ -108,7 +108,7 @@
       </a>
       <button
         type="button"
-        class="inline-flex items-center justify-center rounded-[6px] text-text hover:bg-surface"
+        class="inline-flex items-center justify-center rounded-md text-text hover:bg-surface"
         style="width: var(--chrome-control-size); height: var(--chrome-control-size)"
         aria-label={t('logout')}
         onclick={() => onLogout?.()}
@@ -118,7 +118,7 @@
     {:else}
       <a
         href="/login"
-        class="inline-flex items-center justify-center rounded-[6px] text-text hover:bg-surface"
+        class="inline-flex items-center justify-center rounded-md text-text hover:bg-surface"
         style="width: var(--chrome-control-size); height: var(--chrome-control-size)"
         aria-label={t('login')}
       >
