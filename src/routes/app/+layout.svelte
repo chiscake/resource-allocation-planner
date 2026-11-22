@@ -14,6 +14,8 @@
 
   let { children } = $props();
   let userEmail = $state('');
+  let userDisplayName = $state('');
+  let authUserId = $state<string | null>(null);
   let userRole = $state<'admin' | 'mod' | 'user' | null>(null);
   let isAdmin = $state(false);
   let isMod = $state(false);
@@ -21,18 +23,41 @@
 
   const showQuickLogin = isDevQuickLoginEnabled(env.PUBLIC_DEV_QUICK_LOGIN);
 
-  function applyUser(user: User | null) {
+  function metaDisplayName(user: User): string {
+    return typeof user.user_metadata?.display_name === 'string'
+      ? user.user_metadata.display_name.trim()
+      : '';
+  }
+
+  async function applyUser(user: User | null) {
     signedIn = !!user;
     userEmail = user?.email ?? '';
+    authUserId = user?.id ?? null;
     const role = user?.app_metadata?.role;
     isAdmin = role === 'admin';
     isMod = role === 'mod';
     userRole = role === 'admin' || role === 'mod' || role === 'user' ? role : null;
+
+    if (!user) {
+      userDisplayName = '';
+      return;
+    }
+
+    const metaName = metaDisplayName(user);
+    userDisplayName = metaName;
+    const uid = user.id;
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('display_name')
+      .eq('id', uid)
+      .maybeSingle();
+    if (authUserId !== uid) return;
+    userDisplayName = profile?.display_name?.trim() || metaName || '';
   }
 
   async function loadAuth() {
     const { data } = await supabase.auth.getSession();
-    applyUser(data.session?.user ?? null);
+    await applyUser(data.session?.user ?? null);
   }
 
   async function logout() {
@@ -46,7 +71,7 @@
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      applyUser(session?.user ?? null);
+      void applyUser(session?.user ?? null);
     });
     return () => subscription.unsubscribe();
   });
@@ -57,7 +82,7 @@
 </script>
 
 <div class={['flex h-dvh flex-col overflow-hidden bg-bg', showQuickLogin && 'pb-13']}>
-  <AppHeader {userEmail} {userRole} onLogout={logout} />
+  <AppHeader {userEmail} {userDisplayName} {userRole} onLogout={logout} />
   <div class="relative flex min-h-0 flex-1 overflow-hidden">
     <AppSidebar {isAdmin} {isMod} {signedIn} />
 

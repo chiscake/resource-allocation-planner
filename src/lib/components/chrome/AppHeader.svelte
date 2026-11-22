@@ -7,10 +7,12 @@
 
   let {
     userEmail = '',
+    userDisplayName = '',
     userRole = null,
     onLogout,
   }: {
     userEmail?: string;
+    userDisplayName?: string;
     userRole?: 'admin' | 'mod' | 'user' | null;
     onLogout?: () => void;
   } = $props();
@@ -59,6 +61,13 @@
     <Menu size={20} strokeWidth={1.75} aria-hidden="true" />
   </button>
 
+  <a
+    href="/app"
+    class="min-w-0 truncate rounded-md px-1.5 py-1.5 text-sm font-medium text-text hover:bg-surface"
+  >
+    {t('appTitle')}
+  </a>
+
   {#if listBack}
     <a
       href={listBack.href}
@@ -90,9 +99,17 @@
     </button>
 
     {#if userEmail}
-      <span class="hidden max-w-48 truncate px-2 text-sm text-text-muted sm:inline">
-        {userEmail}
-      </span>
+      <div
+        class="hidden min-w-0 max-w-72 items-baseline gap-2 truncate px-2 text-sm sm:flex"
+        title={userDisplayName ? `${userDisplayName} · ${userEmail}` : userEmail}
+      >
+        {#if userDisplayName}
+          <span class="shrink-0 font-medium text-text">{userDisplayName}</span>
+          <span class="min-w-0 truncate text-text-muted">{userEmail}</span>
+        {:else}
+          <span class="min-w-0 truncate text-text-muted">{userEmail}</span>
+        {/if}
+      </div>
       {#if userRole === 'admin'}
         <Badge variant="brand" class="hidden sm:inline-flex">{t('roleBadgeAdmin')}</Badge>
       {:else if userRole === 'mod'}

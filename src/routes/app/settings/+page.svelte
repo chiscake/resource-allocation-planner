@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import type { Factor } from '@supabase/supabase-js';
+  import { Copy, KeyRound, Mail, Shield, User } from '@lucide/svelte';
   import { mfaErrorMessage } from '$lib/db/mfa-errors';
   import { supabase } from '$lib/db/supabase';
   import { t } from '$lib/i18n';
@@ -249,53 +250,103 @@
           </p>
         </div>
         <dl class="space-y-3 text-sm">
-          <div class="flex flex-col gap-1">
-            <dt class="text-text-muted">{t('settingsAccountEmail')}</dt>
-            <dd>
-              <button
-                type="button"
-                class="cursor-pointer text-left text-text hover:underline"
-                aria-label={`${t('copyValue')}: ${account.email}`}
-                onclick={() => void copyToClipboard(account?.email ?? '')}
-              >
-                {account.email}
-              </button>
-            </dd>
-          </div>
-          <div class="flex flex-col gap-1">
-            <dt class="text-text-muted">{t('settingsAccountName')}</dt>
-            <dd>
-              {#if account.displayName}
+          <div class="flex items-start gap-3">
+            <span
+              class="inline-flex size-8 shrink-0 items-center justify-center rounded-[8px] border border-border bg-bg-soft text-text-muted"
+              aria-hidden="true"
+            >
+              <Mail size={16} strokeWidth={1.75} />
+            </span>
+            <div class="flex min-w-0 flex-1 flex-col gap-1">
+              <dt class="text-text-muted">{t('settingsAccountEmail')}</dt>
+              <dd>
                 <button
                   type="button"
-                  class="cursor-pointer text-left text-text hover:underline"
-                  aria-label={`${t('copyValue')}: ${account.displayName}`}
-                  onclick={() => void copyToClipboard(account?.displayName ?? '')}
+                  class="inline-flex max-w-full cursor-pointer items-start gap-1.5 text-left text-text hover:underline"
+                  aria-label={`${t('copyValue')}: ${account.email}`}
+                  onclick={() => void copyToClipboard(account?.email ?? '')}
                 >
-                  {account.displayName}
+                  <span class="min-w-0 break-all">{account.email}</span>
+                  <Copy
+                    size={14}
+                    strokeWidth={1.75}
+                    class="mt-0.5 shrink-0 text-text-muted"
+                    aria-hidden="true"
+                  />
                 </button>
-              {:else}
-                <span class="text-text-muted">{t('settingsAccountNameEmpty')}</span>
-              {/if}
-            </dd>
+              </dd>
+            </div>
           </div>
-          <div class="flex flex-col gap-1">
-            <dt class="text-text-muted">{t('settingsAccountId')}</dt>
-            <dd>
-              <button
-                type="button"
-                class="cursor-pointer break-all text-left font-mono text-xs text-text hover:underline"
-                title={account.id}
-                aria-label={`${t('copyValue')}: ${account.id}`}
-                onclick={() => void copyToClipboard(account?.id ?? '')}
-              >
-                {account.id}
-              </button>
-            </dd>
+          <div class="flex items-start gap-3">
+            <span
+              class="inline-flex size-8 shrink-0 items-center justify-center rounded-[8px] border border-border bg-bg-soft text-text-muted"
+              aria-hidden="true"
+            >
+              <User size={16} strokeWidth={1.75} />
+            </span>
+            <div class="flex min-w-0 flex-1 flex-col gap-1">
+              <dt class="text-text-muted">{t('settingsAccountName')}</dt>
+              <dd>
+                {#if account.displayName}
+                  <button
+                    type="button"
+                    class="inline-flex max-w-full cursor-pointer items-start gap-1.5 text-left text-text hover:underline"
+                    aria-label={`${t('copyValue')}: ${account.displayName}`}
+                    onclick={() => void copyToClipboard(account?.displayName ?? '')}
+                  >
+                    <span class="min-w-0 break-all">{account.displayName}</span>
+                    <Copy
+                      size={14}
+                      strokeWidth={1.75}
+                      class="mt-0.5 shrink-0 text-text-muted"
+                      aria-hidden="true"
+                    />
+                  </button>
+                {:else}
+                  <span class="text-text-muted">{t('settingsAccountNameEmpty')}</span>
+                {/if}
+              </dd>
+            </div>
           </div>
-          <div class="flex flex-col gap-1">
-            <dt class="text-text-muted">{t('settingsAccountRole')}</dt>
-            <dd class="text-text">{account.roleLabel}</dd>
+          <div class="flex items-start gap-3">
+            <span
+              class="inline-flex size-8 shrink-0 items-center justify-center rounded-[8px] border border-border bg-bg-soft text-text-muted"
+              aria-hidden="true"
+            >
+              <KeyRound size={16} strokeWidth={1.75} />
+            </span>
+            <div class="flex min-w-0 flex-1 flex-col gap-1">
+              <dt class="text-text-muted">{t('settingsAccountId')}</dt>
+              <dd>
+                <button
+                  type="button"
+                  class="inline-flex max-w-full cursor-pointer items-start gap-1.5 text-left font-mono text-xs text-text hover:underline"
+                  title={account.id}
+                  aria-label={`${t('copyValue')}: ${account.id}`}
+                  onclick={() => void copyToClipboard(account?.id ?? '')}
+                >
+                  <span class="min-w-0 break-all">{account.id}</span>
+                  <Copy
+                    size={14}
+                    strokeWidth={1.75}
+                    class="mt-0.5 shrink-0 text-text-muted"
+                    aria-hidden="true"
+                  />
+                </button>
+              </dd>
+            </div>
+          </div>
+          <div class="flex items-start gap-3">
+            <span
+              class="inline-flex size-8 shrink-0 items-center justify-center rounded-[8px] border border-border bg-bg-soft text-text-muted"
+              aria-hidden="true"
+            >
+              <Shield size={16} strokeWidth={1.75} />
+            </span>
+            <div class="flex min-w-0 flex-1 flex-col gap-1">
+              <dt class="text-text-muted">{t('settingsAccountRole')}</dt>
+              <dd class="text-text">{account.roleLabel}</dd>
+            </div>
           </div>
         </dl>
       </Card>
