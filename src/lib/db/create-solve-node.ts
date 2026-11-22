@@ -7,7 +7,7 @@ import {
 } from "$lib/domain";
 import { writeAudit } from "$lib/db/audit";
 import { supabase } from "$lib/db/supabase";
-import { saveGuestBlank, saveGuestModel } from "$lib/db/guest";
+import { clearGuest, saveGuestModel } from "$lib/db/guest";
 import { recordPublicTemplateUse } from "$lib/db/template-uses";
 import {
   blankTaskDraft,
@@ -122,7 +122,8 @@ export async function createEmptySolveNodeAndOpen(): Promise<CreateSolveNodeErr 
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    saveGuestBlank(t("newTask"));
+    // Fresh in-memory blank on /app; persist only after guest edits (GuestWorkspace).
+    clearGuest();
     await goto("/app", { replaceState: true });
     return null;
   }

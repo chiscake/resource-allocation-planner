@@ -1,74 +1,194 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
-	import { t } from '$lib/i18n';
-	import { supabase } from '$lib/db/supabase';
-	import { clearGuest, loadGuest } from '$lib/db/guest';
-	import { createBlankModel } from '$lib/domain';
-	import Button from '$lib/components/ui/Button.svelte';
-	import Input from '$lib/components/ui/Input.svelte';
-	import InlineAlert from '$lib/components/ui/InlineAlert.svelte';
+  import { onMount } from "svelte";
+  import { goto } from "$app/navigation";
+  import { ArrowLeft } from "@lucide/svelte";
+  import { t } from "$lib/i18n";
+  import { supabase } from "$lib/db/supabase";
+  import { clearGuest, isGuestWorthUploading, loadGuest } from "$lib/db/guest";
+  import { createBlankModel } from "$lib/domain";
+  import Button from "$lib/components/ui/Button.svelte";
+  import Input from "$lib/components/ui/Input.svelte";
+  import InlineAlert from "$lib/components/ui/InlineAlert.svelte";
 
-	let email = $state('demo1@example.com');
-	let password = $state('password123');
-	let error = $state('');
-	let busy = $state(false);
-	let hasGuest = $state(false);
+  type Mode = "login" | "register";
 
-	onMount(() => {
-		hasGuest = loadGuest() != null;
-	});
+  const MIN_PASSWORD_LENGTH = 8;
 
-	async function uploadGuestIfAny(userId: string) {
-		const guest = loadGuest();
-		if (!guest) return;
-		await supabase.from('solve_nodes').insert({
-			owner_id: userId,
-			title: guest.title || t('guestScenarioTitle'),
-			kind: 'root',
-			model: guest.model ?? createBlankModel(),
-			result: guest.result ?? null
-		});
-		clearGuest();
-	}
+  let mode = $state<Mode>("login");
+  let email = $state("");
+  let password = $state("");
+  let passwordConfirm = $state("");
+  let displayName = $state("");
+  let error = $state("");
+  let info = $state("");
+  let busy = $state(false);
+  let hasGuest = $state(false);
 
-	async function onSubmit(e: Event) {
-		e.preventDefault();
-		busy = true;
-		error = '';
-		const { data, error: err } = await supabase.auth.signInWithPassword({ email, password });
-		if (err || !data.user) {
-			error = err?.message ?? t('loginFailed');
-			busy = false;
-			return;
-		}
-		await uploadGuestIfAny(data.user.id);
-		busy = false;
-		void goto('/app');
-	}
+  onMount(() => {
+    const guest = loadGuest();
+    hasGuest = guest != null && isGuestWorthUploading(guest);
+    if (guest && !hasGuest) clearGuest();
+  });
+
+  function setMode(next: Mode) {
+    mode = next;
+    error = "";
+    info = "";
+  }
+
+  async function uploadGuestIfAny(userId: string) {
+    const guest = loadGuest();
+    if (!guest) return;
+    if (!isGuestWorthUploading(guest)) {
+      clearGuest();
+      return;
+    }
+    await supabase.from("solve_nodes").insert({
+      owner_id: userId,
+      title: guest.title || t("guestScenarioTitle"),
+      kind: "root",
+      model: guest.model ?? createBlankModel(),
+      result: guest.result ?? null,
+    });
+    clearGuest();
+  }
+
+  async function onLogin() {
+    const { data, error: err } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (err || !data.user) {
+      error = err?.message?.trim() || t("loginFailed");
+      return;
+    }
+    await uploadGuestIfAny(data.user.id);
+    void goto("/app");
+  }
+
+  async function onRegister() {
+    const name = displayName.trim();
+    if (!name) {
+      error = t("displayNameRequired");
+      return;
+    }
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      error = t("passwordTooShort");
+      return;
+    }
+    if (password !== passwordConfirm) {
+      error = t("passwordMismatch");
+      return;
+    }
+
+    const { data, error: err } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { display_name: name } },
+    });
+    if (err) {
+      error = err.message?.trim() || t("registerFailed");
+      return;
+    }
+
+    if (data.session?.user) {
+      await uploadGuestIfAny(data.session.user.id);
+      void goto("/app");
+      return;
+    }
+
+    info = t("registerCheckEmail");
+    mode = "login";
+    password = "";
+    passwordConfirm = "";
+  }
+
+  async function onSubmit(e: Event) {
+    e.preventDefault();
+    busy = true;
+    error = "";
+    info = "";
+    try {
+      if (mode === "login") await onLogin();
+      else await onRegister();
+    } finally {
+      busy = false;
+    }
+  }
 </script>
 
-<main class="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-4 p-6">
-	<h1 class="text-2xl font-medium">{t('login')}</h1>
-	<p class="text-sm text-text-muted">{t('registerDisabled')}</p>
-	{#if hasGuest}
-		<InlineAlert tone="muted">{t('guestUpload')}</InlineAlert>
-	{/if}
-	{#if error}
-		<InlineAlert>{error}</InlineAlert>
-	{/if}
-	<form class="flex flex-col gap-3" onsubmit={onSubmit}>
-		<label class="flex flex-col gap-1 text-sm">
-			<span>{t('email')}</span>
-			<Input bind:value={email} type="email" autocomplete="username" />
-		</label>
-		<label class="flex flex-col gap-1 text-sm">
-			<span>{t('password')}</span>
-			<Input bind:value={password} type="password" autocomplete="current-password" />
-		</label>
-		<Button type="submit" disabled={busy}>{t('login')}</Button>
-	</form>
-	<Button variant="ghost" type="button" disabled class="!justify-start !px-0 !text-text-faint">
-		{t('registerDisabled')}
-	</Button>
-</main>
+<div class="flex min-h-screen flex-col">
+  <header
+    class="relative z-40 flex h-14 shrink-0 items-center gap-3 bg-bg"
+    style="padding-inline: var(--chrome-pad-x)"
+  >
+    <button
+      type="button"
+      class="inline-flex shrink-0 items-center justify-center rounded-[6px] text-text hover:bg-surface"
+      style="width: var(--chrome-control-size); height: var(--chrome-control-size)"
+      aria-label={t("back")}
+      onclick={() => void goto("/app")}
+    >
+      <ArrowLeft size={20} strokeWidth={1.75} aria-hidden="true" />
+    </button>
+  </header>
+
+  <main
+    class="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-4 p-6"
+  >
+    <h1 class="text-2xl font-medium">
+      {mode === "login" ? t("login") : t("register")}
+    </h1>
+    {#if hasGuest}
+      <InlineAlert tone="muted">{t("guestUpload")}</InlineAlert>
+    {/if}
+    {#if error}
+      <InlineAlert>{error}</InlineAlert>
+    {/if}
+    {#if info}
+      <InlineAlert tone="muted">{info}</InlineAlert>
+    {/if}
+    <form class="flex flex-col gap-3" onsubmit={onSubmit}>
+      {#if mode === "register"}
+        <label class="flex flex-col gap-1 text-sm">
+          <span>{t("displayName")}</span>
+          <Input bind:value={displayName} autocomplete="nickname" />
+        </label>
+      {/if}
+      <label class="flex flex-col gap-1 text-sm">
+        <span>{t("email")}</span>
+        <Input bind:value={email} type="email" autocomplete="username" />
+      </label>
+      <label class="flex flex-col gap-1 text-sm">
+        <span>{t("password")}</span>
+        <Input
+          bind:value={password}
+          type="password"
+          autocomplete={mode === "login" ? "current-password" : "new-password"}
+        />
+      </label>
+      {#if mode === "register"}
+        <label class="flex flex-col gap-1 text-sm">
+          <span>{t("passwordConfirm")}</span>
+          <Input
+            bind:value={passwordConfirm}
+            type="password"
+            autocomplete="new-password"
+          />
+        </label>
+      {/if}
+      <Button type="submit" disabled={busy}>
+        {mode === "login" ? t("login") : t("register")}
+      </Button>
+    </form>
+    {#if mode === "login"}
+      <Button variant="ghost" type="button" onclick={() => setMode("register")}>
+        {t("switchToRegister")}
+      </Button>
+    {:else}
+      <Button variant="ghost" type="button" onclick={() => setMode("login")}>
+        {t("switchToLogin")}
+      </Button>
+    {/if}
+  </main>
+</div>

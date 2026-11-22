@@ -249,7 +249,7 @@ App-`admin` — по политике платформы (шире), отдел�
 
 ## Auth / admin (app)
 
-Нет self-signup; seed (в т.ч. `mod@example.com`); Edge `admin-create-user` + `admin-users` (list / ban / delete); app-`admin`: users; app-`admin`/`mod`: публичный каталог + модерация.
+Публичный email signup (`auth.signUp`); seed (в т.ч. `mod@example.com`); Edge `admin-create-user` + `admin-users` (list / ban / delete); app-`admin`: users; app-`admin`/`mod`: публичный каталог + модерация.
 
 ---
 

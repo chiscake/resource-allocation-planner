@@ -89,6 +89,13 @@ resource-allocation-planner/
 
 **Cloud seed:** `pnpm seed:users:cloud` (reads `.env.cloud` — service role + project URL).
 
+**Cloud Auth (signup):** Dashboard → Authentication → Providers → Email:
+
+- Allow new users to sign up = **ON**
+- Confirm email = **ON** (hosted default)
+
+Local (`supabase/config.toml`): `enable_signup = true`, `enable_confirmations = false`. Restart stack after changing Auth config.
+
 **Desktop installer:** `pnpm tauri:build` (slow; not part of CI — run locally for `.msi`/bundle).
 
 ---
@@ -98,7 +105,7 @@ resource-allocation-planner/
 | Path                    | Role                                                                            |
 | ----------------------- | ------------------------------------------------------------------------------- |
 | `/`                     | Marketing (web) / guest Task 13 → login; Tauri → onboarding or `/app`           |
-| `/login`                | Auth (Register disabled); always upload guest slot on success                   |
+| `/login`                | Login / register toggle; guest upload on session (login or local autoconfirm)   |
 | `/onboarding`           | Tauri first-run wizard                                                          |
 | `/app`                  | Home: new-task CTA, recent (≤6), recent templates mix                           |
 | `/app/create`           | Draft editor + CSV import (sessionStorage); DB insert on first solve            |

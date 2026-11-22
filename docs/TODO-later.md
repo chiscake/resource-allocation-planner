@@ -19,7 +19,7 @@ MVP still delivers: dual solver, what-if children, share/trash/audit, notificati
 
 ## Auth & accounts
 
-- [ ] Public self-signup
+- [x] Public self-signup
 - [ ] OAuth / social login
 - [ ] 2FA
 - [ ] Invite-code productization beyond seed / Dashboard create (if needed)

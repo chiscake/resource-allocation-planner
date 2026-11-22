@@ -141,8 +141,8 @@ Prefer scripts from `package.json`:
 
 ## Security / auth
 
-- No public self-signup; Register control disabled in UI.
-- Seed users via `.env` + script after db reset; admin creates users via Edge Function (ИБМЗКИ lab1 style).
+- Public email signup via client `auth.signUp` (`/login` toggle). Local: `enable_signup=true`, `enable_confirmations=false`. Cloud: Dashboard Allow signup ON + Confirm email ON.
+- Seed users via `.env` + script after db reset; admin can still create users via Edge Function.
 - RLS from day one; size gates on solve; audit_events **without jsonb**.
 
 ---

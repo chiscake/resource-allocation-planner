@@ -42,6 +42,17 @@ export function clearGuest(): void {
   localStorage.removeItem(GUEST_KEY);
 }
 
+/** True when the guest slot has work worth uploading on login/register. */
+export function isGuestWorthUploading(guest: GuestSnapshot): boolean {
+  if (guest.result != null) return true;
+  if (guest.what_if_items && guest.what_if_items.length > 0) return true;
+  try {
+    return JSON.stringify(guest.model) !== JSON.stringify(createBlankModel());
+  } catch {
+    return true;
+  }
+}
+
 /** One local scenario slot — blank model for «Новая задача». */
 export function saveGuestBlank(title = t("newTask")): GuestSnapshot {
   const snapshot: GuestSnapshot = {

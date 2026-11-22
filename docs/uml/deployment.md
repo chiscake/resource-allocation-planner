@@ -81,7 +81,7 @@ flowchart TB
 | От → к                               | Смысл                                                                                    |
 | ------------------------------------ | ---------------------------------------------------------------------------------------- |
 | Клиент Web → Vercel                  | HTTPS: загрузка статики UI                                                               |
-| Клиент Web / Desktop → Supabase Auth | HTTPS: вход, JWT (публичная регистрация отключена)                                       |
+| Клиент Web / Desktop → Supabase Auth | HTTPS: вход / регистрация (`signUp`), JWT                                                |
 | Клиент → PostgreSQL (Supabase API)   | HTTPS + RLS: задачи, шаблоны, шаринг, уведомления, …                                     |
 | Клиент → Edge Functions              | HTTPS + Bearer: облачный `solve` / `run_mutations` / `admin-create-user` / `admin-users` |
 | Edge → PostgreSQL                    | Внутренний доступ функций к БД                                                           |
