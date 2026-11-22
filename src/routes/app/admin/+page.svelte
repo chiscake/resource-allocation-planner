@@ -1,9 +1,10 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { Check, EllipsisVertical } from "@lucide/svelte";
+  import { ArrowDown, ArrowUp, Check, EllipsisVertical } from "@lucide/svelte";
   import { supabase } from "$lib/db/supabase";
   import { env } from "$env/dynamic/public";
   import { t } from "$lib/i18n";
+  import { copyToClipboard } from "$lib/ui/clipboard";
   import PageHeader from "$lib/components/ui/PageHeader.svelte";
   import Button from "$lib/components/ui/Button.svelte";
   import Card from "$lib/components/ui/Card.svelte";
@@ -28,6 +29,15 @@
 
   type RoleFilter = "admin" | "mod" | "user";
   type StatusFilter = "active" | "blocked";
+  type SortKey =
+    | "display_name"
+    | "role"
+    | "email"
+    | "created_at"
+    | "last_sign_in_at"
+    | "blocked"
+    | "id";
+  type SortDir = "asc" | "desc";
 
   type PendingMutation =
     | { kind: "set_blocked"; user_ids: string[]; blocked: boolean }
@@ -47,6 +57,8 @@
   let roleFilters = $state<RoleFilter[]>([]);
   let statusFilters = $state<StatusFilter[]>([]);
   let page = $state(1);
+  let sortKey = $state<SortKey>("created_at");
+  let sortDir = $state<SortDir>("desc");
   // Hidden for now: system templates admin section.
   // let templates = $state<
   //   { id: string; title: string; system_kind: string | null }[]
@@ -61,13 +73,48 @@
   let confirming = $state(false);
   let menuOpenId = $state<string | null>(null);
 
+  function sortValue(u: AdminUser, key: SortKey): string | number {
+    switch (key) {
+      case "display_name":
+        return (u.display_name ?? "").trim().toLowerCase();
+      case "role":
+        return normalizedRole(u);
+      case "email":
+        return (u.email ?? "").trim().toLowerCase();
+      case "created_at":
+        return u.created_at ? Date.parse(u.created_at) || 0 : 0;
+      case "last_sign_in_at":
+        return u.last_sign_in_at ? Date.parse(u.last_sign_in_at) || 0 : 0;
+      case "blocked":
+        return u.blocked ? 1 : 0;
+      case "id":
+        return u.id.toLowerCase();
+    }
+  }
+
+  function compareUsers(a: AdminUser, b: AdminUser): number {
+    const av = sortValue(a, sortKey);
+    const bv = sortValue(b, sortKey);
+    let cmp = 0;
+    if (typeof av === "number" && typeof bv === "number") {
+      cmp = av - bv;
+    } else {
+      cmp = String(av).localeCompare(String(bv), "ru");
+    }
+    if (cmp === 0) cmp = a.id.localeCompare(b.id);
+    return sortDir === "asc" ? cmp : -cmp;
+  }
+
   const filteredUsers = $derived.by(() => {
     const q = searchQuery.trim().toLowerCase();
-    return users.filter((u) => {
+    const filtered = users.filter((u) => {
       if (q) {
         const name = (u.display_name ?? "").toLowerCase();
         const mail = (u.email ?? "").toLowerCase();
-        if (!name.includes(q) && !mail.includes(q)) return false;
+        const id = u.id.toLowerCase();
+        if (!name.includes(q) && !mail.includes(q) && !id.includes(q)) {
+          return false;
+        }
       }
       if (roleFilters.length > 0) {
         const role = normalizedRole(u);
@@ -82,6 +129,7 @@
       }
       return true;
     });
+    return [...filtered].sort(compareUsers);
   });
 
   const pageCount = $derived(
@@ -124,6 +172,41 @@
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return t("adminNeverSignedIn");
     return d.toLocaleString("ru-RU");
+  }
+
+  function shortId(id: string): string {
+    if (id.length <= 14) return id;
+    return `${id.slice(0, 8)}…${id.slice(-4)}`;
+  }
+
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) {
+      sortDir = sortDir === "asc" ? "desc" : "asc";
+    } else {
+      sortKey = key;
+      sortDir =
+        key === "created_at" || key === "last_sign_in_at" ? "desc" : "asc";
+    }
+    resetPage();
+  }
+
+  function sortHeaderClass(key: SortKey): string {
+    const active = sortKey === key;
+    return [
+      "inline-flex cursor-pointer items-center gap-1 rounded-[4px] px-0.5 py-0.5 font-medium transition-colors hover:text-text",
+      active ? "text-text" : "text-text-muted",
+    ].join(" ");
+  }
+
+  function ariaSortFor(key: SortKey): "ascending" | "descending" | "none" {
+    if (sortKey !== key) return "none";
+    return sortDir === "asc" ? "ascending" : "descending";
+  }
+
+  function copyCell(value: string | null | undefined) {
+    const text = (value ?? "").trim();
+    if (!text) return;
+    void copyToClipboard(text);
   }
 
   function resetPage() {
@@ -668,7 +751,7 @@
         {/if}
       {:else}
         <div class="overflow-x-auto">
-          <table class="w-full min-w-[56rem] border-collapse text-left text-sm">
+          <table class="w-full min-w-[64rem] border-collapse text-left text-sm">
             <thead>
               <tr class="border-b border-border text-text-muted">
                 <th class="w-10 px-2 py-2 font-medium">
@@ -686,20 +769,151 @@
                       )}
                   />
                 </th>
-                <th class="px-2 py-2 font-medium">{t("adminColName")}</th>
-                <th class="px-2 py-2 font-medium">{t("adminColRole")}</th>
-                <th class="px-2 py-2 font-medium">{t("adminColEmail")}</th>
-                <th class="px-2 py-2 font-medium">{t("adminColCreated")}</th>
-                <th class="px-2 py-2 font-medium">{t("adminColLastSignIn")}</th>
-                <th class="w-[9.5rem] min-w-[9.5rem] px-2 py-2 font-medium"
-                  >{t("adminColStatus")}</th
+                <th class="px-2 py-2" aria-sort={ariaSortFor("display_name")}>
+                  <button
+                    type="button"
+                    class={sortHeaderClass("display_name")}
+                    onclick={() => toggleSort("display_name")}
+                  >
+                    {t("adminColName")}
+                    {#if sortKey === "display_name"}
+                      {#if sortDir === "asc"}
+                        <ArrowUp class="size-3.5 shrink-0" aria-hidden="true" />
+                      {:else}
+                        <ArrowDown
+                          class="size-3.5 shrink-0"
+                          aria-hidden="true"
+                        />
+                      {/if}
+                    {/if}
+                  </button>
+                </th>
+                <th class="px-2 py-2" aria-sort={ariaSortFor("role")}>
+                  <button
+                    type="button"
+                    class={sortHeaderClass("role")}
+                    onclick={() => toggleSort("role")}
+                  >
+                    {t("adminColRole")}
+                    {#if sortKey === "role"}
+                      {#if sortDir === "asc"}
+                        <ArrowUp class="size-3.5 shrink-0" aria-hidden="true" />
+                      {:else}
+                        <ArrowDown
+                          class="size-3.5 shrink-0"
+                          aria-hidden="true"
+                        />
+                      {/if}
+                    {/if}
+                  </button>
+                </th>
+                <th class="px-2 py-2" aria-sort={ariaSortFor("email")}>
+                  <button
+                    type="button"
+                    class={sortHeaderClass("email")}
+                    onclick={() => toggleSort("email")}
+                  >
+                    {t("adminColEmail")}
+                    {#if sortKey === "email"}
+                      {#if sortDir === "asc"}
+                        <ArrowUp class="size-3.5 shrink-0" aria-hidden="true" />
+                      {:else}
+                        <ArrowDown
+                          class="size-3.5 shrink-0"
+                          aria-hidden="true"
+                        />
+                      {/if}
+                    {/if}
+                  </button>
+                </th>
+                <th class="px-2 py-2" aria-sort={ariaSortFor("created_at")}>
+                  <button
+                    type="button"
+                    class={sortHeaderClass("created_at")}
+                    onclick={() => toggleSort("created_at")}
+                  >
+                    {t("adminColCreated")}
+                    {#if sortKey === "created_at"}
+                      {#if sortDir === "asc"}
+                        <ArrowUp class="size-3.5 shrink-0" aria-hidden="true" />
+                      {:else}
+                        <ArrowDown
+                          class="size-3.5 shrink-0"
+                          aria-hidden="true"
+                        />
+                      {/if}
+                    {/if}
+                  </button>
+                </th>
+                <th class="px-2 py-2" aria-sort={ariaSortFor("last_sign_in_at")}>
+                  <button
+                    type="button"
+                    class={sortHeaderClass("last_sign_in_at")}
+                    onclick={() => toggleSort("last_sign_in_at")}
+                  >
+                    {t("adminColLastSignIn")}
+                    {#if sortKey === "last_sign_in_at"}
+                      {#if sortDir === "asc"}
+                        <ArrowUp class="size-3.5 shrink-0" aria-hidden="true" />
+                      {:else}
+                        <ArrowDown
+                          class="size-3.5 shrink-0"
+                          aria-hidden="true"
+                        />
+                      {/if}
+                    {/if}
+                  </button>
+                </th>
+                <th
+                  class="w-[9.5rem] min-w-[9.5rem] px-2 py-2"
+                  aria-sort={ariaSortFor("blocked")}
                 >
+                  <button
+                    type="button"
+                    class={sortHeaderClass("blocked")}
+                    onclick={() => toggleSort("blocked")}
+                  >
+                    {t("adminColStatus")}
+                    {#if sortKey === "blocked"}
+                      {#if sortDir === "asc"}
+                        <ArrowUp class="size-3.5 shrink-0" aria-hidden="true" />
+                      {:else}
+                        <ArrowDown
+                          class="size-3.5 shrink-0"
+                          aria-hidden="true"
+                        />
+                      {/if}
+                    {/if}
+                  </button>
+                </th>
+                <th class="px-2 py-2" aria-sort={ariaSortFor("id")}>
+                  <button
+                    type="button"
+                    class={sortHeaderClass("id")}
+                    onclick={() => toggleSort("id")}
+                  >
+                    {t("adminColId")}
+                    {#if sortKey === "id"}
+                      {#if sortDir === "asc"}
+                        <ArrowUp class="size-3.5 shrink-0" aria-hidden="true" />
+                      {:else}
+                        <ArrowDown
+                          class="size-3.5 shrink-0"
+                          aria-hidden="true"
+                        />
+                      {/if}
+                    {/if}
+                  </button>
+                </th>
                 <th class="px-2 py-2 text-right font-medium"></th>
               </tr>
             </thead>
             <tbody>
               {#each pagedUsers as u (u.id)}
                 {@const actionable = isActionable(u)}
+                {@const role = normalizedRole(u)}
+                {@const name = u.display_name?.trim() || ""}
+                {@const mail = u.email?.trim() || ""}
                 <tr class="border-b border-border/60 align-middle">
                   <td class="px-2 py-2">
                     {#if actionable}
@@ -715,9 +929,37 @@
                       />
                     {/if}
                   </td>
-                  <td class="px-2 py-2">{u.display_name?.trim() || "—"}</td>
+                  <td class="px-2 py-2">
+                    {#if name}
+                      <button
+                        type="button"
+                        class="max-w-[12rem] cursor-pointer truncate text-left hover:underline"
+                        title={name}
+                        aria-label={`${t("copyValue")}: ${name}`}
+                        onclick={() => copyCell(name)}
+                      >
+                        {name}
+                      </button>
+                    {:else}
+                      —
+                    {/if}
+                  </td>
                   <td class="px-2 py-2">{u.role}</td>
-                  <td class="px-2 py-2">{u.email ?? "—"}</td>
+                  <td class="px-2 py-2">
+                    {#if mail}
+                      <button
+                        type="button"
+                        class="max-w-[16rem] cursor-pointer truncate text-left hover:underline"
+                        title={mail}
+                        aria-label={`${t("copyValue")}: ${mail}`}
+                        onclick={() => copyCell(mail)}
+                      >
+                        {mail}
+                      </button>
+                    {:else}
+                      —
+                    {/if}
+                  </td>
                   <td class="px-2 py-2 whitespace-nowrap"
                     >{formatDate(u.created_at)}</td
                   >
@@ -733,71 +975,77 @@
                       <Badge variant="success">{t("adminStatusActive")}</Badge>
                     {/if}
                   </td>
+                  <td class="px-2 py-2">
+                    <button
+                      type="button"
+                      class="cursor-pointer font-mono text-xs hover:underline"
+                      title={u.id}
+                      aria-label={`${t("copyValue")}: ${u.id}`}
+                      onclick={() => copyCell(u.id)}
+                    >
+                      {shortId(u.id)}
+                    </button>
+                  </td>
                   <td class="px-2 py-2 text-right whitespace-nowrap">
                     {#if actionable}
-                      {@const role = normalizedRole(u)}
-                      <div class="inline-flex items-center justify-end gap-1">
-                        {#if u.blocked}
-                          <Button
-                            variant="secondary"
-                            class="!px-2 !py-1 text-xs"
-                            onclick={() => askUnblockOne(u)}
-                          >
-                            {t("adminUnblock")}
-                          </Button>
-                        {:else}
-                          <Button
-                            variant="secondary"
-                            class="!px-2 !py-1 text-xs"
-                            onclick={() => askBlockOne(u)}
-                          >
-                            {t("adminBlock")}
-                          </Button>
-                        {/if}
+                      <div class="relative inline-flex justify-end">
                         <Button
-                          variant="danger"
-                          class="!px-2 !py-1 text-xs"
-                          onclick={() => askDeleteOne(u)}
+                          variant="ghost"
+                          class="!px-1.5 !py-1"
+                          title={t("adminMoreActions")}
+                          aria-label={t("adminMoreActions")}
+                          aria-expanded={menuOpenId === u.id}
+                          onclick={(e) => toggleMoreMenu(u.id, e)}
                         >
-                          {t("adminDeleteUser")}
+                          <EllipsisVertical class="size-4" />
                         </Button>
-                        {#if role === "user" || role === "mod"}
-                          <div class="relative">
-                            <Button
-                              variant="ghost"
-                              class="!px-1.5 !py-1"
-                              title={t("adminMoreActions")}
-                              aria-label={t("adminMoreActions")}
-                              aria-expanded={menuOpenId === u.id}
-                              onclick={(e) => toggleMoreMenu(u.id, e)}
-                            >
-                              <EllipsisVertical class="size-4" />
-                            </Button>
-                            {#if menuOpenId === u.id}
-                              <!-- svelte-ignore a11y_no_static_element_interactions -->
-                              <div
-                                class="absolute right-0 z-20 mt-1 min-w-[14rem] rounded-[8px] border border-border bg-bg py-1 shadow-lg"
-                                onpointerdown={(e) => e.stopPropagation()}
+                        {#if menuOpenId === u.id}
+                          <!-- svelte-ignore a11y_no_static_element_interactions -->
+                          <div
+                            class="absolute right-0 z-20 mt-1 min-w-[14rem] rounded-[8px] border border-border bg-bg py-1 shadow-lg"
+                            onpointerdown={(e) => e.stopPropagation()}
+                          >
+                            {#if role === "user"}
+                              <button
+                                type="button"
+                                class="block w-full cursor-pointer px-3 py-2 text-left text-sm text-text hover:bg-bg-soft"
+                                onclick={() => askPromoteMod(u)}
                               >
-                                {#if role === "user"}
-                                  <button
-                                    type="button"
-                                    class="block w-full cursor-pointer px-3 py-2 text-left text-sm text-text hover:bg-bg-soft"
-                                    onclick={() => askPromoteMod(u)}
-                                  >
-                                    {t("adminPromoteMod")}
-                                  </button>
-                                {:else}
-                                  <button
-                                    type="button"
-                                    class="block w-full cursor-pointer px-3 py-2 text-left text-sm text-text hover:bg-bg-soft"
-                                    onclick={() => askDemoteUser(u)}
-                                  >
-                                    {t("adminDemoteUser")}
-                                  </button>
-                                {/if}
-                              </div>
+                                {t("adminPromoteMod")}
+                              </button>
+                            {:else if role === "mod"}
+                              <button
+                                type="button"
+                                class="block w-full cursor-pointer px-3 py-2 text-left text-sm text-text hover:bg-bg-soft"
+                                onclick={() => askDemoteUser(u)}
+                              >
+                                {t("adminDemoteUser")}
+                              </button>
                             {/if}
+                            {#if u.blocked}
+                              <button
+                                type="button"
+                                class="block w-full cursor-pointer px-3 py-2 text-left text-sm text-text hover:bg-bg-soft"
+                                onclick={() => askUnblockOne(u)}
+                              >
+                                {t("adminUnblock")}
+                              </button>
+                            {:else}
+                              <button
+                                type="button"
+                                class="block w-full cursor-pointer px-3 py-2 text-left text-sm text-text hover:bg-bg-soft"
+                                onclick={() => askBlockOne(u)}
+                              >
+                                {t("adminBlock")}
+                              </button>
+                            {/if}
+                            <button
+                              type="button"
+                              class="block w-full cursor-pointer px-3 py-2 text-left text-sm text-danger-text hover:bg-bg-soft"
+                              onclick={() => askDeleteOne(u)}
+                            >
+                              {t("adminDeleteUser")}
+                            </button>
                           </div>
                         {/if}
                       </div>

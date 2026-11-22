@@ -18,6 +18,9 @@ const ru = {
   settings: "Настройки",
   settingsHint: "Безопасность аккаунта и двухфакторная аутентификация.",
   settingsSignInRequired: "Войдите, чтобы открыть настройки.",
+  copied: "Скопировано",
+  copyFailed: "Не удалось скопировать",
+  copyValue: "Скопировать",
   mfaSectionTitle: "Двухфакторная аутентификация",
   /** Issuer in Authenticator (no `:` — breaks otpauth labels with host:port). */
   mfaIssuer: "RAP",
@@ -194,7 +197,7 @@ const ru = {
   adminUsers: "Пользователи",
   adminUsersUnavailable:
     "Сервис управления пользователями недоступен. Возможно, он временно выключен.",
-  adminUsersSearchPlaceholder: "Имя или email…",
+  adminUsersSearchPlaceholder: "Имя, email или код…",
   adminFilterRoles: "Роль",
   adminFilterStatus: "Статус",
   adminRoleUser: "Пользователь",
@@ -208,6 +211,9 @@ const ru = {
   adminColCreated: "Создан",
   adminColLastSignIn: "Последний вход",
   adminColStatus: "Статус",
+  adminColId: "Код",
+  adminSortAsc: "По возрастанию",
+  adminSortDesc: "По убыванию",
   adminStatusActive: "Активен",
   adminStatusBlocked: "Заблокирован",
   adminSelectAll: "Выбрать всех",
