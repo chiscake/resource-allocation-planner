@@ -11,8 +11,11 @@ import { runMutationsLocal } from './mutations';
 
 export const VERIFY_EPS = 1e-6;
 
+/** equal: same Z and x; alternate_optima: same Z, different x; mismatch: Z (or harder) drift. */
+export type VerifyKind = 'equal' | 'alternate_optima' | 'mismatch';
+
 export type VerifyDiff = {
-  match: boolean;
+  kind: VerifyKind;
   dZ: number;
   maxAbsDx: number;
 };
@@ -29,11 +32,11 @@ export function compareSolveResults(
   for (const k of keys) {
     maxAbsDx = Math.max(maxAbsDx, Math.abs((native.x[k] ?? 0) - (library.x[k] ?? 0)));
   }
-  return {
-    match: dZ <= eps && maxAbsDx <= eps,
-    dZ,
-    maxAbsDx,
-  };
+  let kind: VerifyKind;
+  if (dZ > eps) kind = 'mismatch';
+  else if (maxAbsDx > eps) kind = 'alternate_optima';
+  else kind = 'equal';
+  return { kind, dZ, maxAbsDx };
 }
 
 export type VerifyItemReport = {
@@ -46,7 +49,10 @@ export type VerifyItemReport = {
 export type VerifyReport = {
   root: VerifyItemReport | null;
   items: VerifyItemReport[];
+  /** True only for real Z/status-class failures — drives alert + DB log. */
   anyMismatch: boolean;
+  /** Same Z, different plan — informational, not an alert. */
+  anyAlternate: boolean;
 };
 
 export function verifyAgainstLibrary(
@@ -95,7 +101,9 @@ export function verifyAgainstLibrary(
     }
   }
 
-  const anyMismatch = (root != null && !root.diff.match) || items.some((i) => !i.diff.match);
+  const all = root ? [root, ...items] : items;
+  const anyMismatch = all.some((i) => i.diff.kind === 'mismatch');
+  const anyAlternate = all.some((i) => i.diff.kind === 'alternate_optima');
 
-  return { root, items, anyMismatch };
+  return { root, items, anyMismatch, anyAlternate };
 }

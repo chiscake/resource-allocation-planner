@@ -15,7 +15,7 @@
     type SolveResult,
     type WhatIfRowData,
   } from '$lib/domain';
-  import { t } from '$lib/i18n';
+  import { formatRejectedReason, t } from '$lib/i18n';
   import Button from '$lib/components/ui/Button.svelte';
   import Select from '$lib/components/ui/Select.svelte';
   import LpModelMatrix from './LpModelMatrix.svelte';
@@ -158,7 +158,7 @@
       });
       if (id !== runId) return;
       if (run.responseStatus !== 'done') {
-        previewError = run.rejectedReason ?? run.responseStatus;
+        previewError = formatRejectedReason(run.rejectedReason);
         // Keep last good card; mark stale so the user sees it is outdated.
         previewStale = true;
         return;

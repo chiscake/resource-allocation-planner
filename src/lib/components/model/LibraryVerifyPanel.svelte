@@ -27,8 +27,10 @@
         {#each entries as item (item.label)}
           <li class="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm">
             <span class="font-medium text-text">{item.label}</span>
-            {#if item.diff.match}
+            {#if item.diff.kind === 'equal'}
               <span class="text-text-muted">{t('libraryVerifyOk')}</span>
+            {:else if item.diff.kind === 'alternate_optima'}
+              <span class="text-text-soft">{t('libraryVerifyAlternate')}</span>
             {:else}
               <span class="text-warning-text">{t('libraryVerifyFail')}</span>
             {/if}

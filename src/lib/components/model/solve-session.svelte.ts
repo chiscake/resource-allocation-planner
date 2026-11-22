@@ -21,7 +21,7 @@ import { resolveSolveMode } from '$lib/solver/mode';
 import { verifyAgainstLibrary, type VerifyReport } from '$lib/solver/verify';
 import { GA_DEFAULT_SEED, type GaPresetId } from '$lib/solver/methods/ga/presets';
 import { DLN_PRESET_DEFS, type DlnPresetId } from '$lib/solver/methods/dln/presets';
-import { t } from '$lib/i18n';
+import { formatRejectedReason, t } from '$lib/i18n';
 
 export type SolveTabId = 'plan' | 'ipm' | 'ga' | 'dln';
 
@@ -235,10 +235,15 @@ export function createSolveSession(init?: {
 
   function applyVerify(report: VerifyReport) {
     verifyReport = report;
-    if (!report.anyMismatch) return;
-    console.warn('[solver_mismatch] native vs library', report);
-    if (typeof alert === 'function') {
-      alert(t('solverMismatchAlert'));
+    if (report.anyMismatch) {
+      console.warn('[solver_mismatch] native vs library', report);
+      if (typeof alert === 'function') {
+        alert(t('solverMismatchAlert'));
+      }
+      return;
+    }
+    if (report.anyAlternate) {
+      console.info('[solver_alternate] native vs library (same Z, different plan)', report);
     }
   }
 
@@ -316,20 +321,11 @@ export function createSolveSession(init?: {
               response.result ?? null,
             );
           } else {
-            const r = mutationsResponse.solver_meta.rejected_reason;
-            error =
-              mutationsResponse.solver_meta.hint === 'dln_unsupported' ||
-              (r && r.startsWith('dln_unsupported'))
-                ? t('dlnUnsupportedHint')
-                : (r ?? mutationsResponse.status);
+            error = formatRejectedReason(mutationsResponse.solver_meta.rejected_reason);
           }
         }
       } else if (response.status !== 'done') {
-        const r = response.solver_meta.rejected_reason;
-        error =
-          response.solver_meta.hint === 'dln_unsupported' || (r && r.startsWith('dln_unsupported'))
-            ? t('dlnUnsupportedHint')
-            : (r ?? response.status);
+        error = formatRejectedReason(response.solver_meta.rejected_reason);
       }
 
       let report: VerifyReport | null = null;

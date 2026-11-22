@@ -155,7 +155,7 @@
       onVerify: async (report: VerifyReport) => {
         if (!report.anyMismatch || !createdId) return;
         const rows = [];
-        if (report.root && !report.root.diff.match) {
+        if (report.root && report.root.diff.kind === 'mismatch') {
           rows.push({
             solve_node_id: createdId,
             method: 'lp',
@@ -166,7 +166,7 @@
           });
         }
         for (const item of report.items) {
-          if (item.diff.match) continue;
+          if (item.diff.kind !== 'mismatch') continue;
           rows.push({
             solve_node_id: createdId,
             method: 'lp',

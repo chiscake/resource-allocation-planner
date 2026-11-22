@@ -1,5 +1,6 @@
 import { engineFail, engineOk, type SolverEngine } from '../../contract';
-import { solveIpmModel } from './native';
+import { buildSolveResult } from '../../shared/resultBuild';
+import { solveIpmRaw } from './native';
 
 export { solveIpmModel, solveIpmRaw } from './native';
 export type { IpmRaw } from './native';
@@ -8,10 +9,10 @@ export const ipmNativeEngine: SolverEngine = {
   method: 'ipm',
   engine: 'native',
   solve(model) {
-    const result = solveIpmModel(model);
-    if (!result) return engineFail('ipm_failed');
+    const raw = solveIpmRaw(model);
+    if (!raw.ok) return engineFail(raw.reason);
     return engineOk({
-      result,
+      result: buildSolveResult(model, raw.x, raw.y, raw.feasible),
       provenance: { method: 'ipm', engine: 'native' },
     });
   },

@@ -423,6 +423,16 @@ const ru = {
   compareYes: 'да',
   compareNo: 'нет',
   compareFailed: 'ошибка',
+  rejectGeneric: 'Расчёт этим методом не выполнен.',
+  rejectNewtonFail:
+    'Метод внутренней точки не сошёлся на этой модели. Попробуйте симплекс или слегка измените данные.',
+  /** Compare table: no “try simplex” — other methods are already in the same table. */
+  rejectNewtonFailCompare: 'Метод внутренней точки не сошёлся на этой модели.',
+  rejectEmptyModel: 'Нет продуктов или ресурсов для расчёта.',
+  rejectNegativeStock: 'Запас ресурса не может быть отрицательным.',
+  rejectInfeasible: 'Допустимого плана не существует.',
+  rejectTimeout: 'Расчёт превысил лимит времени.',
+  rejectTooLarge: 'Модель слишком большая для этого режима расчёта.',
   compareAltOptima:
     'При одинаковом Z разные планы могут быть альтернативными оптимумами, а не ошибкой.',
   compareShowDetails: 'Подробнее',
@@ -567,6 +577,7 @@ const ru = {
   solveDetailsPhase: 'Фаза {phase}',
   libraryVerify: 'Сверка с библиотекой',
   libraryVerifyOk: 'Совпало с контрольным расчётом',
+  libraryVerifyAlternate: 'Тот же оптимум Z, другой план выпуска',
   libraryVerifyFail: 'Расхождение с контрольным расчётом',
   libraryVerifyHint: 'Контрольный расчёт той же модели сторонней библиотекой (скрытая сверка).',
   solverMismatchAlert:
@@ -616,6 +627,37 @@ export function t(key: RuKey, vars?: Record<string, string>): string {
     }
   }
   return s;
+}
+
+/** Map solver `rejected_reason` codes to end-user Russian (instrument tone). */
+const REJECT_REASON_KEYS: Record<string, RuKey> = {
+  newton_fail: 'rejectNewtonFail',
+  empty: 'rejectEmptyModel',
+  negative_rhs: 'rejectNegativeStock',
+  infeasible: 'rejectInfeasible',
+  timeout: 'rejectTimeout',
+  package_timeout: 'rejectTimeout',
+};
+
+/** Compare panel: drop cross-method advice that is redundant next to other rows. */
+const REJECT_REASON_KEYS_COMPARE: Record<string, RuKey> = {
+  ...REJECT_REASON_KEYS,
+  newton_fail: 'rejectNewtonFailCompare',
+};
+
+export type RejectReasonContext = 'default' | 'compare';
+
+export function formatRejectedReason(
+  reason: string | null | undefined,
+  context: RejectReasonContext = 'default',
+): string {
+  if (!reason) return t('rejectGeneric');
+  if (reason.startsWith('dln_unsupported')) return t('dlnUnsupportedHint');
+  const map = context === 'compare' ? REJECT_REASON_KEYS_COMPARE : REJECT_REASON_KEYS;
+  const key = map[reason];
+  if (key) return t(key);
+  if (reason.includes('>') || reason.startsWith('K>')) return t('rejectTooLarge');
+  return t('rejectGeneric');
 }
 
 export { ru };

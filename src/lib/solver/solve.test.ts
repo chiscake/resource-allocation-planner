@@ -72,6 +72,27 @@ describe('interior-point task13', () => {
     );
     expect(res.result!.feasible).toBe(true);
   });
+
+  it('solves degenerate 2×2 with alternate optima (c ∥ constraint)', () => {
+    const t13 = createTask13Model();
+    const model = cloneModel(t13);
+    model.products = ['Продукт 1', 'Продукт 2'];
+    model.resources = ['Ресурс 1', 'Ресурс 2'];
+    model.A = [
+      [1, 2],
+      [3, 4],
+    ];
+    model.b = [10, 20];
+    model.c = [100, 200];
+    const raw = solveIpmRaw(model);
+    expect(raw.ok).toBe(true);
+    if (!raw.ok) return;
+    expect(raw.feasible).toBe(true);
+    expect(raw.Z).toBeCloseTo(1000, 0);
+    const res = solveLocal(model, 'local', 0, 'ipm');
+    expect(res.status).toBe('done');
+    expect(res.result!.Z).toBeCloseTo(1000, 0);
+  });
 });
 
 describe('ga-evolutionary task13', () => {

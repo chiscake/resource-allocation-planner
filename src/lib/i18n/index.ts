@@ -1,1 +1,1 @@
-export { t, ru, type RuKey } from './ru';
+export { t, ru, formatRejectedReason, type RuKey } from './ru';

@@ -14,7 +14,7 @@
     type CompareConfigId,
     type CompareRow,
   } from '$lib/solver/compare';
-  import { t } from '$lib/i18n';
+  import { formatRejectedReason, t } from '$lib/i18n';
   import Card from '$lib/components/ui/Card.svelte';
   import Button from '$lib/components/ui/Button.svelte';
   import { formatPlanNumber } from './format-plan-number';
@@ -174,7 +174,7 @@
                   </td>
                   {#if !row.ok}
                     <td class="py-2 pr-3 text-right text-danger-text" colspan="6">
-                      {t('compareFailed')}: {row.error}
+                      {t('compareFailed')}: {formatRejectedReason(row.error, 'compare')}
                     </td>
                     <td></td>
                   {:else}

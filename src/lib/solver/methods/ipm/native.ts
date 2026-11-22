@@ -8,6 +8,8 @@ import { buildSolveResult } from '../../shared/resultBuild';
 const EPS = 1e-9;
 const TOL = 1e-8;
 const MAX_ITER = 80;
+/** Diagonal regularization for normal equations (rank-deficient / alternate optima). */
+const CHOL_REG = [0, 1e-12, 1e-10, 1e-8, 1e-6, 1e-4];
 
 function zeros(n: number): number[] {
   return new Array(n).fill(0);
@@ -19,13 +21,13 @@ function dot(a: number[], b: number[]): number {
   return s;
 }
 
-/** Solve dense symmetric positive-definite system via Cholesky. */
-function cholSolve(H: number[][], rhs: number[]): number[] | null {
+/** Solve dense SPD system via Cholesky. `reg` added to the diagonal. */
+function cholSolve(H: number[][], rhs: number[], reg = 0): number[] | null {
   const n = H.length;
   const L = zeros(n).map(() => zeros(n));
   for (let i = 0; i < n; i++) {
     for (let j = 0; j <= i; j++) {
-      let s = H[i][j];
+      let s = H[i][j] + (i === j ? reg : 0);
       for (let k = 0; k < j; k++) s -= L[i][k] * L[j][k];
       if (i === j) {
         if (s <= EPS) return null;
@@ -48,6 +50,15 @@ function cholSolve(H: number[][], rhs: number[]): number[] | null {
     x[i] = s / L[i][i];
   }
   return x;
+}
+
+/** Retry Cholesky with increasing diagonal regularization (Wright / Gill-style). */
+function cholSolveRegularized(H: number[][], rhs: number[]): number[] | null {
+  for (const reg of CHOL_REG) {
+    const sol = cholSolve(H, rhs, reg);
+    if (sol) return sol;
+  }
+  return null;
 }
 
 export interface IpmSolveOk {
@@ -357,7 +368,7 @@ function newtonStep(
     H[i][i] += Ds[i];
   }
 
-  const dySol = cholSolve(H, rhsY);
+  const dySol = cholSolveRegularized(H, rhsY);
   if (!dySol) return false;
   for (let i = 0; i < m; i++) dy[i] = dySol[i];
 
