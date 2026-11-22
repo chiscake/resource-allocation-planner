@@ -78,17 +78,17 @@ Canon path: **push to Git → Vercel auto-build**. Do not dual-deploy the same S
 
 ### Supabase — CLI `supabase`
 
-| Need                                    | Command                                             |
-| --------------------------------------- | --------------------------------------------------- |
-| Local                                   | `pnpm db:start` / `pnpm db:reset` / `pnpm db:serve` |
-| Diff cloud vs local migrations          | `supabase migration list`                           |
-| Push migrations to linked project       | `supabase db push`                                  |
-| Deploy Edge from `supabase/functions/*` | `supabase functions deploy <name>`                  |
-| Link                                    | `supabase link --project-ref ktdxdqnhjitolfpcztds`  |
+| Need                                    | Command                                                                    |
+| --------------------------------------- | -------------------------------------------------------------------------- |
+| Local                                   | `pnpm db:start` / `pnpm db:reset` / `pnpm db:fn:serve` / `pnpm db:fn:stop` |
+| Diff cloud vs local migrations          | `supabase migration list`                                                  |
+| Push migrations to linked project       | `supabase db push`                                                         |
+| Deploy Edge from `supabase/functions/*` | `supabase functions deploy <name>`                                         |
+| Link                                    | `supabase link --project-ref ktdxdqnhjitolfpcztds`                         |
 
 **Migration canon:** author SQL under `supabase/migrations/NNN_name.sql` (see `AGENTS.md`), verify locally with `db reset`, then push. Prefer CLI `db push` over MCP `apply_migration` so filenames stay the source of truth. MCP `apply_migration` is for hotfixes when the user explicitly wants MCP DDL — then still add the matching `NNN_*.sql` file in the same change set.
 
-**Edge canon:** edit under `supabase/functions/`, test with `pnpm db:serve`, deploy with CLI `supabase functions deploy` (or MCP `deploy_edge_function` with the same source). Always keep `verify_jwt: true` unless the user overrides.
+**Edge canon:** edit under `supabase/functions/`, test with `pnpm db:fn:serve`, deploy with CLI `supabase functions deploy` (or MCP `deploy_edge_function` with the same source). Always keep `verify_jwt: true` unless the user overrides.
 
 ---
 

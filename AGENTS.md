@@ -106,7 +106,7 @@ Follow [`docs/data-model.md`](docs/data-model.md); do not invent parallel owners
 Prefer scripts from `package.json`:
 
 - `pnpm install` / `pnpm dev` / `pnpm check` / `pnpm test` / `pnpm tauri:dev` / `pnpm tauri:build`
-- Local backend one-shot: **`pnpm db:reset`** (`start` + `db reset` + `seed:users` + `db:serve`) — there is no `supabase:local` script
+- Local backend one-shot: **`pnpm db:reset`** (`start` + `db reset` + `seed:users` + `db:fn:serve`) — there is no `supabase:local` script. Edge serve: `pnpm db:fn:serve` / stop: `pnpm db:fn:stop`
 - Pre-commit gates: `pnpm preflight` · `pnpm preflight:quick` · `pnpm preflight:main` — see [`docs/COMMIT_WORKFLOW.md`](docs/COMMIT_WORKFLOW.md). Secret scan uses the **index**; stage files before `preflight`.
 
 ---

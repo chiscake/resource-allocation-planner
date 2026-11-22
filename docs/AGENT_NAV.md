@@ -74,7 +74,7 @@ resource-allocation-planner/
 ```
 
 **Dev:** `pnpm dev` → http://127.0.0.1:5400 (HMR 5401).  
-**Backend local (one shot):** `pnpm db:reset` → `supabase start` + `db reset` + `seed:users` + `functions serve`.
+**Backend local (one shot):** `pnpm db:reset` → `supabase start` + `db reset` + `seed:users` + `db:fn:serve`. Edge only: `pnpm db:fn:serve` / `pnpm db:fn:stop`.
 
 **Production (web):** https://resource-allocation-planner-taupe.vercel.app  
 **Vercel build:** `vercel.json` → `pnpm build`, output `build/` (static SPA rewrites).
@@ -132,7 +132,7 @@ resource-allocation-planner/
 | DLN UI      | Method tab + compare configs; flag `PUBLIC_SHOW_DLN` (UI only; Edge/local still accept dln)               |
 | Orgs UI     | Sidebar, task attach, org trash, `/app/org`; flag `PUBLIC_SHOW_ORGS` (UI only; schema/RLS/seed orgs stay) |
 | Cloud seed  | `pnpm seed:users:cloud` — same users against linked RAP project                                           |
-| Local stack | `pnpm db:reset` — start + reset + seed + Edge serve                                                       |
+| Local stack | `pnpm db:reset` — start + reset + seed + `db:fn:serve`; Edge: `db:fn:serve` / `db:fn:stop`                |
 | Installer   | `pnpm tauri:build` — desktop bundle (local only)                                                          |
 | Edge        | `solve`, `run_mutations`, `admin-create-user`                                                             |
 | Venue       | Web = cloud when online (fallback local); Tauri UI toggle                                                 |
