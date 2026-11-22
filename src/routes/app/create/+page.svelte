@@ -8,9 +8,12 @@
     blankTaskDraft,
     clearTaskDraft,
     loadTaskDraft,
+    resetTaskDraftToBlank,
     saveTaskDraft,
     type TaskDraft,
   } from '$lib/db/task-draft';
+  import Button from '$lib/components/ui/Button.svelte';
+  import { Eraser } from '@lucide/svelte';
   import { recordPublicTemplateUse } from '$lib/db/template-uses';
   import { solveModel, runMutations } from '$lib/api/solve';
   import { logSolverMismatches } from '$lib/db/solver-mismatch';
@@ -135,6 +138,16 @@
     persistLocal();
   }
 
+  async function clearDraft() {
+    const draft = resetTaskDraftToBlank();
+    applyDraft(draft);
+    draftHint = true;
+    session.error = '';
+    if (page.url.searchParams.has('template')) {
+      await goto('/app/create', { replaceState: true });
+    }
+  }
+
   async function doSolve(cloud = false) {
     let createdId: string | null = null;
     const cycle = await session.runSolveCycle(cloudTransport, {
@@ -230,7 +243,20 @@
       editable
       ontitlecommit={renameDraft}
       description={draftHint ? t('draftNotSavedHint') : undefined}
-    />
+    >
+      {#snippet actions()}
+        <Button
+          variant="secondary"
+          class="px-2.5! py-2.5!"
+          disabled={session.busy}
+          aria-label={t('clearDraft')}
+          title={t('clearDraftHint')}
+          onclick={() => void clearDraft()}
+        >
+          <Eraser size={18} strokeWidth={1.75} aria-hidden="true" />
+        </Button>
+      {/snippet}
+    </PageHeader>
 
     <SolveWorkspace
       {session}

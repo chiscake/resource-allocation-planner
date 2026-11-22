@@ -8,6 +8,7 @@
   import { writeAudit } from '$lib/db/audit';
   import { classifyShareIdentifier, isSelfShareIdentifier } from '$lib/db/share-grant';
   import { softDeleteSolveNode } from '$lib/db/soft-delete';
+  import { resetTaskDraftToBlank } from '$lib/db/task-draft';
   import { solveModel, runMutations } from '$lib/api/solve';
   import { logSolverMismatches } from '$lib/db/solver-mismatch';
   import {
@@ -41,7 +42,8 @@
   import SolveWorkspace from '$lib/components/model/SolveWorkspace.svelte';
   import NodeComments from '$lib/components/NodeComments.svelte';
   import OrgAttachPanel from '$lib/components/OrgAttachPanel.svelte';
-  import SharePanel from '$lib/components/SharePanel.svelte';
+  import SharePanel, { type ShareGrantRow } from '$lib/components/SharePanel.svelte';
+  import SharedTaskViewer from '$lib/components/SharedTaskViewer.svelte';
   import InlineAlert from '$lib/components/ui/InlineAlert.svelte';
   import {
     createSolveSession,
@@ -52,7 +54,7 @@
   import type { InteractiveScenarioPayload } from '$lib/components/model/interactive-preview.svelte';
   import { resolveSolveMode } from '$lib/solver/mode';
   import type { VerifyReport } from '$lib/solver/verify';
-  import { Star, GitFork, Trash2 } from '@lucide/svelte';
+  import { Star, GitFork, Trash2, Eraser } from '@lucide/svelte';
 
   type NodeRow = {
     id: string;
@@ -93,10 +95,16 @@
   let shareMsg = $state('');
   let userOrgs = $state<OrgOption[]>([]);
   let hasActiveShare = $state(false);
+  let shareGrants = $state<ShareGrantRow[]>([]);
+  let viewerId = $state<string | null>(null);
   const session = createSolveSession();
   const showOrgs = isOrgsUiEnabled(env.PUBLIC_SHOW_ORGS);
 
   const id = $derived(page.params.id!);
+  const isOwner = $derived(Boolean(node && viewerId && node.owner_id === viewerId));
+  /** Soft-lock: any active share channel freezes content edits. */
+  const isLocked = $derived(hasActiveShare);
+  const isEditable = $derived(isOwner && !isLocked);
   const solverLibrary = $derived(
     typeof node?.solver_meta?.library === 'string' ? node.solver_meta.library : null,
   );
@@ -227,6 +235,8 @@
   }
 
   async function load() {
+    const { data: auth } = await supabase.auth.getUser();
+    viewerId = auth.user?.id ?? null;
     const { data: root, error: e1 } = await supabase
       .from('solve_nodes')
       .select('*')
@@ -234,6 +244,7 @@
       .maybeSingle();
     if (e1 || !root) {
       error = e1?.message ?? t('notFound');
+      node = null;
       return;
     }
     node = root as NodeRow;
@@ -251,7 +262,13 @@
       buildPagerSlots(collectGenerations(children), activeWhatIfGeneration),
     );
 
-    await refreshShareState();
+    if (viewerId && node.owner_id === viewerId) {
+      await refreshShareState();
+    } else {
+      shareUrl = '';
+      shareGrants = [];
+      hasActiveShare = false;
+    }
   }
 
   afterNavigate(() => {
@@ -597,6 +614,7 @@
       org_id: node.org_id,
     });
     shareUrl = '';
+    shareGrants = [];
     hasActiveShare = false;
   }
 
@@ -644,8 +662,38 @@
 
   async function revokeShare() {
     if (!node) return;
-    await revokeAllShares();
+    const now = new Date().toISOString();
+    await supabase
+      .from('share_links')
+      .update({ revoked_at: now })
+      .eq('node_id', node.id)
+      .is('revoked_at', null);
+    await writeAudit({
+      action: 'share_revoke',
+      entity_type: 'solve_node',
+      entity_id: node.id,
+      org_id: node.org_id,
+    });
+    await refreshShareState();
     shareMsg = t('shareRevoked');
+  }
+
+  async function revokeGrantOne(grantId: string) {
+    if (!node) return;
+    const now = new Date().toISOString();
+    await supabase
+      .from('share_grants')
+      .update({ revoked_at: now })
+      .eq('id', grantId)
+      .eq('node_id', node.id);
+    await writeAudit({
+      action: 'share_revoke',
+      entity_type: 'solve_node',
+      entity_id: node.id,
+      org_id: node.org_id,
+    });
+    await refreshShareState();
+    shareMsg = t('accessClosed');
   }
 
   async function cancelSharing() {
@@ -656,7 +704,7 @@
     try {
       if (node.org_id) {
         await revokeAllShares();
-        shareMsg = t('shareRevoked');
+        shareMsg = t('accessClosed');
         return;
       }
       const {
@@ -753,18 +801,36 @@
 
   async function refreshShareState() {
     if (!node) return;
-    const id = node.id;
+    const nodeId = node.id;
     const { data: links } = await supabase
       .from('share_links')
       .select('token')
-      .eq('node_id', id)
+      .eq('node_id', nodeId)
       .is('revoked_at', null);
     const { data: grants } = await supabase
       .from('share_grants')
-      .select('id')
-      .eq('node_id', id)
+      .select('id, grantee_id')
+      .eq('node_id', nodeId)
       .is('revoked_at', null);
-    hasActiveShare = Boolean(links?.length || grants?.length);
+    const grantRows = grants ?? [];
+    const granteeIds = [...new Set(grantRows.map((g) => g.grantee_id))];
+    const nameById = new Map<string, string>();
+    if (granteeIds.length) {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, display_name')
+        .in('id', granteeIds);
+      for (const p of profiles ?? []) {
+        const name = typeof p.display_name === 'string' ? p.display_name.trim() : '';
+        nameById.set(p.id, name || t('commentsAuthorFallback'));
+      }
+    }
+    shareGrants = grantRows.map((g) => ({
+      id: g.id,
+      grantee_id: g.grantee_id,
+      label: nameById.get(g.grantee_id) ?? t('commentsAuthorFallback'),
+    }));
+    hasActiveShare = Boolean(links?.length || shareGrants.length);
     shareUrl = links?.[0] ? `${location.origin}/share/${links[0].token}` : '';
   }
 
@@ -819,7 +885,7 @@
         .from('solve_nodes')
         .insert({
           owner_id: user.id,
-          title: `${node.title} (fork)`,
+          title: `${node.title} (копия)`,
           kind: 'root',
           model: node.model,
           result: node.result,
@@ -883,6 +949,7 @@
         entity_type: 'solve_node',
         entity_id: root.id,
       });
+      toast.success(t('forkDone'));
       await goto(`/app/task/${root.id}`);
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
@@ -1082,45 +1149,70 @@
   <p class="text-text-muted">{error || '…'}</p>
 {:else}
   <section class="mx-auto flex w-full max-w-6xl flex-col gap-6">
-    <PageHeader title={node.title} editable ontitlecommit={renameNode}>
+    <PageHeader
+      title={node.title}
+      description={!isEditable && !isOwner ? t('sharedViewerHint') : undefined}
+      editable={isEditable}
+      ontitlecommit={renameNode}
+    >
       {#snippet actions()}
-        {@const favoriteLabel = node!.is_favorite ? t('unfavorite') : t('favorite')}
+        {#if isEditable}
+          <Button
+            variant="secondary"
+            class="px-2.5! py-2.5!"
+            disabled={session.busy}
+            aria-label={t('clearDraft')}
+            title={t('clearDraftHint')}
+            onclick={() => {
+              resetTaskDraftToBlank();
+              void goto('/app/create');
+            }}
+          >
+            <Eraser size={18} strokeWidth={1.75} aria-hidden="true" />
+          </Button>
+          {@const favoriteLabel = node!.is_favorite ? t('unfavorite') : t('favorite')}
+          <Button
+            variant="secondary"
+            class="px-2.5! py-2.5!"
+            disabled={session.busy}
+            aria-label={favoriteLabel}
+            title={favoriteLabel}
+            onclick={toggleFavorite}
+          >
+            <Star
+              size={18}
+              strokeWidth={1.75}
+              aria-hidden="true"
+              class={node!.is_favorite ? 'text-amber-400' : 'text-text-soft'}
+              fill={node!.is_favorite ? 'currentColor' : 'none'}
+            />
+          </Button>
+        {/if}
         <Button
           variant="secondary"
-          class="px-2.5! py-2.5!"
-          disabled={session.busy}
-          aria-label={favoriteLabel}
-          title={favoriteLabel}
-          onclick={toggleFavorite}
-        >
-          <Star
-            size={18}
-            strokeWidth={1.75}
-            aria-hidden="true"
-            class={node!.is_favorite ? 'text-amber-400' : 'text-text-soft'}
-            fill={node!.is_favorite ? 'currentColor' : 'none'}
-          />
-        </Button>
-        <Button
-          variant="secondary"
-          class="px-2.5! py-2.5!"
+          class={!isEditable ? '' : 'px-2.5! py-2.5!'}
           disabled={session.busy}
           aria-label={t('fork')}
           title={t('fork')}
           onclick={forkNode}
         >
           <GitFork size={18} strokeWidth={1.75} aria-hidden="true" />
+          {#if !isEditable}
+            {t('fork')}
+          {/if}
         </Button>
-        <Button
-          variant="danger"
-          class="px-2.5! py-2.5!"
-          disabled={session.busy}
-          aria-label={t('trashToBin')}
-          title={t('trashToBin')}
-          onclick={softDelete}
-        >
-          <Trash2 size={18} strokeWidth={1.75} aria-hidden="true" />
-        </Button>
+        {#if isOwner}
+          <Button
+            variant="danger"
+            class="px-2.5! py-2.5!"
+            disabled={session.busy}
+            aria-label={t('trashToBin')}
+            title={t('trashToBin')}
+            onclick={softDelete}
+          >
+            <Trash2 size={18} strokeWidth={1.75} aria-hidden="true" />
+          </Button>
+        {/if}
       {/snippet}
     </PageHeader>
 
@@ -1128,76 +1220,89 @@
       <InlineAlert>{error}</InlineAlert>
     {/if}
 
-    {#if session.model}
-      <SolveWorkspace
-        {session}
-        title={node.title}
-        {solverLibrary}
-        showCloudSplit
-        whatIfRows={showWhatIfChrome ? whatIfRows : []}
-        whatIfGenerationIndex={genIndex}
-        whatIfGenerationCount={showWhatIfChrome ? pagerSlots.length : 0}
-        whatIfCurrentGenerationIndex={showWhatIfChrome ? currentPagerIndex : null}
-        onWhatIfGenerationChange={(i) => (genIndex = i)}
-        whatIfActiveHint={activeSlot?.badge === 'current' && activeSlot.kind === 'generation'
-          ? t('generationActiveHint')
-          : undefined}
-        {whatIfArchiveHint}
-        whatIfBadge={showWhatIfChrome ? whatIfBadge : null}
-        whatIfEmptyMessage={showWhatIfChrome ? whatIfEmptyMessage : null}
-        whatIfBaseModel={showWhatIfChrome ? (generationBase?.model ?? null) : null}
-        whatIfShowRestore={showWhatIfChrome && whatIfShowRestore}
-        onWhatIfRestore={() => void restoreWhatIfBase()}
-        onCreateTaskFromScenario={(row) => void createTaskFromScenario(row)}
-        {interactiveBaseModel}
-        {interactiveBaseResult}
-        interactiveMethod={session.solveMethod}
-        interactiveTransport={taskTransport}
-        {interactiveTransportOpts}
-        {interactiveExistingMutations}
-        interactiveBusy={session.busy}
-        onAddInteractiveToTable={(payload) => void appendSensitivityChild(payload)}
-        {onModelChange}
-        onWhatIfChange={updateWhatIf}
-        onSolve={() => void doSolve(false)}
-        onSolveCloud={() => void doSolve(true)}
-      >
-        {#snippet planExtras()}
-          <NodeComments nodeId={node!.id} scope="plan" />
-        {/snippet}
-        {#snippet resultExtras()}
-          <NodeComments nodeId={node!.id} scope="result" />
-        {/snippet}
-      </SolveWorkspace>
-    {:else}
-      <Card>
-        <p class="text-sm text-text-muted">{t('modelMatrix')}</p>
-        <p class="mt-2 text-sm text-danger-text">{t('notFound')}</p>
-      </Card>
-    {/if}
+    {#if isEditable}
+      {#if session.model}
+        <SolveWorkspace
+          {session}
+          title={node.title}
+          {solverLibrary}
+          showCloudSplit
+          whatIfRows={showWhatIfChrome ? whatIfRows : []}
+          whatIfGenerationIndex={genIndex}
+          whatIfGenerationCount={showWhatIfChrome ? pagerSlots.length : 0}
+          whatIfCurrentGenerationIndex={showWhatIfChrome ? currentPagerIndex : null}
+          onWhatIfGenerationChange={(i) => (genIndex = i)}
+          whatIfActiveHint={activeSlot?.badge === 'current' && activeSlot.kind === 'generation'
+            ? t('generationActiveHint')
+            : undefined}
+          {whatIfArchiveHint}
+          whatIfBadge={showWhatIfChrome ? whatIfBadge : null}
+          whatIfEmptyMessage={showWhatIfChrome ? whatIfEmptyMessage : null}
+          whatIfBaseModel={showWhatIfChrome ? (generationBase?.model ?? null) : null}
+          whatIfShowRestore={showWhatIfChrome && whatIfShowRestore}
+          onWhatIfRestore={() => void restoreWhatIfBase()}
+          onCreateTaskFromScenario={(row) => void createTaskFromScenario(row)}
+          {interactiveBaseModel}
+          {interactiveBaseResult}
+          interactiveMethod={session.solveMethod}
+          interactiveTransport={taskTransport}
+          {interactiveTransportOpts}
+          {interactiveExistingMutations}
+          interactiveBusy={session.busy}
+          onAddInteractiveToTable={(payload) => void appendSensitivityChild(payload)}
+          {onModelChange}
+          onWhatIfChange={updateWhatIf}
+          onSolve={() => void doSolve(false)}
+          onSolveCloud={() => void doSolve(true)}
+        ></SolveWorkspace>
+        <Card>
+          <NodeComments nodeId={node.id} isNodeOwner />
+        </Card>
+      {:else}
+        <Card>
+          <p class="text-sm text-text-muted">{t('modelMatrix')}</p>
+          <p class="mt-2 text-sm text-danger-text">{t('notFound')}</p>
+        </Card>
+      {/if}
 
-    {#if showOrgs}
-      <OrgAttachPanel
-        bind:orgId
-        bind:makePublic
-        orgOptions={orgSelectOptions}
-        attachedOrgId={node.org_id}
-        onAttach={attachOrg}
-        onSetVisibility={setOrgVisibility}
+      {#if showOrgs}
+        <OrgAttachPanel
+          bind:orgId
+          bind:makePublic
+          orgOptions={orgSelectOptions}
+          attachedOrgId={node.org_id}
+          onAttach={attachOrg}
+          onSetVisibility={setOrgVisibility}
+        />
+      {/if}
+    {:else}
+      <SharedTaskViewer
+        title={node.title}
+        model={node.model}
+        result={node.result}
+        {children}
+        nodeId={node.id}
+        isNodeOwner={isOwner}
+        hint={isOwner ? t('accessLockedHint') : ''}
+        busy={session.busy}
+        showFork={false}
       />
     {/if}
 
-    <SharePanel
-      {shareUrl}
-      {hasActiveShare}
-      busy={session.busy}
-      bind:grantValue={grantEmail}
-      message={shareMsg}
-      showOrgWarning={showOrgs && Boolean(node.org_id)}
-      onCreateLink={createShareLink}
-      onRevokeLink={revokeShare}
-      onCancelSharing={cancelSharing}
-      onGrant={grantToEmail}
-    />
+    {#if isOwner}
+      <SharePanel
+        {shareUrl}
+        grants={shareGrants}
+        busy={session.busy}
+        bind:grantValue={grantEmail}
+        message={shareMsg}
+        showOrgWarning={showOrgs && Boolean(node.org_id)}
+        onCreateLink={createShareLink}
+        onRevokeLink={revokeShare}
+        onCancelSharing={cancelSharing}
+        onGrant={grantToEmail}
+        onRevokeGrant={revokeGrantOne}
+      />
+    {/if}
   </section>
 {/if}

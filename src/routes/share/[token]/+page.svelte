@@ -2,62 +2,87 @@
   import { onMount } from 'svelte';
   import { page } from '$app/state';
   import { supabase } from '$lib/db/supabase';
-  import type { SolveResult } from '$lib/domain';
+  import type { Model, Mutation, SolveResult } from '$lib/domain';
   import { t } from '$lib/i18n';
-  import Card from '$lib/components/ui/Card.svelte';
   import EmptyState from '$lib/components/ui/EmptyState.svelte';
+  import PageHeader from '$lib/components/ui/PageHeader.svelte';
+  import SharedTaskViewer from '$lib/components/SharedTaskViewer.svelte';
+  import type { PublicCommentRow } from '$lib/components/NodeComments.svelte';
+
+  type ChildRow = {
+    id: string;
+    title: string;
+    kind: string;
+    model: Model;
+    result: SolveResult | null;
+    mutation: Mutation | null;
+    what_if_generation: number | null;
+    deleted_at: string | null;
+  };
 
   let title = $state('');
+  let model = $state<Model | null>(null);
   let result = $state<SolveResult | null>(null);
+  let children = $state<ChildRow[]>([]);
+  let comments = $state<PublicCommentRow[]>([]);
   let loading = $state(true);
   let error = $state('');
+  let signedIn = $state(false);
 
-  onMount(async () => {
-    const token = page.params.token;
-    const { data, error: e1 } = await supabase.rpc('get_shared_node', { p_token: token });
-    loading = false;
-    if (e1 || !data?.length) {
-      error = t('shareUnavailable');
-      return;
-    }
-    const row = data[0] as { title: string; result: SolveResult | null };
-    title = row.title ?? t('scenarioFallback');
-    result = row.result;
+  const token = $derived(page.params.token ?? '');
+
+  onMount(() => {
+    void (async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      signedIn = Boolean(sessionData.session?.user);
+      const { data, error: e1 } = await supabase.rpc('get_shared_node', { p_token: token });
+      loading = false;
+      if (e1 || !data?.length) {
+        error = t('shareUnavailable');
+        return;
+      }
+      const row = data[0] as {
+        title: string;
+        model: Model;
+        result: SolveResult | null;
+        children: ChildRow[] | null;
+        comments: PublicCommentRow[] | null;
+      };
+      title = row.title ?? t('scenarioFallback');
+      model = row.model;
+      result = row.result;
+      children = Array.isArray(row.children) ? row.children : [];
+      comments = Array.isArray(row.comments) ? row.comments : [];
+    })();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      signedIn = Boolean(session?.user);
+    });
+    return () => subscription.unsubscribe();
   });
 </script>
 
-<main class="grid min-h-screen place-items-center p-8">
-  {#if loading}
-    <p class="text-sm text-text-muted">{t('loading')}</p>
-  {:else if error}
+{#if loading}
+  <p class="text-sm text-text-muted">{t('loading')}</p>
+{:else if error}
+  <div class="grid min-h-[60vh] place-items-center">
     <EmptyState title={error} description={t('shareLinkInvalid')} class="max-w-md" />
-  {:else}
-    <Card class="w-full max-w-lg text-center">
-      <p class="text-xl font-medium">{title}</p>
-      {#if result?.Z != null}
-        <p class="mt-3 font-mono text-sm text-text-muted">Z = {result.Z.toFixed(4)}</p>
-      {/if}
-      {#if result?.x && Object.keys(result.x).length > 0}
-        <div class="mt-4 text-left">
-          <p class="text-xs text-text-soft">План</p>
-          <ul class="mt-1 space-y-0.5 font-mono text-xs text-text-muted">
-            {#each Object.entries(result.x) as [k, v] (k)}
-              <li>{k}: {v.toFixed(3)}</li>
-            {/each}
-          </ul>
-        </div>
-      {/if}
-      {#if result?.shadow_prices && Object.keys(result.shadow_prices).length > 0}
-        <div class="mt-4 text-left">
-          <p class="text-xs text-text-soft">Двойственные оценки</p>
-          <ul class="mt-1 space-y-0.5 font-mono text-xs text-text-muted">
-            {#each Object.entries(result.shadow_prices) as [k, v] (k)}
-              <li>{k}: {v.toFixed(3)}</li>
-            {/each}
-          </ul>
-        </div>
-      {/if}
-      <p class="mt-6 text-sm text-text-muted">Публичный просмотр по ссылке</p>
-    </Card>
-  {/if}
-</main>
+  </div>
+{:else if model}
+  <section class="mx-auto flex w-full max-w-6xl flex-col gap-6">
+    <PageHeader {title} description={t('sharePublicView')} />
+    <SharedTaskViewer
+      title=""
+      {model}
+      {result}
+      {children}
+      showFork={false}
+      showComments
+      commentsReadOnly={!signedIn}
+      shareToken={token}
+      initialComments={comments}
+    />
+  </section>
+{/if}

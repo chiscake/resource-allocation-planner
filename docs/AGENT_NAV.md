@@ -47,7 +47,7 @@ resource-allocation-planner/
 │   │   ├── api/solve.ts         # Edge or local transport (+ method + engine + local fallback)
 │   │   ├── db/                  # supabase, guest, audit, soft-delete, task-draft, template-uses
 │   │   ├── chrome/              # nav/drawer chrome state
-│   │   ├── components/          # chrome/ (AppHeader, DevQuickLoginBar, …) + model/
+│   │   ├── components/          # chrome/ (AppShell, AppHeader, …) + model/
 │   │   ├── i18n/                # ru
 │   │   ├── io/                  # CSV model import/export, Excel/PDF result export, PDF fonts (OFL)
 │   │   ├── features.ts          # PUBLIC_* UI flags (DLN, orgs)
@@ -67,7 +67,7 @@ resource-allocation-planner/
 │           ├── compare/, trash/, org/, notifications/, admin/
 │           ├── test/            # scratch sandboxes (viz-3d, …); not product UX
 ├── supabase/
-│   ├── migrations/000…081       # 070_share_notify_rpc; 080_purge_cron; 081_share_grant_by_identifier
+│   ├── migrations/000…083       # …082_share_grant_access_lock; 083_share_public_comments
 │   ├── functions/               # solve, run_mutations, admin-create-user, admin-users
 │   │   └── _shared/solver/      # Edge mirror: registry + methods (keep ↔ src/lib/solver)
 │   └── seed.sql                 # noop; users via seed:users
@@ -172,7 +172,8 @@ Local (`supabase/config.toml`): `enable_signup = true`, `enable_confirmations = 
 | Guest slot                                         | `src/lib/db/guest.ts`                                                                                                                                                                                                                               |
 | Audit writes                                       | `src/lib/db/audit.ts`                                                                                                                                                                                                                               |
 | Soft-delete / restore                              | `src/lib/db/soft-delete.ts` (+ toast undo: `src/lib/ui/toast-undo.ts`, optimistic list: `src/lib/ui/optimistic-delete.ts`)                                                                                                                          |
-| Share grant by email/UUID                          | RPC `share_grant_by_identifier` (`081_…`); client helper `src/lib/db/share-grant.ts`; UI `SharePanel` + task page                                                                                                                                   |
+| Share grant by email/UUID                          | RPC `share_grant_by_identifier` (`081_…`); grantee SELECT + soft-lock + comments ACL (`082_share_grant_access_lock`); `src/lib/db/share-grant.ts`; UI `SharePanel` + task page                                                                      |
+| Shared result / task viewer                        | `ResultViewer`, `SharedTaskViewer`; `/share/[token]` uses `AppShell` + `get_shared_node` / comment RPCs (`083_share_public_comments`); grantee/locked on `/app/task/[id]`                                                                           |
 | Clipboard + copy toast                             | `src/lib/ui/clipboard.ts`                                                                                                                                                                                                                           |
 | Task / template cards                              | `TaskPreviewCard`, `TemplatePreviewCard`, `ScenarioCardGrid`                                                                                                                                                                                        |
 | Task org / share panels                            | `OrgAttachPanel`, `SharePanel`                                                                                                                                                                                                                      |

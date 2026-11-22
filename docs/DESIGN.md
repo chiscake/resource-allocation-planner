@@ -435,6 +435,8 @@ Cartesia uses **neutral-black-tinted** shadows at extremely low opacity (0.04–
 
 **Blue (brand CTA)** — `#2563eb` background, `#ffffff` text, 8px radius. Hover `#1d4fd7`. Use case: rare hero brand moments — "Try Sonic" live demo, "Try the playground". The deep-blue CTA appears at most once per page.
 
+**App (Svelte) — icon + label:** `src/lib/components/ui/Button.svelte` uses `inline-flex` + `gap-2`. Icon and label must be **siblings** inside `Button` so the glyph is not flush against the text. Do not hand-roll buttons without that gap. Icon-only (single child) is fine. Agent rule: `.cursor/rules/design-system.mdc`.
+
 ### Cards
 
 **Spec card** — `#ffffff` background, `1px #e5e5e5` border, 12px radius, `24px` padding, no shadow. Used for voice-latency benchmarks, model cards, comparison tables.

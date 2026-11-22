@@ -50,19 +50,18 @@ create table if not exists public.comparisons (
   created_at timestamptz not null default now()
 );
 
--- Comments on a node's plan and/or result (revisions = their own node_id)
+-- Comments on a solve node (revisions = their own node_id)
 create table if not exists public.node_comments (
   id uuid primary key default gen_random_uuid(),
   node_id uuid not null references public.solve_nodes (id) on delete cascade,
   author_id uuid not null references auth.users (id) on delete cascade,
-  scope text not null check (scope in ('plan', 'result')),
   body text not null check (char_length(trim(body)) > 0),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
-create index if not exists node_comments_node_scope_idx
-  on public.node_comments (node_id, scope, created_at);
+create index if not exists node_comments_node_idx
+  on public.node_comments (node_id, created_at);
 
 alter table public.templates enable row level security;
 alter table public.solve_nodes enable row level security;

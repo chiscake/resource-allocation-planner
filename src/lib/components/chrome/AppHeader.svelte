@@ -41,6 +41,9 @@
     if (routeId === '/app/templates/[id]') {
       return { href: '/app/templates', label: t('allTemplates') };
     }
+    if (routeId === '/share/[token]' && userEmail) {
+      return { href: '/app/tasks', label: t('allTasks') };
+    }
     return null;
   });
 </script>

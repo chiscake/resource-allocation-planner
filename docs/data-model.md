@@ -156,17 +156,16 @@ Per-user last use of a **`public_repo`** template (home «Последние ш�
 
 ## `node_comments`
 
-Комментарии к узлу: план и/или результат. Ревизии — отдельные `solve_nodes` (`kind=revision`), комментарии живут на их `node_id`.
+Один поток комментариев на узел. Ревизии — отдельные `solve_nodes` (`kind=revision`), комментарии живут на их `node_id`.
 
 | Поле        | Смысл                       |
 | ----------- | --------------------------- |
 | `node_id`   | узел (корень / ревизия / …) |
 | `author_id` | автор                       |
-| `scope`     | `plan` \| `result`          |
 | `body`      | текст (trim, non-empty)     |
 | timestamps  | `created_at`, `updated_at`  |
 
-**RLS:** select как у видимости `solve_nodes`; insert — кто видит живой узел; update/delete — автор (или app-`admin`).
+**RLS:** select как у видимости `solve_nodes` (в т.ч. grantee); insert — владелец / org member / grantee / admin; delete — автор, владелец узла или admin. Bulk: RPC `delete_node_comments(node_id)` (owner/admin). Имена авторов — `profiles.display_name` (authenticated SELECT profiles).
 
 ---
 
@@ -178,18 +177,20 @@ Per-user last use of a **`public_repo`** template (home «Последние ш�
 
 ## Sharing
 
-| Ресурс                 | Unshare                                                  |
+| Ресурс                 | Unshare («Закрыть доступ»)                               |
 | ---------------------- | -------------------------------------------------------- |
 | Личный (`org_id` null) | Дубль + soft-delete старого корня                        |
 | Org                    | Только revoke link / remove grants — **узел не удалять** |
 
-Share-link на org-корнях **разрешён** + **UI warning**.
+Share-link на org-корнях **разрешён** + **UI warning**. Публичный `/share/[token]` — RPC `get_shared_node` (title, model, result, children, comments); UI как shared task viewer без «Создать копию». Комментарии: гости — просмотр + ссылка на вход; вошедшие — `add_comment_by_share_token` / `delete_own_comment_by_share_token` (`083_share_public_comments`).
 
-Direct grant: UI принимает **email или UUID**; серверный RPC `share_grant_by_identifier` резолвит получателя, пишет `share_grants` + notification + audit. Ответ при валидном формате обезличен (нет «пользователь не найден»).
+Direct grant: UI принимает **email или UUID**; серверный RPC `share_grant_by_identifier` резолвит получателя, пишет `share_grants` + notification + audit. Ответ при валидном формате обезличен (нет «пользователь не найден»). SELECT корня (+ детей) для grantee — через `has_share_grant_access` (SECURITY DEFINER, без RLS-рекурсии `solve_nodes` ↔ `share_grants`).
 
-Fork: корень+дети; при org у источника — модалка личное | в org.
+**Soft-lock while shared:** `node_has_active_share(id)` — есть не-отозванный link или grant. `BEFORE UPDATE` trigger блокирует смену контента (model/result/title/…); разрешены только trash-поля (`deleted_at`, `deleted_by_org_owner`, `updated_at`). Снятие последнего канала → снова editable. Owner/grantee UI: shared viewer (результат + RO модель + RO what-if + комментарии + «Создать копию»); полная правка — после копии или после закрытия доступа.
 
-При soft-delete корня с активным share: **в одной транзакции** revoke links/grants + audit + delete.
+Fork («Создать копию»): корень+дети, исходник остаётся; при org у источника — модалка личное | в org (later если UI org off).
+
+При soft-delete корня с активным share: revoke links/grants + audit + delete.
 
 ---
 

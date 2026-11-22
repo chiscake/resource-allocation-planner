@@ -64,3 +64,10 @@ export function blankTaskDraft(): TaskDraft {
     updated_at: new Date().toISOString(),
   };
 }
+
+/** Replace session draft with a blank 2×2 task (drops template association). */
+export function resetTaskDraftToBlank(): TaskDraft {
+  const draft = blankTaskDraft();
+  saveTaskDraft(draft);
+  return draft;
+}

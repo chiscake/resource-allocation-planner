@@ -22,9 +22,11 @@ Any UI, layout, theme tokens, typography, color, spacing, or component chrome wo
 6. Prefer existing `src/lib/components/ui/*` (Button variants: `primary|secondary|danger|ghost`) over one-off controls. DESIGN `button-blue` maps to app `primary`.
 7. App density ≠ marketing hero scale in DESIGN; do not paste 96px display rhythm into `/app/*`.
 8. If DESIGN and a product decision conflict, ask — do not silently diverge.
-9. **Tailwind v4 class canon** (avoids `suggestCanonicalClasses` noise):
-   - Important modifier: **postfix only** — `px-3!`, `hover:bg-surface!`. Never prefix `!px-3` / `hover:!bg-surface` (deprecated).
-   - Prefer scale utilities over equivalent arbitrary values when IntelliSense offers them — e.g. `rounded-md` not `rounded-[6px]`, `min-w-48` not `min-w-[12rem]`, `pb-13` not `pb-[3.25rem]`. Keep arbitrary values only when no named scale token fits (design tokens like `rounded-[8px]` matching `--radius-control` are OK until themed utilities exist).
+9. **Icon + label buttons:** put Lucide (or other) icon and text as siblings inside `Button` — the shared `Button` already has `gap-2`. Do **not** invent bare `<button>` / one-off flex without gap so the glyph sits flush against the label. Icon-only controls stay fine (single child; gap is a no-op). Keep icons `aria-hidden` when the button has visible text or an `aria-label` / `title`.
+10. **Tailwind v4 class canon** (avoids `suggestCanonicalClasses` noise):
+
+- Important modifier: **postfix only** — `px-3!`, `hover:bg-surface!`. Never prefix `!px-3` / `hover:!bg-surface` (deprecated).
+- Prefer scale utilities over equivalent arbitrary values when IntelliSense offers them — e.g. `rounded-md` not `rounded-[6px]`, `min-w-48` not `min-w-[12rem]`, `pb-13` not `pb-[3.25rem]`. Keep arbitrary values only when no named scale token fits (design tokens like `rounded-[8px]` matching `--radius-control` are OK until themed utilities exist).
 
 ## Do not
 
