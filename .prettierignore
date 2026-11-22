@@ -1,0 +1,32 @@
+# deps & installs
+node_modules
+pnpm-lock.yaml
+
+# build / tooling output
+build
+.svelte-kit
+.vercel
+.vite
+coverage
+dist
+
+# Tauri / Rust
+src-tauri/target
+src-tauri/gen
+
+# Supabase local clutter
+supabase/.temp
+supabase/.branches
+
+# generated / binary-ish
+*.min.js
+*.min.css
+
+# SQL migrations — keep hand-authored layout
+supabase/migrations
+
+# local scratch / env
+.tmp
+.env
+.env.*
+!.env.example
