@@ -20,7 +20,7 @@ flowchart TB
     subgraph supabase["«execution environment» Supabase"]
       auth["«artifact» Auth"]
       db["«artifact» PostgreSQL + RLS"]
-      edge["«artifact» Edge Functions<br/>solve · run_mutations · admin-create-user"]
+      edge["«artifact» Edge Functions<br/>solve · run_mutations · admin-create-user · admin-users"]
     end
     edge --> db
     auth -.-> db
@@ -78,14 +78,14 @@ flowchart TB
 
 ### Связи
 
-| От → к                               | Смысл                                                                    |
-| ------------------------------------ | ------------------------------------------------------------------------ |
-| Клиент Web → Vercel                  | HTTPS: загрузка статики UI                                               |
-| Клиент Web / Desktop → Supabase Auth | HTTPS: вход, JWT (публичная регистрация отключена)                       |
-| Клиент → PostgreSQL (Supabase API)   | HTTPS + RLS: задачи, шаблоны, шаринг, уведомления, …                     |
-| Клиент → Edge Functions              | HTTPS + Bearer: облачный `solve` / `run_mutations` / `admin-create-user` |
-| Edge → PostgreSQL                    | Внутренний доступ функций к БД                                           |
-| Desktop → Vercel                     | В runtime нет: UI входит в установщик                                    |
+| От → к                               | Смысл                                                                                    |
+| ------------------------------------ | ---------------------------------------------------------------------------------------- |
+| Клиент Web → Vercel                  | HTTPS: загрузка статики UI                                                               |
+| Клиент Web / Desktop → Supabase Auth | HTTPS: вход, JWT (публичная регистрация отключена)                                       |
+| Клиент → PostgreSQL (Supabase API)   | HTTPS + RLS: задачи, шаблоны, шаринг, уведомления, …                                     |
+| Клиент → Edge Functions              | HTTPS + Bearer: облачный `solve` / `run_mutations` / `admin-create-user` / `admin-users` |
+| Edge → PostgreSQL                    | Внутренний доступ функций к БД                                                           |
+| Desktop → Vercel                     | В runtime нет: UI входит в установщик                                                    |
 
 ### Вычислительная площадка (venue)
 

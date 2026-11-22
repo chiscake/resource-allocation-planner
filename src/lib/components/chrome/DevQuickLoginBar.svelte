@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { invalidateAll } from "$app/navigation";
   import { supabase } from "$lib/db/supabase";
   import { DEV_QUICK_ACCOUNTS, type DevQuickAccount } from "$lib/devQuickLogin";
 
@@ -24,11 +23,11 @@
         password: account.password,
       });
       if (error) throw error;
-      await invalidateAll();
+      // Full reload onto home so layout/auth chrome reset cleanly.
+      location.href = "/app";
     } catch (err) {
       errorMessage =
         err instanceof Error ? err.message : "Не удалось переключить аккаунт";
-    } finally {
       busyEmail = null;
     }
   }

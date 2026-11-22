@@ -113,12 +113,12 @@ Write/delete: владелец узла; `org_owner` — hide чужих public 
 Без `source_id`. `system_kind`: `signup_seed` \| `public_repo` \| null.  
 `publish_status`: `null` \| `pending` \| `approved`.
 
-| Состояние | `system_kind` | `publish_status` | Кто видит в каталоге |
-| --------- | ------------- | ---------------- | -------------------- |
-| Личный | `null` | `null` | — |
-| Заявка | `null` | `pending` | очередь admin/mod |
-| В каталоге | `public_repo` | `approved` | все (+ anon) |
-| `signup_seed` | `signup_seed` | `null` | seed / admin |
+| Состояние     | `system_kind` | `publish_status` | Кто видит в каталоге |
+| ------------- | ------------- | ---------------- | -------------------- |
+| Личный        | `null`        | `null`           | —                    |
+| Заявка        | `null`        | `pending`        | очередь admin/mod    |
+| В каталоге    | `public_repo` | `approved`       | все (+ anon)         |
+| `signup_seed` | `signup_seed` | `null`           | seed / admin         |
 
 Переходы (RPC): `request_template_publish` → pending; `withdraw` / reject → личный; `moderate … approve` / `publish_template_direct` → каталог; `unpublish_template` (user-owned) → личный. Platform (`owner_id` null) из каталога — soft-delete admin/mod.  
 Правка model: личный и pending; approved — сначала unpublish.  
@@ -128,10 +128,10 @@ App-`admin` и app-`mod` управляют каталогом. `owner_id` / `or
 
 Per-user last use of a **`public_repo`** template (home «Последние шаблоны»).
 
-| Поле | Смысл |
-| --- | --- |
-| `user_id` + `template_id` | PK; CASCADE on user/template delete |
-| `last_used_at` | upsert on «Использовать» (даже до первого solve) |
+| Поле                      | Смысл                                            |
+| ------------------------- | ------------------------------------------------ |
+| `user_id` + `template_id` | PK; CASCADE on user/template delete              |
+| `last_used_at`            | upsert on «Использовать» (даже до первого solve) |
 
 Личные шаблоны в миксе на главной — по `templates.updated_at` / optional use; public — только через эту таблицу.
 
@@ -190,13 +190,13 @@ Fork: корень+дети; при org у источника — модалка
 
 Узкий лог расхождений native vs library (без jsonb). Пишется клиентом после фоновой сверки.
 
-| Поле | Смысл |
-| ---- | ----- |
-| `actor_id` | кто считал |
-| `solve_node_id` | корень (nullable) |
-| `method` | обычно `lp` |
-| `label` | `root` или label мутации |
-| `native_z` / `library_z` / `max_abs_dx` | числа |
+| Поле                                    | Смысл                    |
+| --------------------------------------- | ------------------------ |
+| `actor_id`                              | кто считал               |
+| `solve_node_id`                         | корень (nullable)        |
+| `method`                                | обычно `lp`              |
+| `label`                                 | `root` или label мутации |
+| `native_z` / `library_z` / `max_abs_dx` | числа                    |
 
 RLS: select/insert своих; app-admin — все. UI-браузера нет (alert + console).
 
@@ -229,14 +229,14 @@ App-`admin` — по политике платформы (шире), отдел�
 
 ## `notifications`
 
-| type (MVP+)                   | Когда                                        |
-| ----------------------------- | -------------------------------------------- |
-| `share_incoming`              | grant                                        |
-| `template_publish_pending`    | user отправил шаблон на модерацию (всем admin/mod) |
-| `template_publish_approved`   | модератор одобрил заявку (автору)            |
-| `template_publish_rejected`   | модератор отклонил заявку (автору)           |
-| `org_owner_deleted_node`      | org_owner soft-delete чужого сценария        |
-| `org_invite`                  | later (см. [`TODO-later.md`](TODO-later.md)) |
+| type (MVP+)                 | Когда                                              |
+| --------------------------- | -------------------------------------------------- |
+| `share_incoming`            | grant                                              |
+| `template_publish_pending`  | user отправил шаблон на модерацию (всем admin/mod) |
+| `template_publish_approved` | модератор одобрил заявку (автору)                  |
+| `template_publish_rejected` | модератор отклонил заявку (автору)                 |
+| `org_owner_deleted_node`    | org_owner soft-delete чужого сценария              |
+| `org_invite`                | later (см. [`TODO-later.md`](TODO-later.md))       |
 
 **Доставка в UI (закреплено):**
 
@@ -249,7 +249,7 @@ App-`admin` — по политике платформы (шире), отдел�
 
 ## Auth / admin (app)
 
-Нет self-signup; seed (в т.ч. `mod@example.com`); Edge `admin-create-user`; app-`admin`: users; app-`admin`/`mod`: публичный каталог + модерация.
+Нет self-signup; seed (в т.ч. `mod@example.com`); Edge `admin-create-user` + `admin-users` (list / ban / delete); app-`admin`: users; app-`admin`/`mod`: публичный каталог + модерация.
 
 ---
 

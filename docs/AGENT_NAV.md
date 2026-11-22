@@ -66,7 +66,7 @@ resource-allocation-planner/
 │           ├── test/            # scratch sandboxes (viz-3d, …); not product UX
 ├── supabase/
 │   ├── migrations/000…080       # 041_template_uses; 070_share_notify_rpc; 080_purge_cron
-│   ├── functions/               # solve, run_mutations, admin-create-user
+│   ├── functions/               # solve, run_mutations, admin-create-user, admin-users
 │   │   └── _shared/solver/      # Edge mirror: registry + methods (keep ↔ src/lib/solver)
 │   └── seed.sql                 # noop; users via seed:users
 ├── src-tauri/
@@ -95,27 +95,27 @@ resource-allocation-planner/
 
 ## Routes
 
-| Path                    | Role                                                                     |
-| ----------------------- | ------------------------------------------------------------------------ |
-| `/`                     | Marketing (web) / guest Task 13 → login; Tauri → onboarding or `/app`    |
-| `/login`                | Auth (Register disabled); always upload guest slot on success            |
-| `/onboarding`           | Tauri first-run wizard                                                   |
-| `/app`                  | Home: new-task CTA, recent (≤6), recent templates mix                    |
-| `/app/create`           | Draft editor + CSV import (sessionStorage); DB insert on first solve     |
-| `/app/tasks`            | All owned roots; search by title; updated_at desc                        |
-| `/app/task/[id]`        | Solve, what-if pager, CSV import, Excel/PDF export, share; org if flag   |
-| `/app/notifications`    | Inbox; poll 60s + focus; layout unread badge                             |
-| `/app/trash`            | Soft-deleted roots; restore → private; hard delete                       |
-| `/app/org`              | Org ids + feed; redirects to `/app` unless `PUBLIC_SHOW_ORGS` is on      |
-| `/app/compare`          | Side-by-side Z/plan/duals; saved comparisons hard-delete                 |
-| `/app/templates`        | Personal templates; create blank → `/app/templates/[id]?edit=1`          |
-| `/app/templates/[id]`   | View (+ publish) / edit modes; staff can review pending + approve/reject |
-| `/app/moderation`       | Pending queue; open template for review                                  |
-| `/app/public-templates` | Catalog; admin/mod: direct publish + remove                              |
-| `/app/admin`            | List/create users (Edge); edit system template titles                    |
-| `/app/test`             | Scratch hub for control sandboxes (not product UX)                       |
-| `/app/test/viz-3d`      | 3D SceneCanvas sandbox (cube-as-ОДР demos, …)                            |
-| `/share/[token]`        | Public share (non-revoked link)                                          |
+| Path                    | Role                                                                            |
+| ----------------------- | ------------------------------------------------------------------------------- |
+| `/`                     | Marketing (web) / guest Task 13 → login; Tauri → onboarding or `/app`           |
+| `/login`                | Auth (Register disabled); always upload guest slot on success                   |
+| `/onboarding`           | Tauri first-run wizard                                                          |
+| `/app`                  | Home: new-task CTA, recent (≤6), recent templates mix                           |
+| `/app/create`           | Draft editor + CSV import (sessionStorage); DB insert on first solve            |
+| `/app/tasks`            | All owned roots; search by title; updated_at desc                               |
+| `/app/task/[id]`        | Solve, what-if pager, CSV import, Excel/PDF export, share; org if flag          |
+| `/app/notifications`    | Inbox; poll 60s + focus; layout unread badge                                    |
+| `/app/trash`            | Soft-deleted roots; restore → private; hard delete                              |
+| `/app/org`              | Org ids + feed; redirects to `/app` unless `PUBLIC_SHOW_ORGS` is on             |
+| `/app/compare`          | Side-by-side Z/plan/duals; saved comparisons hard-delete                        |
+| `/app/templates`        | Personal templates; create blank → `/app/templates/[id]?edit=1`                 |
+| `/app/templates/[id]`   | View (+ publish) / edit modes; staff can review pending + approve/reject        |
+| `/app/moderation`       | Pending queue; open template for review                                         |
+| `/app/public-templates` | Catalog; admin/mod: direct publish + remove                                     |
+| `/app/admin`            | Create users; list/block/unblock/delete (Edge `admin-users`); system tpl titles |
+| `/app/test`             | Scratch hub for control sandboxes (not product UX)                              |
+| `/app/test/viz-3d`      | 3D SceneCanvas sandbox (cube-as-ОДР demos, …)                                   |
+| `/share/[token]`        | Public share (non-revoked link)                                                 |
 
 ---
 
@@ -127,14 +127,14 @@ resource-allocation-planner/
 | Test        | `pnpm test`                                                                                               |
 | Check       | `pnpm check`                                                                                              |
 | Preflight   | `pnpm preflight` / `preflight:main` — before commit / promote                                             |
-| Seed        | `pnpm seed:users` — admin@, mod@, demo1/2/3@example.com / password123 (demo3: no org)                     |
+| Seed        | `pnpm seed:users` — admin@, admin2@, mod@, demo1/2/3@example.com / password123 (demo3: no org)            |
 | Quick login | Bottom bar under `/app` (`DevQuickLoginBar`); flag `PUBLIC_DEV_QUICK_LOGIN`                               |
 | DLN UI      | Method tab + compare configs; flag `PUBLIC_SHOW_DLN` (UI only; Edge/local still accept dln)               |
 | Orgs UI     | Sidebar, task attach, org trash, `/app/org`; flag `PUBLIC_SHOW_ORGS` (UI only; schema/RLS/seed orgs stay) |
 | Cloud seed  | `pnpm seed:users:cloud` — same users against linked RAP project                                           |
 | Local stack | `pnpm db:reset` — start + reset + seed + `db:fn:serve`; Edge: `db:fn:serve` / `db:fn:stop`                |
 | Installer   | `pnpm tauri:build` — desktop bundle (local only)                                                          |
-| Edge        | `solve`, `run_mutations`, `admin-create-user`                                                             |
+| Edge        | `solve`, `run_mutations`, `admin-create-user`, `admin-users`                                              |
 | Venue       | Web = cloud when online (fallback local); Tauri UI toggle                                                 |
 
 ---

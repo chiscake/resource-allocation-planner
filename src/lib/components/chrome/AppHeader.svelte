@@ -2,6 +2,7 @@
   import { Menu, Bell, LogOut, LogIn } from "@lucide/svelte";
   import { page } from "$app/state";
   import { t } from "$lib/i18n";
+  import Badge from "$lib/components/ui/Badge.svelte";
   import {
     chrome,
     toggleNav,
@@ -10,9 +11,11 @@
 
   let {
     userEmail = "",
+    userRole = null,
     onLogout,
   }: {
     userEmail?: string;
+    userRole?: "admin" | "mod" | "user" | null;
     onLogout?: () => void;
   } = $props();
 
@@ -97,6 +100,15 @@
         class="hidden max-w-[12rem] truncate px-2 text-sm text-text-muted sm:inline"
         >{userEmail}</span
       >
+      {#if userRole === "admin"}
+        <Badge variant="brand" class="hidden sm:inline-flex"
+          >{t("roleBadgeAdmin")}</Badge
+        >
+      {:else if userRole === "mod"}
+        <Badge variant="info" class="hidden sm:inline-flex"
+          >{t("roleBadgeMod")}</Badge
+        >
+      {/if}
       <button
         type="button"
         class="inline-flex items-center justify-center rounded-[6px] text-text hover:bg-surface"

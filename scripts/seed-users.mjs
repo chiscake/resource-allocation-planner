@@ -4,6 +4,7 @@
  *
  * Default accounts (password from SEED_PASSWORD or password123):
  *   admin@example.com  — app_metadata.role=admin (no org)
+ *   admin2@example.com — app_metadata.role=admin (no org; second admin for testing)
  *   mod@example.com    — app_metadata.role=mod (public catalog moderation)
  *   demo1@example.com  — org_owner of Demo Org
  *   demo2@example.com  — member of Demo Org
@@ -233,39 +234,42 @@ async function ensureTemplates() {
   }
 }
 
-async function copySignupSeedToUser(userId) {
-  const { data: seeds } = await admin
-    .from("templates")
-    .select("*")
-    .eq("system_kind", "signup_seed")
-    .is("deleted_at", null);
-  for (const t of seeds ?? []) {
-    const { data: mine } = await admin
-      .from("templates")
-      .select("id")
-      .eq("owner_id", userId)
-      .eq("title", t.title)
-      .maybeSingle();
-    if (mine) continue;
-    await admin.from("templates").insert({
-      owner_id: userId,
-      title: t.title,
-      system_kind: null,
-      model: t.model,
-      what_if: t.what_if,
-    });
-  }
-}
+// Disabled: copy signup_seed → personal templates for seed demos.
+// async function copySignupSeedToUser(userId) {
+//   const { data: seeds } = await admin
+//     .from("templates")
+//     .select("*")
+//     .eq("system_kind", "signup_seed")
+//     .is("deleted_at", null);
+//   for (const t of seeds ?? []) {
+//     const { data: mine } = await admin
+//       .from("templates")
+//       .select("id")
+//       .eq("owner_id", userId)
+//       .eq("title", t.title)
+//       .maybeSingle();
+//     if (mine) continue;
+//     await admin.from("templates").insert({
+//       owner_id: userId,
+//       title: t.title,
+//       system_kind: null,
+//       model: t.model,
+//       what_if: t.what_if,
+//     });
+//   }
+// }
 
 const adminId = await ensureUser("admin@example.com", "admin");
+const admin2Id = await ensureUser("admin2@example.com", "admin");
 const modId = await ensureUser("mod@example.com", "mod");
 const d1 = await ensureUser("demo1@example.com", "user");
 const d2 = await ensureUser("demo2@example.com", "user");
 const d3 = await ensureUser("demo3@example.com", "user");
 await ensureTemplates();
-await copySignupSeedToUser(d1);
-await copySignupSeedToUser(d2);
-await copySignupSeedToUser(d3);
+// Disabled: copy signup_seed → personal templates for seed demos.
+// await copySignupSeedToUser(d1);
+// await copySignupSeedToUser(d2);
+// await copySignupSeedToUser(d3);
 
 const { data: orgs } = await admin
   .from("organizations")
@@ -289,4 +293,4 @@ if (!orgId) {
   console.log("created Demo Org", orgId);
 }
 
-console.log("seed done", { adminId, modId, d1, d2, d3, orgId });
+console.log("seed done", { adminId, admin2Id, modId, d1, d2, d3, orgId });

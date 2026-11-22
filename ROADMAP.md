@@ -62,7 +62,7 @@ resource-allocation-planner/
 │           ├── compare/, trash/, org/ (flagged), notifications/, moderation/, admin/
 ├── supabase/
 │   ├── migrations/000…080
-│   ├── functions/               # solve, run_mutations, admin-create-user
+│   ├── functions/               # solve, run_mutations, admin-create-user, admin-users
 │   └── seed.sql                 # noop; users via seed:users
 ├── src-tauri/
 └── docs/                        # AGENT_NAV, data-model, DESIGN, COMMIT_WORKFLOW, TODO-later, course/, uml/
@@ -76,13 +76,13 @@ Local backend one-shot: **`pnpm db:reset`**.
 
 Abbreviated; do not treat as a build queue.
 
-| Phase | Outcome |
-| ----- | ------- |
-| **P0** Scaffold & contracts | Kit + ports + types + migration shelves + dual adapter path |
-| **P1** Domain DB + auth | RLS/org/domain; seed users; guest upload; signup_seed |
-| **P2** Solver MVP | Edge + local solve/mutations; what-if; Task 13 local tests |
-| **P3** Product surfaces | Home/lists, org/share/fork, notifications poll, admin, compare |
-| **P4** Ship | UI kit + purge cron + Vercel web; GA/IPM beyond placeholders; Tauri build local |
+| Phase                       | Outcome                                                                         |
+| --------------------------- | ------------------------------------------------------------------------------- |
+| **P0** Scaffold & contracts | Kit + ports + types + migration shelves + dual adapter path                     |
+| **P1** Domain DB + auth     | RLS/org/domain; seed users; guest upload; signup_seed                           |
+| **P2** Solver MVP           | Edge + local solve/mutations; what-if; Task 13 local tests                      |
+| **P3** Product surfaces     | Home/lists, org/share/fork, notifications poll, admin, compare                  |
+| **P4** Ship                 | UI kit + purge cron + Vercel web; GA/IPM beyond placeholders; Tauri build local |
 
 ---
 
@@ -94,13 +94,13 @@ Canon backlog: **[`docs/TODO-later.md`](docs/TODO-later.md)**. Edit that file, n
 
 ## References
 
-| Doc                           | Role                          |
-| ----------------------------- | ----------------------------- |
-| `docs/data-model.md`          | Schema canon                  |
-| `docs/TODO-later.md`          | Post-MVP backlog              |
-| `docs/AGENT_NAV.md`           | Paths / entrypoints           |
-| `docs/COMMIT_WORKFLOW.md`     | Git / Vercel / Supabase ship  |
-| `docs/DESIGN.md`              | Cartesia visual tokens        |
-| `docs/course/assignment.md`   | Task 13                       |
-| `docs/course/requirements.md` | Course deliverables           |
-| `Labs/ИБМЗКИ/lab1`            | Admin Edge pattern (read-only)|
+| Doc                           | Role                           |
+| ----------------------------- | ------------------------------ |
+| `docs/data-model.md`          | Schema canon                   |
+| `docs/TODO-later.md`          | Post-MVP backlog               |
+| `docs/AGENT_NAV.md`           | Paths / entrypoints            |
+| `docs/COMMIT_WORKFLOW.md`     | Git / Vercel / Supabase ship   |
+| `docs/DESIGN.md`              | Cartesia visual tokens         |
+| `docs/course/assignment.md`   | Task 13                        |
+| `docs/course/requirements.md` | Course deliverables            |
+| `Labs/ИБМЗКИ/lab1`            | Admin Edge pattern (read-only) |

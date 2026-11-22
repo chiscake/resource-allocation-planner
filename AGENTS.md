@@ -28,14 +28,14 @@ Canonical status / shipped scope: [`ROADMAP.md`](ROADMAP.md). Schema: [`docs/dat
 
 Relative to workspace root `Labs/AGENTS.md`:
 
-| Topic                        | Labs root               | This project                                                                                          |
-| ---------------------------- | ----------------------- | ----------------------------------------------------------------------------------------------------- |
+| Topic                        | Labs root               | This project                                                                                               |
+| ---------------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------- |
 | Tests                        | Do not run unless asked | **Ignore Labs skip-tests.** Run `pnpm test` after non-trivial **solver** changes (see [Testing](#testing)) |
-| schema / model compatibility | (none)                  | **No backward-compat** while the schema_version rule above exists; breaking → `db reset`              |
-| Ports                        | Discipline formula      | **5400–5409** reserved (Vite/HMR default **5400**/**5401**) — see root AGENTS reserved table          |
-| App canvas `#f3f3f3`         | Labs default            | **Cartesia** via `docs/DESIGN.md` (bg tokens) when styling UI                                         |
-| Write scope                  | Target lab folder       | `resource-allocation-planner/` (+ root AGENTS only when user asks, already done for ports)            |
-| Report writing               | —                       | Do **not** write the course report unless the user explicitly asks                                    |
+| schema / model compatibility | (none)                  | **No backward-compat** while the schema_version rule above exists; breaking → `db reset`                   |
+| Ports                        | Discipline formula      | **5400–5409** reserved (Vite/HMR default **5400**/**5401**) — see root AGENTS reserved table               |
+| App canvas `#f3f3f3`         | Labs default            | **Cartesia** via `docs/DESIGN.md` (bg tokens) when styling UI                                              |
+| Write scope                  | Target lab folder       | `resource-allocation-planner/` (+ root AGENTS only when user asks, already done for ports)                 |
+| Report writing               | —                       | Do **not** write the course report unless the user explicitly asks                                         |
 
 ---
 
@@ -56,9 +56,9 @@ All user-visible strings go through `$lib/i18n` (`ru.ts` + `t()`). Do not leave 
 
 Two tones:
 
-| Surface | Tone | Examples |
-| ------- | ---- | -------- |
-| Home / marketing leads, login upsell | Product: what the user gets | `homeGuestHint`, `homeLoginUpsellBody` |
+| Surface                                            | Tone                                          | Examples                                         |
+| -------------------------------------------------- | --------------------------------------------- | ------------------------------------------------ |
+| Home / marketing leads, login upsell               | Product: what the user gets                   | `homeGuestHint`, `homeLoginUpsellBody`           |
 | Method blurbs, control hints, page secondary lines | Instrument: what the control/page does, short | `methodPlanHint`, page `PageHeader` descriptions |
 
 **Forbidden in UI copy:** `pnpm` / CLI, file paths, `Math.*`, schema jargon (`soft-delete`, `корневые`, `прогоны` as eng-calque), raw `UUID`, `/app/...` routes, seed scripts, implementation notes aimed at the assignee.
@@ -74,20 +74,20 @@ Established product lexicon may stay (e.g. «Форкнуть», «Z max») — 
 - Files: `supabase/migrations/NNN_name.sql` — **exactly three digits**, then underscore, then name.
 - Major shelves use **step 10**; use `011`, `012`, … for same-shelf refinements.
 
-| Prefix | Shelf                                  |
-| ------ | -------------------------------------- |
-| `000`  | base tables                            |
-| `010`  | RLS baseline                           |
-| `011+` | specific RLS refinements               |
-| `020`  | auth / profiles / admin helpers        |
-| `030`  | organizations + membership             |
-| `040`  | domain (`templates`, `solve_nodes`, …) |
+| Prefix | Shelf                                     |
+| ------ | ----------------------------------------- |
+| `000`  | base tables                               |
+| `010`  | RLS baseline                              |
+| `011+` | specific RLS refinements                  |
+| `020`  | auth / profiles / admin helpers           |
+| `030`  | organizations + membership                |
+| `040`  | domain (`templates`, `solve_nodes`, …)    |
 | `011`  | RLS helpers (`is_mod`, `is_admin_or_mod`) |
-| `021`  | profiles role `mod`                    |
+| `021`  | profiles role `mod`                       |
 | `042`  | template publish_status + moderation RPCs |
-| `050`  | sharing + notifications + audit        |
-| `060`  | trash / `pg_cron` purge                |
-| `070+` | spare                                  |
+| `050`  | sharing + notifications + audit           |
+| `060`  | trash / `pg_cron` purge                   |
+| `070+` | spare                                     |
 
 Follow [`docs/data-model.md`](docs/data-model.md); do not invent parallel ownership models.
 

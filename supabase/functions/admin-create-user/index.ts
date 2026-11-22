@@ -80,19 +80,20 @@ Deno.serve(async (req) => {
       .from("profiles")
       .upsert({ id: userId, role: "user", display_name: displayName });
 
-    const { data: seeds } = await admin
-      .from("templates")
-      .select("*")
-      .eq("system_kind", "signup_seed")
-      .is("deleted_at", null);
-    for (const t of seeds ?? []) {
-      await admin.from("templates").insert({
-        owner_id: userId,
-        title: t.title,
-        model: t.model,
-        what_if: t.what_if,
-      });
-    }
+    // Disabled: copy signup_seed → personal templates for new users.
+    // const { data: seeds } = await admin
+    //   .from("templates")
+    //   .select("*")
+    //   .eq("system_kind", "signup_seed")
+    //   .is("deleted_at", null);
+    // for (const t of seeds ?? []) {
+    //   await admin.from("templates").insert({
+    //     owner_id: userId,
+    //     title: t.title,
+    //     model: t.model,
+    //     what_if: t.what_if,
+    //   });
+    // }
 
     return json({ id: userId, email, display_name: displayName });
   } catch (err) {
