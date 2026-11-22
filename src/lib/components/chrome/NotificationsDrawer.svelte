@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount, tick } from 'svelte';
+	import { goto } from '$app/navigation';
 	import { X } from '@lucide/svelte';
 	import { supabase } from '$lib/db/supabase';
 	import { t } from '$lib/i18n';
@@ -15,6 +16,8 @@
 		body: string | null;
 		read_at: string | null;
 		created_at: string;
+		entity_type: string | null;
+		entity_id: string | null;
 	};
 
 	const FOCUSABLE =
@@ -31,6 +34,13 @@
 		return [...root.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(
 			(el) => !el.hasAttribute('disabled') && el.getAttribute('aria-hidden') !== 'true'
 		);
+	}
+
+	function taskHref(n: N): string | null {
+		if (n.entity_type === 'solve_node' && n.entity_id) {
+			return `/app/task/${n.entity_id}`;
+		}
+		return null;
 	}
 
 	async function refreshUnread() {
@@ -62,6 +72,17 @@
 			.update({ read_at: new Date().toISOString() })
 			.is('read_at', null);
 		await loadItems();
+	}
+
+	async function openNotification(n: N) {
+		if (!n.read_at) {
+			await markRead(n.id);
+		}
+		const href = taskHref(n);
+		if (href) {
+			closeNotifications();
+			await goto(href);
+		}
 	}
 
 	function onKeydown(e: KeyboardEvent) {
@@ -174,18 +195,34 @@
 			{:else}
 				<ul class="space-y-2">
 					{#each items as n (n.id)}
+						{@const href = taskHref(n)}
 						<li>
-							<Card class={n.read_at ? 'opacity-60' : ''}>
-								<p class="font-medium">{n.title}</p>
-								{#if n.body}
-									<p class="mt-1 text-sm text-text-muted">{n.body}</p>
-								{/if}
-								{#if !n.read_at}
-									<Button variant="ghost" class="mt-2 !px-0" onclick={() => markRead(n.id)}>
-										{t('markRead')}
-									</Button>
-								{/if}
-							</Card>
+							{#if href}
+								<button
+									type="button"
+									class="block w-full cursor-pointer rounded-[8px] text-left"
+									onclick={() => void openNotification(n)}
+								>
+									<Card class={n.read_at ? 'opacity-60' : ''}>
+										<p class="font-medium">{n.title}</p>
+										{#if n.body}
+											<p class="mt-1 text-sm text-text-muted">{n.body}</p>
+										{/if}
+									</Card>
+								</button>
+							{:else}
+								<Card class={n.read_at ? 'opacity-60' : ''}>
+									<p class="font-medium">{n.title}</p>
+									{#if n.body}
+										<p class="mt-1 text-sm text-text-muted">{n.body}</p>
+									{/if}
+									{#if !n.read_at}
+										<Button variant="ghost" class="mt-2 !px-0" onclick={() => markRead(n.id)}>
+											{t('markRead')}
+										</Button>
+									{/if}
+								</Card>
+							{/if}
 						</li>
 					{/each}
 				</ul>

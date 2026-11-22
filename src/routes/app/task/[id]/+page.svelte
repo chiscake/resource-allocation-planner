@@ -3,8 +3,13 @@
   import { afterNavigate, goto } from "$app/navigation";
   import { env } from "$env/dynamic/public";
   import { isOrgsUiEnabled } from "$lib/features";
+  import { toast } from "svelte-sonner";
   import { supabase } from "$lib/db/supabase";
   import { writeAudit } from "$lib/db/audit";
+  import {
+    classifyShareIdentifier,
+    isSelfShareIdentifier,
+  } from "$lib/db/share-grant";
   import { softDeleteSolveNode } from "$lib/db/soft-delete";
   import { solveModel, runMutations } from "$lib/api/solve";
   import { logSolverMismatches } from "$lib/db/solver-mismatch";
@@ -278,18 +283,7 @@
       buildPagerSlots(collectGenerations(children), activeWhatIfGeneration),
     );
 
-    const { data: links } = await supabase
-      .from("share_links")
-      .select("token")
-      .eq("node_id", id)
-      .is("revoked_at", null);
-    const { data: grants } = await supabase
-      .from("share_grants")
-      .select("id")
-      .eq("node_id", id)
-      .is("revoked_at", null);
-    hasActiveShare = Boolean(links?.length || grants?.length);
-    shareUrl = links?.[0] ? `${location.origin}/share/${links[0].token}` : "";
+    await refreshShareState();
   }
 
   afterNavigate(() => {
@@ -811,52 +805,59 @@
     }
   }
 
+  async function refreshShareState() {
+    if (!node) return;
+    const id = node.id;
+    const { data: links } = await supabase
+      .from("share_links")
+      .select("token")
+      .eq("node_id", id)
+      .is("revoked_at", null);
+    const { data: grants } = await supabase
+      .from("share_grants")
+      .select("id")
+      .eq("node_id", id)
+      .is("revoked_at", null);
+    hasActiveShare = Boolean(links?.length || grants?.length);
+    shareUrl = links?.[0] ? `${location.origin}/share/${links[0].token}` : "";
+  }
+
   async function grantToEmail() {
-    if (!node || !grantEmail) return;
+    if (!node || !grantEmail.trim()) return;
     shareMsg = "";
+    const identifier = grantEmail.trim();
+    if (classifyShareIdentifier(identifier) === "invalid") {
+      toast.error(t("grantInvalidIdentifier"));
+      return;
+    }
     const {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) return;
-    const granteeId = grantEmail.trim();
-    if (
-      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-        granteeId,
-      )
-    ) {
-      shareMsg = t("grantHint");
+    if (isSelfShareIdentifier(identifier, { id: user.id, email: user.email })) {
+      toast.error(t("grantSelfForbidden"));
       return;
     }
-    const { error: e } = await supabase.from("share_grants").insert({
-      node_id: node.id,
-      grantee_id: granteeId,
-      created_by: user.id,
+    const { error: e } = await supabase.rpc("share_grant_by_identifier", {
+      p_node_id: node.id,
+      p_identifier: identifier,
     });
     if (e) {
-      shareMsg = e.message;
+      const msg = e.message ?? "";
+      if (msg.includes("invalid_identifier")) {
+        toast.error(t("grantInvalidIdentifier"));
+        return;
+      }
+      if (msg.includes("self_grant")) {
+        toast.error(t("grantSelfForbidden"));
+        return;
+      }
+      shareMsg = msg || t("grantHint");
       return;
     }
-    const { error: nErr } = await supabase.from("notifications").insert({
-      user_id: granteeId,
-      type: "share_incoming",
-      title: "Вам расшарили сценарий",
-      body: node.title,
-      entity_type: "solve_node",
-      entity_id: node.id,
-    });
-    if (nErr) {
-      shareMsg = `Grant ok, notify: ${nErr.message}`;
-      return;
-    }
-    await writeAudit({
-      action: "share_grant",
-      entity_type: "solve_node",
-      entity_id: node.id,
-      target_user_id: granteeId,
-      org_id: node.org_id,
-    });
-    hasActiveShare = true;
-    shareMsg = t("shareGranted");
+    grantEmail = "";
+    await refreshShareState();
+    toast.success(t("shareGranted"));
   }
 
   async function forkNode() {

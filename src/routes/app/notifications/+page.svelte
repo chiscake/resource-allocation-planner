@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 	import { supabase } from '$lib/db/supabase';
 	import { t } from '$lib/i18n';
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
@@ -14,9 +15,18 @@
 		body: string | null;
 		read_at: string | null;
 		created_at: string;
+		entity_type: string | null;
+		entity_id: string | null;
 	};
 
 	let items = $state<N[]>([]);
+
+	function taskHref(n: N): string | null {
+		if (n.entity_type === 'solve_node' && n.entity_id) {
+			return `/app/task/${n.entity_id}`;
+		}
+		return null;
+	}
 
 	async function load() {
 		const { data } = await supabase
@@ -42,6 +52,14 @@
 		await supabase.from('notifications').update({ read_at: new Date().toISOString() }).eq('id', id);
 		await load();
 	}
+
+	async function openNotification(n: N) {
+		if (!n.read_at) {
+			await markRead(n.id);
+		}
+		const href = taskHref(n);
+		if (href) await goto(href);
+	}
 </script>
 
 <section class="mx-auto max-w-2xl space-y-6">
@@ -51,16 +69,32 @@
 		<EmptyState title={t('notificationsEmpty')} />
 	{:else}
 		<ul class="space-y-2">
-			{#each items as n}
-				<Card class={n.read_at ? 'opacity-60' : ''}>
-					<p class="font-medium">{n.title}</p>
-					{#if n.body}<p class="mt-1 text-sm text-text-muted">{n.body}</p>{/if}
-					{#if !n.read_at}
-						<Button variant="ghost" class="mt-2 !px-0" onclick={() => markRead(n.id)}>
-							{t('markRead')}
-						</Button>
+			{#each items as n (n.id)}
+				{@const href = taskHref(n)}
+				<li>
+					{#if href}
+						<button
+							type="button"
+							class="block w-full cursor-pointer rounded-[8px] text-left"
+							onclick={() => void openNotification(n)}
+						>
+							<Card class={n.read_at ? 'opacity-60' : ''}>
+								<p class="font-medium">{n.title}</p>
+								{#if n.body}<p class="mt-1 text-sm text-text-muted">{n.body}</p>{/if}
+							</Card>
+						</button>
+					{:else}
+						<Card class={n.read_at ? 'opacity-60' : ''}>
+							<p class="font-medium">{n.title}</p>
+							{#if n.body}<p class="mt-1 text-sm text-text-muted">{n.body}</p>{/if}
+							{#if !n.read_at}
+								<Button variant="ghost" class="mt-2 !px-0" onclick={() => markRead(n.id)}>
+									{t('markRead')}
+								</Button>
+							{/if}
+						</Card>
 					{/if}
-				</Card>
+				</li>
 			{/each}
 		</ul>
 	{/if}

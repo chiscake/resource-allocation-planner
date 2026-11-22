@@ -185,6 +185,8 @@ Per-user last use of a **`public_repo`** template (home «Последние ш�
 
 Share-link на org-корнях **разрешён** + **UI warning**.
 
+Direct grant: UI принимает **email или UUID**; серверный RPC `share_grant_by_identifier` резолвит получателя, пишет `share_grants` + notification + audit. Ответ при валидном формате обезличен (нет «пользователь не найден»).
+
 Fork: корень+дети; при org у источника — модалка личное | в org.
 
 При soft-delete корня с активным share: **в одной транзакции** revoke links/grants + audit + delete.

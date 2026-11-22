@@ -52,6 +52,7 @@
 		<Input class="min-w-[12rem] flex-1" placeholder={t('grantPlaceholder')} bind:value={grantValue} />
 		<Button variant="secondary" onclick={onGrant}>{t('grantAccess')}</Button>
 	</div>
+	<p class="mt-2 text-xs text-text-muted">{t('grantHint')}</p>
 	{#if message}
 		<p class="mt-2 text-sm text-text-muted">{message}</p>
 	{/if}
