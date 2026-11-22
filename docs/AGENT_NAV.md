@@ -34,7 +34,7 @@ resource-allocation-planner/
 ├── package.json                 # pnpm: dev, check, format*, test, preflight*, seed:users, db:*, tauri:*
 ├── .prettierrc / .prettierignore / .editorconfig  # Prettier (2 spaces, singleQuote) + editor defaults
 ├── .vscode/settings.json        # format on save → Prettier (incl. *.svelte)
-├── scripts/preflight.mjs        # commit gates (check+test+secrets); see COMMIT_WORKFLOW.md
+├── scripts/preflight.mjs        # commit gates (secrets+format:check+check+test); see COMMIT_WORKFLOW.md
 ├── scripts/seed-users.mjs       # Auth Admin API (not SQL users)
 ├── .cursor/hooks.json           # Cursor gates for push/cloud mutate
 ├── vitest.config.ts

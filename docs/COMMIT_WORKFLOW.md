@@ -112,7 +112,7 @@ Completion criterion for any class: staged set contains no ignored secret paths;
 
 1. **Confirm branch:** `git branch --show-current` → expect `dev` (or a short-lived feature branch that will merge into `dev`).
 2. **Classify** the diff (matrix above). Update `docs/AGENT_NAV.md` if routes/scripts/Edge/migrations shelves changed.
-3. **Local gates:** `pnpm preflight` (runs `check` + `test` + secret-path scan). Fix until green.
+3. **Local gates:** `pnpm preflight` (runs secret-path scan + `format:check` + `check` + `test`). Fix until green (`pnpm format` if style drifts).
 4. **Schema/Edge (if B/C):** prove locally (`pnpm db:reset` / serve). **Cloud push/deploy only when the user asked to ship backend** — not every app commit.
 5. **Commit** (only if the user asked): Conventional Commits, e.g. `feat(ui): …`, `fix(solver): …`, `chore(db): …`.
 6. **Push** `origin dev` (or feature → open PR into `dev`).
@@ -150,6 +150,7 @@ Done when: `main` points at the intended SHA and the cloud checklist for that re
 
 Canon gate agents run before commit. Implemented in `scripts/preflight.mjs`. No install step beyond `pnpm install`.
 
+**Full mode:** secret-path scan → `pnpm format:check` → `pnpm check` → `pnpm test`.  
 **Order:** `git add` relevant paths **then** `pnpm preflight` — the secret-path scan uses `git diff --cached`; running preflight before staging skips that check.
 
 ### B. Cursor hooks (project) — `.cursor/hooks.json`

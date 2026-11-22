@@ -2,7 +2,7 @@
 /**
  * Pre-commit / pre-push gate for resource-allocation-planner.
  * Usage:
- *   node scripts/preflight.mjs           # check + test + secrets
+ *   node scripts/preflight.mjs           # secrets + format:check + check + test
  *   node scripts/preflight.mjs --quick   # secrets only
  *   node scripts/preflight.mjs --main    # full + migration name lint + main reminders
  */
@@ -100,6 +100,7 @@ if (quick) {
   process.exit(0);
 }
 
+run('pnpm', ['format:check'], 'pnpm format:check');
 run('pnpm', ['check'], 'pnpm check');
 run('pnpm', ['test'], 'pnpm test');
 console.log('preflight: ok');
