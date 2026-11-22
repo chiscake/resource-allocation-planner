@@ -10,7 +10,7 @@
   import Input from "$lib/components/ui/Input.svelte";
   import InlineAlert from "$lib/components/ui/InlineAlert.svelte";
 
-  type Mode = "login" | "register";
+  type Mode = "login" | "register" | "checkEmail";
 
   const MIN_PASSWORD_LENGTH = 8;
 
@@ -20,7 +20,6 @@
   let passwordConfirm = $state("");
   let displayName = $state("");
   let error = $state("");
-  let info = $state("");
   let busy = $state(false);
   let hasGuest = $state(false);
 
@@ -33,7 +32,6 @@
   function setMode(next: Mode) {
     mode = next;
     error = "";
-    info = "";
   }
 
   async function uploadGuestIfAny(userId: string) {
@@ -84,7 +82,11 @@
     const { data, error: err } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { display_name: name } },
+      options: {
+        data: { display_name: name },
+        // Must be listed in Dashboard → Auth → URL Configuration (Redirect URLs).
+        emailRedirectTo: `${window.location.origin}/app`,
+      },
     });
     if (err) {
       error = err.message?.trim() || t("registerFailed");
@@ -97,17 +99,16 @@
       return;
     }
 
-    info = t("registerCheckEmail");
-    mode = "login";
     password = "";
     passwordConfirm = "";
+    mode = "checkEmail";
   }
 
   async function onSubmit(e: Event) {
     e.preventDefault();
+    if (mode === "checkEmail") return;
     busy = true;
     error = "";
-    info = "";
     try {
       if (mode === "login") await onLogin();
       else await onRegister();
@@ -136,59 +137,69 @@
   <main
     class="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-4 p-6"
   >
-    <h1 class="text-2xl font-medium">
-      {mode === "login" ? t("login") : t("register")}
-    </h1>
-    {#if hasGuest}
-      <InlineAlert tone="muted">{t("guestUpload")}</InlineAlert>
-    {/if}
-    {#if error}
-      <InlineAlert>{error}</InlineAlert>
-    {/if}
-    {#if info}
-      <InlineAlert tone="muted">{info}</InlineAlert>
-    {/if}
-    <form class="flex flex-col gap-3" onsubmit={onSubmit}>
-      {#if mode === "register"}
-        <label class="flex flex-col gap-1 text-sm">
-          <span>{t("displayName")}</span>
-          <Input bind:value={displayName} autocomplete="nickname" />
-        </label>
+    {#if mode === "checkEmail"}
+      <h1 class="text-2xl font-medium">{t("registerCheckEmailTitle")}</h1>
+      <p class="text-sm leading-relaxed text-text-muted">
+        {t("registerCheckEmail")}
+      </p>
+    {:else}
+      <h1 class="text-2xl font-medium">
+        {mode === "login" ? t("login") : t("register")}
+      </h1>
+      {#if hasGuest}
+        <InlineAlert tone="muted">{t("guestUpload")}</InlineAlert>
       {/if}
-      <label class="flex flex-col gap-1 text-sm">
-        <span>{t("email")}</span>
-        <Input bind:value={email} type="email" autocomplete="username" />
-      </label>
-      <label class="flex flex-col gap-1 text-sm">
-        <span>{t("password")}</span>
-        <Input
-          bind:value={password}
-          type="password"
-          autocomplete={mode === "login" ? "current-password" : "new-password"}
-        />
-      </label>
-      {#if mode === "register"}
+      {#if error}
+        <InlineAlert>{error}</InlineAlert>
+      {/if}
+      <form class="flex flex-col gap-3" onsubmit={onSubmit}>
+        {#if mode === "register"}
+          <label class="flex flex-col gap-1 text-sm">
+            <span>{t("displayName")}</span>
+            <Input bind:value={displayName} autocomplete="nickname" />
+          </label>
+        {/if}
         <label class="flex flex-col gap-1 text-sm">
-          <span>{t("passwordConfirm")}</span>
+          <span>{t("email")}</span>
+          <Input bind:value={email} type="email" autocomplete="username" />
+        </label>
+        <label class="flex flex-col gap-1 text-sm">
+          <span>{t("password")}</span>
           <Input
-            bind:value={passwordConfirm}
+            bind:value={password}
             type="password"
-            autocomplete="new-password"
+            autocomplete={mode === "login"
+              ? "current-password"
+              : "new-password"}
           />
         </label>
+        {#if mode === "register"}
+          <label class="flex flex-col gap-1 text-sm">
+            <span>{t("passwordConfirm")}</span>
+            <Input
+              bind:value={passwordConfirm}
+              type="password"
+              autocomplete="new-password"
+            />
+          </label>
+        {/if}
+        <Button type="submit" disabled={busy}>
+          {mode === "login" ? t("login") : t("register")}
+        </Button>
+      </form>
+      {#if mode === "login"}
+        <Button
+          variant="ghost"
+          type="button"
+          onclick={() => setMode("register")}
+        >
+          {t("switchToRegister")}
+        </Button>
+      {:else}
+        <Button variant="ghost" type="button" onclick={() => setMode("login")}>
+          {t("switchToLogin")}
+        </Button>
       {/if}
-      <Button type="submit" disabled={busy}>
-        {mode === "login" ? t("login") : t("register")}
-      </Button>
-    </form>
-    {#if mode === "login"}
-      <Button variant="ghost" type="button" onclick={() => setMode("register")}>
-        {t("switchToRegister")}
-      </Button>
-    {:else}
-      <Button variant="ghost" type="button" onclick={() => setMode("login")}>
-        {t("switchToLogin")}
-      </Button>
     {/if}
   </main>
 </div>

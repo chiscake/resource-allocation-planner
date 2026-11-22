@@ -23,8 +23,9 @@ const ru = {
   passwordTooShort: "Пароль не короче 8 символов",
   displayNameRequired: "Укажите отображаемое имя",
   registerFailed: "Не удалось зарегистрироваться",
+  registerCheckEmailTitle: "Проверьте почту",
   registerCheckEmail:
-    "Аккаунт создан. Откройте письмо и подтвердите адрес — затем войдите.",
+    "Аккаунт создан. Откройте письмо и подтвердите адрес — вход выполнится автоматически.",
   switchToRegister: "Создать аккаунт",
   switchToLogin: "Уже есть аккаунт? Войти",
   email: "Email",

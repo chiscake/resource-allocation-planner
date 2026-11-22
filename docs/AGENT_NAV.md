@@ -94,7 +94,17 @@ resource-allocation-planner/
 - Allow new users to sign up = **ON**
 - Confirm email = **ON** (hosted default)
 
-Local (`supabase/config.toml`): `enable_signup = true`, `enable_confirmations = false`. Restart stack after changing Auth config.
+**Cloud Auth (URL Configuration)** — Dashboard → Authentication → URL Configuration:
+
+- **Site URL** (default when no `emailRedirectTo`): `https://resource-allocation-planner-taupe.vercel.app`
+- **Redirect URLs** allow-list (exact or `/**` wildcards), e.g.:
+  - `https://resource-allocation-planner-taupe.vercel.app/**`
+  - `http://127.0.0.1:5400/**`
+  - `http://localhost:5400/**`
+
+Client signup passes `emailRedirectTo: {origin}/app`. If the URL is not allow-listed, Auth falls back to Site URL (often still `http://localhost:3000`).
+
+Local (`supabase/config.toml`): `enable_signup = true`, `enable_confirmations = false`, `site_url` / redirect URLs on **:5400**. Restart stack after changing Auth config.
 
 **Desktop installer:** `pnpm tauri:build` (slow; not part of CI — run locally for `.msi`/bundle).
 
