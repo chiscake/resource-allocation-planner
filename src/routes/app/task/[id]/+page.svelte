@@ -18,6 +18,7 @@
     collectGenerations,
     defaultPagerIndex,
     findBaseForGeneration,
+    hasMutation,
     isSensitivityChild,
     isWhatIfBase,
     nextGenerationNumber,
@@ -46,6 +47,8 @@
     type SolveTransport,
     type WhatIfRow,
   } from "$lib/components/model/solve-session.svelte";
+  import type { InteractiveScenarioPayload } from "$lib/components/model/interactive-preview.svelte";
+  import { resolveSolveMode } from "$lib/solver/mode";
   import type { VerifyReport } from "$lib/solver/verify";
   import { Star, GitFork, Trash2 } from "@lucide/svelte";
 
@@ -105,6 +108,9 @@
     buildPagerSlots(generations, activeWhatIfGeneration),
   );
   const activeSlot = $derived(pagerSlots[genIndex] ?? null);
+  const currentPagerIndex = $derived(
+    pagerSlots.findIndex((s) => s.badge === "current"),
+  );
   const activeGen = $derived(
     activeSlot?.kind === "generation" ? activeSlot.generation : null,
   );
@@ -173,6 +179,25 @@
     Boolean(session.result) &&
       (generations.length > 0 || activeWhatIfGeneration === null),
   );
+  /** Interactive explorer base: active gen snapshot, else current root. */
+  const interactiveBaseModel = $derived(
+    showWhatIfChrome
+      ? (generationBase?.model ?? session.model ?? node?.model ?? null)
+      : null,
+  );
+  const interactiveBaseResult = $derived(
+    showWhatIfChrome
+      ? (generationBase?.result ?? session.result ?? node?.result ?? null)
+      : null,
+  );
+  const interactiveExistingMutations = $derived(
+    visibleChildren.map((c) => c.mutation),
+  );
+  const interactiveTransportOpts = $derived({
+    engine: resolveSolveMode(session.solveMethod, session.lastWasCloud).engine,
+    cloud: session.lastWasCloud,
+    options: session.buildRunOptions(session.solveMethod),
+  });
   const orgSelectOptions = $derived(
     userOrgs.map((o) => ({ value: o.id, label: o.name })),
   );
@@ -922,6 +947,100 @@
     }
   }
 
+  /** Append one interactive scenario into the active what-if generation (or create gen 1). */
+  async function appendSensitivityChild(
+    payload: InteractiveScenarioPayload,
+  ): Promise<void> {
+    if (!node || whatIfBadge === "past") return;
+    const { row, result, solver_meta } = payload;
+    if (
+      hasMutation(
+        visibleChildren.map((c) => c.mutation),
+        row.mutation,
+      )
+    ) {
+      error = t("whatIfDuplicateHint");
+      return;
+    }
+    session.busy = true;
+    error = "";
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        error = t("noSession");
+        return;
+      }
+
+      if (activeWhatIfGeneration == null) {
+        const nextGen = nextGenerationNumber(generations);
+        const baseModel = interactiveBaseModel ?? node.model;
+        const baseResult = interactiveBaseResult ?? node.result;
+        const baseMeta =
+          session.lastResponse?.solver_meta ?? node.solver_meta ?? null;
+        const baseRow = {
+          owner_id: user.id,
+          parent_id: node.id,
+          org_id: node.org_id,
+          org_visibility: node.org_visibility,
+          kind: KIND_WHAT_IF_BASE,
+          title: t("whatIf"),
+          model: baseModel,
+          mutation: null,
+          result: baseResult,
+          solver_meta: baseMeta,
+          what_if_generation: nextGen,
+        };
+        const sensRow = {
+          owner_id: user.id,
+          parent_id: node.id,
+          org_id: node.org_id,
+          org_visibility: node.org_visibility,
+          kind: KIND_SENSITIVITY,
+          title: row.title,
+          model: row.mutatedModel,
+          mutation: row.mutation,
+          result,
+          solver_meta,
+          what_if_generation: nextGen,
+        };
+        const { error: insErr } = await supabase
+          .from("solve_nodes")
+          .insert([baseRow, sensRow]);
+        if (insErr) {
+          error = insErr.message;
+          return;
+        }
+        if (!(await setActiveWhatIfGeneration(nextGen))) return;
+      } else {
+        const gen = activeWhatIfGeneration;
+        const { error: insErr } = await supabase.from("solve_nodes").insert({
+          owner_id: user.id,
+          parent_id: node.id,
+          org_id: node.org_id,
+          org_visibility: node.org_visibility,
+          kind: KIND_SENSITIVITY,
+          title: row.title,
+          model: row.mutatedModel,
+          mutation: row.mutation,
+          result,
+          solver_meta,
+          what_if_generation: gen,
+        });
+        if (insErr) {
+          error = insErr.message;
+          return;
+        }
+      }
+      await load();
+    } catch (e) {
+      error = e instanceof Error ? e.message : String(e);
+    } finally {
+      session.busy = false;
+    }
+  }
+
   /** Create a new root task from one sensitivity scenario (mutated model + result + provenance). */
   async function createTaskFromScenario(row: WhatIfRow) {
     if (!node) return;
@@ -1085,6 +1204,9 @@
         whatIfRows={showWhatIfChrome ? whatIfRows : []}
         whatIfGenerationIndex={genIndex}
         whatIfGenerationCount={showWhatIfChrome ? pagerSlots.length : 0}
+        whatIfCurrentGenerationIndex={showWhatIfChrome
+          ? currentPagerIndex
+          : null}
         onWhatIfGenerationChange={(i) => (genIndex = i)}
         whatIfActiveHint={activeSlot?.badge === "current" &&
         activeSlot.kind === "generation"
@@ -1099,6 +1221,15 @@
         whatIfShowRestore={showWhatIfChrome && whatIfShowRestore}
         onWhatIfRestore={() => void restoreWhatIfBase()}
         onCreateTaskFromScenario={(row) => void createTaskFromScenario(row)}
+        {interactiveBaseModel}
+        {interactiveBaseResult}
+        interactiveMethod={session.solveMethod}
+        interactiveTransport={taskTransport}
+        {interactiveTransportOpts}
+        {interactiveExistingMutations}
+        interactiveBusy={session.busy}
+        onAddInteractiveToTable={(payload) =>
+          void appendSensitivityChild(payload)}
         {onModelChange}
         onWhatIfChange={updateWhatIf}
         onSolve={() => void doSolve(false)}

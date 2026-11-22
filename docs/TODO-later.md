@@ -55,6 +55,7 @@ MVP still delivers: dual solver, what-if children, share/trash/audit, notificati
 - [ ] Heavy async job worker (`accepted` / queue) beyond reject gates
 - [x] Evolutionary / GA solver as real method — shipped (presets, traces, compare)
 - [ ] Richer 4D visualization beyond the shipped LP geometry panel (2D/3D/4D projections); prototype under `.tmp/`
+- [ ] Sensitivity **curves / tornado** (ΔZ vs δ sweeps) after the interactive single-parameter explorer is polished
 
 ---
 

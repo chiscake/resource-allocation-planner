@@ -6,6 +6,7 @@ import {
   KIND_SENSITIVITY,
   KIND_WHAT_IF_BASE,
   appendGuestGeneration,
+  appendGuestSensitivityItem,
   buildPagerSlots,
   clearGuestActiveGeneration,
   collectGenerations,
@@ -13,9 +14,12 @@ import {
   emptyGuestWhatIfState,
   findBaseForGeneration,
   guestGenerationItems,
+  hasMutation,
   isSensitivityChild,
   isWhatIfBase,
   modelsEqual,
+  mutationKey,
+  mutationsEqual,
   nextGenerationNumber,
   resolveActiveAfterModelEdit,
   restoreGuestGeneration,
@@ -346,5 +350,73 @@ describe("guest what-if state reducer", () => {
     state = clearGuestActiveGeneration(state);
     expect(state.generations).toHaveLength(1);
     expect(state.activeGeneration).toBeNull();
+  });
+});
+
+describe("mutationKey / hasMutation", () => {
+  it("keys by kind+target+delta", () => {
+    const a = mut("Труд");
+    const b = { ...a, delta: -0.1 };
+    expect(mutationKey(a)).toBe("resource_change:Труд:0.1");
+    expect(mutationsEqual(a, { ...a })).toBe(true);
+    expect(mutationsEqual(a, b)).toBe(false);
+    expect(hasMutation([a, b], a)).toBe(true);
+    expect(hasMutation([a], b)).toBe(false);
+    expect(hasMutation([null, undefined], a)).toBe(false);
+  });
+});
+
+describe("appendGuestSensitivityItem", () => {
+  const baseModel = createTask13Model();
+  const item: import("./whatif-generation").GuestWhatIfItem = {
+    title: "Запас: Труд +10%",
+    mutation: mut(),
+    model: cloneModel(baseModel),
+    result: baseResult(50),
+    solver_meta: null,
+  };
+
+  it("empty active → creates gen 1 with one row", () => {
+    const state = appendGuestSensitivityItem(
+      emptyGuestWhatIfState(),
+      { model: baseModel, result: baseResult(100), solver_meta: null },
+      item,
+    );
+    expect(state.activeGeneration).toBe(1);
+    expect(state.generations).toHaveLength(1);
+    expect(state.generations[0].items).toHaveLength(1);
+    expect(state.generations[0].items[0].mutation.delta).toBe(0.1);
+  });
+
+  it("active gen → appends without new generation", () => {
+    let state = appendGuestSensitivityItem(
+      emptyGuestWhatIfState(),
+      { model: baseModel, result: baseResult(100), solver_meta: null },
+      item,
+    );
+    const second: import("./whatif-generation").GuestWhatIfItem = {
+      title: "Цена: Прибор 1 +15%",
+      mutation: {
+        kind: "price_change",
+        target: baseModel.products[0],
+        delta: 0.15,
+      },
+      model: cloneModel(baseModel),
+      result: baseResult(60),
+    };
+    state = appendGuestSensitivityItem(
+      state,
+      { model: baseModel, result: baseResult(100), solver_meta: null },
+      second,
+    );
+    expect(state.activeGeneration).toBe(1);
+    expect(state.generations).toHaveLength(1);
+    expect(state.generations[0].items).toHaveLength(2);
+    expect(
+      hasMutation(
+        state.generations[0].items.map((i) => i.mutation),
+        second.mutation,
+      ),
+    ).toBe(true);
   });
 });

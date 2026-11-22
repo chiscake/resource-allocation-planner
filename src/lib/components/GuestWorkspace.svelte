@@ -10,9 +10,11 @@
     buildWhatIfRowData,
     clearGuestActiveGeneration,
     appendGuestGeneration,
+    appendGuestSensitivityItem,
     createBlankModel,
     defaultPagerIndex,
     guestGenerationItems,
+    hasMutation,
     resolveActiveAfterModelEdit,
     restoreGuestGeneration,
     type GuestWhatIfState,
@@ -30,6 +32,8 @@
     type SolveTransport,
     type WhatIfRow,
   } from "$lib/components/model/solve-session.svelte";
+  import type { InteractiveScenarioPayload } from "$lib/components/model/interactive-preview.svelte";
+  import { resolveSolveMode } from "$lib/solver/mode";
 
   let {
     showLoginCta = true,
@@ -69,6 +73,9 @@
     buildPagerSlots(generations, whatIfState.activeGeneration),
   );
   const activeSlot = $derived(pagerSlots[genIndex] ?? null);
+  const currentPagerIndex = $derived(
+    pagerSlots.findIndex((s) => s.badge === "current"),
+  );
   const activeGen = $derived(
     activeSlot?.kind === "generation" ? activeSlot.generation : null,
   );
@@ -122,6 +129,20 @@
     Boolean(session.result) &&
       (generations.length > 0 || whatIfState.activeGeneration === null),
   );
+  const interactiveBaseModel = $derived(
+    showWhatIfChrome ? (packBase?.model ?? session.model ?? null) : null,
+  );
+  const interactiveBaseResult = $derived(
+    showWhatIfChrome ? (packBase?.result ?? session.result ?? null) : null,
+  );
+  const interactiveExistingMutations = $derived(
+    whatIfRows.map((r) => r.mutation),
+  );
+  const interactiveTransportOpts = $derived({
+    engine: resolveSolveMode(session.solveMethod, false).engine,
+    cloud: false,
+    options: session.buildRunOptions(session.solveMethod),
+  });
 
   function persist() {
     if (!session.model) return;
@@ -247,6 +268,26 @@
     }
     persist();
   }
+
+  function addInteractiveToTable(payload: InteractiveScenarioPayload) {
+    if (whatIfBadge === "past" || !session.model) return;
+    const { row, result, solver_meta } = payload;
+    if (hasMutation(interactiveExistingMutations, row.mutation)) return;
+    const base = {
+      model: interactiveBaseModel ?? session.model,
+      result: interactiveBaseResult ?? session.result,
+      solver_meta: solverMeta,
+    };
+    whatIfState = appendGuestSensitivityItem(whatIfState, base, {
+      title: row.title,
+      mutation: row.mutation,
+      model: row.mutatedModel,
+      result,
+      solver_meta,
+    });
+    syncPagerToActive();
+    persist();
+  }
 </script>
 
 {#if !session.model}
@@ -259,12 +300,23 @@
     whatIfRows={showWhatIfChrome ? whatIfRows : []}
     whatIfGenerationIndex={genIndex}
     whatIfGenerationCount={showWhatIfChrome ? pagerSlots.length : 0}
+    whatIfCurrentGenerationIndex={showWhatIfChrome ? currentPagerIndex : null}
     onWhatIfGenerationChange={(i) => (genIndex = i)}
     whatIfBadge={showWhatIfChrome ? whatIfBadge : null}
     whatIfEmptyMessage={showWhatIfChrome ? whatIfEmptyMessage : null}
     whatIfBaseModel={showWhatIfChrome ? (packBase?.model ?? null) : null}
     whatIfShowRestore={showWhatIfChrome && whatIfShowRestore}
     onWhatIfRestore={restoreBase}
+    {interactiveBaseModel}
+    {interactiveBaseResult}
+    interactiveMethod={session.solveMethod}
+    interactiveTransport={localTransport}
+    {interactiveTransportOpts}
+    {interactiveExistingMutations}
+    interactiveBusy={session.busy}
+    canCreateTaskFromInteractive={false}
+    createTaskDisabledReason={t("whatIfCreateNeedsLogin")}
+    onAddInteractiveToTable={addInteractiveToTable}
     {onModelChange}
     {onWhatIfChange}
     onSolve={doSolve}

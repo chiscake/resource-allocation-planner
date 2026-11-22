@@ -1,6 +1,12 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
-  import type { Model, WhatIfRowData } from "$lib/domain";
+  import type {
+    Model,
+    Mutation,
+    SolveMethod,
+    SolveResult,
+    WhatIfRowData,
+  } from "$lib/domain";
   import { regenerateTrace } from "$lib/solver";
   import { t } from "$lib/i18n";
   import Card from "$lib/components/ui/Card.svelte";
@@ -12,7 +18,13 @@
   import MethodComparisonPanel from "./MethodComparisonPanel.svelte";
   import ModelCsvActions from "./ModelCsvActions.svelte";
   import InlineAlert from "$lib/components/ui/InlineAlert.svelte";
-  import type { SolveSession, WhatIfRow } from "./solve-session.svelte";
+  import type {
+    SolveSession,
+    SolveTransport,
+    SolveTransportOpts,
+    WhatIfRow,
+  } from "./solve-session.svelte";
+  import type { InteractiveScenarioPayload } from "./interactive-preview.svelte";
   import { DEFAULT_GA_HYPERPARAMS } from "$lib/solver/methods/ga";
   import { resolveGaFromRunConfig } from "$lib/solver/methods/ga/presets";
   import { DEFAULT_DLN_HYPERPARAMS } from "$lib/solver/methods/dln";
@@ -31,6 +43,7 @@
     whatIfRows,
     whatIfGenerationIndex = 0,
     whatIfGenerationCount = 1,
+    whatIfCurrentGenerationIndex = null,
     onWhatIfGenerationChange,
     whatIfActiveHint,
     whatIfArchiveHint,
@@ -40,6 +53,16 @@
     whatIfShowRestore = false,
     onWhatIfRestore,
     onCreateTaskFromScenario,
+    interactiveBaseModel = null,
+    interactiveBaseResult = null,
+    interactiveMethod = "lp" as SolveMethod,
+    interactiveTransport = null,
+    interactiveTransportOpts = undefined,
+    interactiveExistingMutations = [],
+    interactiveBusy = false,
+    canCreateTaskFromInteractive = true,
+    createTaskDisabledReason = null,
+    onAddInteractiveToTable,
     onModelChange,
     onWhatIfChange,
     onSolve,
@@ -58,6 +81,8 @@
     whatIfRows?: WhatIfRow[];
     whatIfGenerationIndex?: number;
     whatIfGenerationCount?: number;
+    /** Pager index of the «Текущий» slot (for jump button). */
+    whatIfCurrentGenerationIndex?: number | null;
     onWhatIfGenerationChange?: (index: number) => void;
     whatIfActiveHint?: string;
     whatIfArchiveHint?: string;
@@ -67,6 +92,18 @@
     whatIfShowRestore?: boolean;
     onWhatIfRestore?: () => void;
     onCreateTaskFromScenario?: (row: WhatIfRowData) => void;
+    interactiveBaseModel?: Model | null;
+    interactiveBaseResult?: SolveResult | null;
+    interactiveMethod?: SolveMethod;
+    interactiveTransport?: SolveTransport | null;
+    interactiveTransportOpts?: SolveTransportOpts;
+    interactiveExistingMutations?: Array<Mutation | null | undefined>;
+    interactiveBusy?: boolean;
+    canCreateTaskFromInteractive?: boolean;
+    createTaskDisabledReason?: string | null;
+    onAddInteractiveToTable?: (
+      payload: InteractiveScenarioPayload,
+    ) => void | Promise<void>;
     onModelChange: (next: Model) => void;
     onWhatIfChange: (
       field: Parameters<SolveSession["updateWhatIf"]>[0],
@@ -207,6 +244,7 @@
       {rows}
       generationIndex={whatIfGenerationIndex}
       generationCount={whatIfGenerationCount}
+      currentGenerationIndex={whatIfCurrentGenerationIndex}
       onGenerationChange={onWhatIfGenerationChange}
       activeHint={whatIfActiveHint}
       archiveHint={whatIfArchiveHint}
@@ -216,6 +254,16 @@
       showRestore={whatIfShowRestore}
       onRestore={onWhatIfRestore}
       {onCreateTaskFromScenario}
+      {interactiveBaseModel}
+      {interactiveBaseResult}
+      {interactiveMethod}
+      {interactiveTransport}
+      {interactiveTransportOpts}
+      {interactiveExistingMutations}
+      {interactiveBusy}
+      {canCreateTaskFromInteractive}
+      {createTaskDisabledReason}
+      {onAddInteractiveToTable}
     />
   </section>
 {/if}

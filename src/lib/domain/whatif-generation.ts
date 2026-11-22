@@ -233,3 +233,57 @@ export function guestGenerationItems(
 export function emptyGuestWhatIfState(): GuestWhatIfState {
   return { generations: [], activeGeneration: null };
 }
+
+/** Stable key for duplicate detection (`kind` + `target` + `delta`). */
+export function mutationKey(m: Mutation): string {
+  return `${m.kind}:${m.target}:${m.delta}`;
+}
+
+export function mutationsEqual(a: Mutation, b: Mutation): boolean {
+  return (
+    a.kind === b.kind && a.target === b.target && a.delta === b.delta
+  );
+}
+
+/** True if any mutation in the list matches `m`. */
+export function hasMutation(
+  mutations: Array<Mutation | null | undefined>,
+  m: Mutation,
+): boolean {
+  return mutations.some((x) => x != null && mutationsEqual(x, m));
+}
+
+/**
+ * Append one interactive sensitivity row into guest state.
+ * - No active gen → new generation with `base` + this item (first table row).
+ * - Active gen → push into that gen's items (caller should guard duplicates).
+ */
+export function appendGuestSensitivityItem(
+  state: GuestWhatIfState,
+  base: GuestWhatIfGeneration["base"],
+  item: GuestWhatIfItem,
+): GuestWhatIfState {
+  const clonedItem: GuestWhatIfItem = {
+    title: item.title,
+    mutation: { ...item.mutation },
+    model: cloneModel(item.model),
+    result: item.result,
+    solver_meta: item.solver_meta ?? null,
+  };
+
+  if (state.activeGeneration == null) {
+    return appendGuestGeneration(state, base, [clonedItem]);
+  }
+
+  const genIdx = state.generations.findIndex(
+    (g) => g.generation === state.activeGeneration,
+  );
+  if (genIdx < 0) {
+    return appendGuestGeneration(state, base, [clonedItem]);
+  }
+
+  const generations = state.generations.map((g, i) =>
+    i === genIdx ? { ...g, items: [...g.items, clonedItem] } : g,
+  );
+  return { ...state, generations };
+}

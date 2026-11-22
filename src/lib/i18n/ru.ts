@@ -296,7 +296,14 @@ const ru = {
   zMax: "Z max",
   criticalBadge: "критичный",
   tabPlan: "Симплекс",
-  tabSensitivity: "Чувствительность",
+  /** What-if card: interactive explorer tab. */
+  tabSensitivity: "Интерактив",
+  /** What-if card: batch pack table tab. */
+  tabWhatIfPack: "Пакет",
+  /** What-if card: interactive above pack. */
+  tabWhatIfBoth: "Вместе",
+  /** Pager: jump to the current (active) generation slot. */
+  whatIfGoToCurrent: "К текущему",
   tabIpm: "Внутренняя точка",
   tabGa: "Генетический алгоритм",
   tabDln: "DLN",
@@ -542,6 +549,25 @@ const ru = {
   whatIfSortByKind: "По типу",
   whatIfSortByZ: "По убыванию Z",
   whatIfCollapseAll: "Свернуть все",
+  whatIfAddToTable: "В таблицу",
+  whatIfRecalc: "Пересчитать",
+  whatIfDuplicateHint: "Такой сценарий уже есть в таблице",
+  /** Persistent status under interactive controls (avoids layout jump). */
+  whatIfInTable: "Уже в таблице",
+  whatIfNotInTable: "Нет в таблице",
+  whatIfPastInteractiveHint:
+    "Интерактив доступен на текущем шаге. Верните исходные данные этого шага или перейдите к текущему.",
+  whatIfInteractiveKind: "Тип изменения",
+  whatIfInteractiveTarget: "Параметр",
+  whatIfInteractiveDelta: "Изменение, %",
+  whatIfExpandPreview: "Подробнее",
+  whatIfCollapsePreview: "Свернуть",
+  whatIfKindResource: "Запас ресурса",
+  whatIfKindModernization: "Модернизация (расход)",
+  whatIfKindPrice: "Цена изделия",
+  whatIfCreateNeedsLogin: "Чтобы создать задачу, войдите в аккаунт",
+  whatIfInteractiveNeedSolve: "Сначала рассчитайте базовый план",
+  whatIfInteractiveBusy: "Пересчёт…",
   solveDetails: "Пошаговый разбор",
   solveDetailsHide: "Свернуть разбор",
   solveDetailsPrimal: "Прямая задача",
