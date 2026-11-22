@@ -21,7 +21,7 @@ MVP still delivers: dual solver, what-if children, share/trash/audit, notificati
 
 - [x] Public self-signup
 - [ ] OAuth / social login
-- [ ] 2FA
+- [x] 2FA (TOTP enroll in `/app/settings` + login challenge; local `auth.mfa.totp` on)
 - [ ] Invite-code productization beyond seed / Dashboard create (if needed)
 
 ---

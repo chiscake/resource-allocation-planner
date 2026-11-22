@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Menu, Bell, LogOut, LogIn } from "@lucide/svelte";
+  import { Menu, Bell, LogOut, LogIn, Settings } from "@lucide/svelte";
   import { page } from "$app/state";
   import { t } from "$lib/i18n";
   import Badge from "$lib/components/ui/Badge.svelte";
@@ -109,6 +109,14 @@
           >{t("roleBadgeMod")}</Badge
         >
       {/if}
+      <a
+        href="/app/settings"
+        class="inline-flex items-center justify-center rounded-[6px] text-text hover:bg-surface"
+        style="width: var(--chrome-control-size); height: var(--chrome-control-size)"
+        aria-label={t("settings")}
+      >
+        <Settings size={20} strokeWidth={1.75} aria-hidden="true" />
+      </a>
       <button
         type="button"
         class="inline-flex items-center justify-center rounded-[6px] text-text hover:bg-surface"

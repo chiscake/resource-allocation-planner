@@ -5,12 +5,13 @@
   import { t } from "$lib/i18n";
   import { supabase } from "$lib/db/supabase";
   import { clearGuest, isGuestWorthUploading, loadGuest } from "$lib/db/guest";
+  import { mfaErrorMessage } from "$lib/db/mfa-errors";
   import { createBlankModel } from "$lib/domain";
   import Button from "$lib/components/ui/Button.svelte";
   import Input from "$lib/components/ui/Input.svelte";
   import InlineAlert from "$lib/components/ui/InlineAlert.svelte";
 
-  type Mode = "login" | "register" | "checkEmail";
+  type Mode = "login" | "register" | "checkEmail" | "mfa";
 
   const MIN_PASSWORD_LENGTH = 8;
 
@@ -19,6 +20,8 @@
   let password = $state("");
   let passwordConfirm = $state("");
   let displayName = $state("");
+  let mfaCode = $state("");
+  let mfaFactorId = $state("");
   let error = $state("");
   let busy = $state(false);
   let hasGuest = $state(false);
@@ -51,6 +54,32 @@
     clearGuest();
   }
 
+  async function finishSignedIn(userId: string) {
+    await uploadGuestIfAny(userId);
+    void goto("/app");
+  }
+
+  async function maybeRequireMfa(userId: string): Promise<boolean> {
+    const { data, error: aalErr } =
+      await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (aalErr || !data) return false;
+    if (data.currentLevel === "aal2" || data.nextLevel !== "aal2") return false;
+
+    const factors = await supabase.auth.mfa.listFactors();
+    const totp =
+      factors.data?.totp.find((f) => f.status === "verified") ??
+      factors.data?.all.find(
+        (f) => f.factor_type === "totp" && f.status === "verified",
+      );
+    if (!totp) return false;
+
+    mfaFactorId = totp.id;
+    mfaCode = "";
+    password = "";
+    mode = "mfa";
+    return true;
+  }
+
   async function onLogin() {
     const { data, error: err } = await supabase.auth.signInWithPassword({
       email,
@@ -60,8 +89,33 @@
       error = err?.message?.trim() || t("loginFailed");
       return;
     }
-    await uploadGuestIfAny(data.user.id);
-    void goto("/app");
+    if (await maybeRequireMfa(data.user.id)) return;
+    await finishSignedIn(data.user.id);
+  }
+
+  async function onMfaVerify() {
+    const trimmed = mfaCode.trim();
+    if (!trimmed || !mfaFactorId) {
+      error = t("mfaInvalidCode");
+      return;
+    }
+    const challenge = await supabase.auth.mfa.challenge({
+      factorId: mfaFactorId,
+    });
+    if (challenge.error || !challenge.data) {
+      error = mfaErrorMessage(challenge.error?.message);
+      return;
+    }
+    const verify = await supabase.auth.mfa.verify({
+      factorId: mfaFactorId,
+      challengeId: challenge.data.id,
+      code: trimmed,
+    });
+    if (verify.error || !verify.data.user) {
+      error = mfaErrorMessage(verify.error?.message);
+      return;
+    }
+    await finishSignedIn(verify.data.user.id);
   }
 
   async function onRegister() {
@@ -94,8 +148,7 @@
     }
 
     if (data.session?.user) {
-      await uploadGuestIfAny(data.session.user.id);
-      void goto("/app");
+      await finishSignedIn(data.session.user.id);
       return;
     }
 
@@ -111,6 +164,7 @@
     error = "";
     try {
       if (mode === "login") await onLogin();
+      else if (mode === "mfa") await onMfaVerify();
       else await onRegister();
     } finally {
       busy = false;
@@ -142,6 +196,24 @@
       <p class="text-sm leading-relaxed text-text-muted">
         {t("registerCheckEmail")}
       </p>
+    {:else if mode === "mfa"}
+      <h1 class="text-2xl font-medium">{t("mfaSectionTitle")}</h1>
+      <p class="text-sm leading-relaxed text-text-muted">{t("mfaLoginHint")}</p>
+      {#if error}
+        <InlineAlert>{error}</InlineAlert>
+      {/if}
+      <form class="flex flex-col gap-3" onsubmit={onSubmit}>
+        <label class="flex flex-col gap-1 text-sm">
+          <span>{t("mfaCode")}</span>
+          <Input
+            bind:value={mfaCode}
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            placeholder="000000"
+          />
+        </label>
+        <Button type="submit" disabled={busy}>{t("mfaLoginSubmit")}</Button>
+      </form>
     {:else}
       <h1 class="text-2xl font-medium">
         {mode === "login" ? t("login") : t("register")}

@@ -142,6 +142,7 @@ Prefer scripts from `package.json`:
 ## Security / auth
 
 - Public email signup via client `auth.signUp` (`/login` toggle). Local: `enable_signup=true`, `enable_confirmations=false`. Cloud: Dashboard Allow signup ON + Confirm email ON.
+- TOTP 2FA: enroll/disable on `/app/settings`; login challenges when `aal1→aal2`. Local: `[auth.mfa.totp] enroll_enabled/verify_enabled = true` (restart Auth after change).
 - Seed users via `.env` + script after db reset; admin can still create users via Edge Function.
 - RLS from day one; size gates on solve; audit_events **without jsonb**.
 

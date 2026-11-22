@@ -115,7 +115,8 @@ Local (`supabase/config.toml`): `enable_signup = true`, `enable_confirmations = 
 | Path                    | Role                                                                            |
 | ----------------------- | ------------------------------------------------------------------------------- |
 | `/`                     | Marketing (web) / guest Task 13 → login; Tauri → onboarding or `/app`           |
-| `/login`                | Login / register toggle; guest upload on session (login or local autoconfirm)   |
+| `/login`                | Login / register / MFA challenge; guest upload on session                       |
+| `/app/settings`         | Account settings; TOTP 2FA enroll (QR / secret) + disable                       |
 | `/onboarding`           | Tauri first-run wizard                                                          |
 | `/app`                  | Home: new-task CTA, recent (≤6), recent templates mix                           |
 | `/app/create`           | Draft editor + CSV import (sessionStorage); DB insert on first solve            |
