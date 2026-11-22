@@ -1,4 +1,9 @@
 import { createBlankModel, cloneModel, type Model } from "$lib/domain";
+import type {
+  GuestWhatIfGeneration,
+  GuestWhatIfState,
+} from "$lib/domain/whatif-generation";
+import { emptyGuestWhatIfState } from "$lib/domain/whatif-generation";
 import { t } from "$lib/i18n";
 
 const GUEST_KEY = "rap_guest_slot";
@@ -18,8 +23,13 @@ export interface GuestSnapshot {
   title: string;
   model: unknown;
   result?: unknown;
-  /** Last local sensitivity pack (simplified table under result). */
+  solver_meta?: unknown;
+  /**
+   * @deprecated Prefer `what_if_state`. Kept so older localStorage slots still hydrate.
+   */
   what_if_items?: GuestWhatIfRow[];
+  /** Multi-generation sensitivity history (no soft-delete / 30-day purge). */
+  what_if_state?: GuestWhatIfState;
   updated_at: string;
 }
 
@@ -42,9 +52,22 @@ export function clearGuest(): void {
   localStorage.removeItem(GUEST_KEY);
 }
 
-/** True when the guest slot has work worth uploading on login/register. */
+/** Normalize guest what-if history (legacy single pack → one generation). */
+export function guestWhatIfStateFromSnapshot(
+  guest: GuestSnapshot | null | undefined,
+): GuestWhatIfState {
+  if (guest?.what_if_state?.generations) {
+    return {
+      generations: guest.what_if_state.generations,
+      activeGeneration: guest.what_if_state.activeGeneration ?? null,
+    };
+  }
+  return emptyGuestWhatIfState();
+}
+
 export function isGuestWorthUploading(guest: GuestSnapshot): boolean {
   if (guest.result != null) return true;
+  if (guest.what_if_state?.generations?.length) return true;
   if (guest.what_if_items && guest.what_if_items.length > 0) return true;
   try {
     return JSON.stringify(guest.model) !== JSON.stringify(createBlankModel());
@@ -79,3 +102,5 @@ export function saveGuestModel(title: string, model: Model): GuestSnapshot {
   saveGuest(snapshot);
   return snapshot;
 }
+
+export type { GuestWhatIfGeneration, GuestWhatIfState };

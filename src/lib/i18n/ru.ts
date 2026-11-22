@@ -266,6 +266,11 @@ const ru = {
   generationPurge: "Предыдущие варианты будут удалены {date}",
   generationActiveHint:
     "При следующем пересчёте текущий вариант сохранится в архиве (удаление через 30 дней)",
+  whatIfBadgeCurrent: "Текущий",
+  whatIfBadgePast: "Прошлый",
+  whatIfRestoreBase: "Вернуть исходные данные",
+  whatIfNotRun: "Анализ чувствительности не производился",
+  whatIfBaseMatrix: "Исходная таблица этого шага",
   attachOrg: "В организацию",
   makePublicInOrg: "Сделать публичным внутри организации",
   guestUpload: "Локальная задача будет загружена в облако",

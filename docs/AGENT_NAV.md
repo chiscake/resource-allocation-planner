@@ -39,7 +39,7 @@ resource-allocation-planner/
 ├── src/
 │   ├── app.css                  # Tailwind v4 + Cartesia @theme
 │   ├── lib/
-│   │   ├── domain/              # Model, mutations, task13
+│   │   ├── domain/              # Model, mutations, what-if generations, task13
 │   │   ├── solver/              # contract/registry/run + methods/{lp,ipm,ga,dln} × engine
 │   │   ├── display/             # roundPlan / roundPref (UI post-process, not solver)
 │   │   ├── api/solve.ts         # Edge or local transport (+ method + engine + local fallback)

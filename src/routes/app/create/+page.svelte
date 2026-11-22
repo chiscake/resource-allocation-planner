@@ -17,7 +17,12 @@
   import { recordPublicTemplateUse } from "$lib/db/template-uses";
   import { solveModel, runMutations } from "$lib/api/solve";
   import { logSolverMismatches } from "$lib/db/solver-mismatch";
-  import { cloneModel, type Model } from "$lib/domain";
+  import {
+    cloneModel,
+    KIND_SENSITIVITY,
+    KIND_WHAT_IF_BASE,
+    type Model,
+  } from "$lib/domain";
   import { t } from "$lib/i18n";
   import SolveWorkspace from "$lib/components/model/SolveWorkspace.svelte";
   import PageHeader from "$lib/components/ui/PageHeader.svelte";
@@ -195,11 +200,22 @@
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (user) {
+      if (user && cycle.model) {
+        const baseRow = {
+          owner_id: user.id,
+          parent_id: createdId,
+          kind: KIND_WHAT_IF_BASE,
+          title: t("whatIf"),
+          model: cycle.model,
+          mutation: null,
+          result: cycle.result ?? null,
+          solver_meta: cycle.response.solver_meta ?? null,
+          what_if_generation: 1,
+        };
         const rows = cycle.mutationsResponse.items.map((item) => ({
           owner_id: user.id,
           parent_id: createdId,
-          kind: "sensitivity",
+          kind: KIND_SENSITIVITY,
           title: item.mutation.label ?? item.mutation.kind,
           model: item.model,
           mutation: item.mutation,
@@ -207,7 +223,11 @@
           solver_meta: item.response.solver_meta,
           what_if_generation: 1,
         }));
-        await supabase.from("solve_nodes").insert(rows);
+        await supabase.from("solve_nodes").insert([baseRow, ...rows]);
+        await supabase
+          .from("solve_nodes")
+          .update({ active_what_if_generation: 1 })
+          .eq("id", createdId);
       }
     }
 

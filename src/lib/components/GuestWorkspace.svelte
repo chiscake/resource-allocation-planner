@@ -1,7 +1,27 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { loadGuest, saveGuest, type GuestWhatIfRow } from "$lib/db/guest";
-  import { createBlankModel, type Model, type SolveResult } from "$lib/domain";
+  import {
+    guestWhatIfStateFromSnapshot,
+    loadGuest,
+    saveGuest,
+  } from "$lib/db/guest";
+  import {
+    buildPagerSlots,
+    buildWhatIfRowData,
+    clearGuestActiveGeneration,
+    appendGuestGeneration,
+    createBlankModel,
+    defaultPagerIndex,
+    guestGenerationItems,
+    resolveActiveAfterModelEdit,
+    restoreGuestGeneration,
+    type GuestWhatIfState,
+    type Model,
+    type Mutation,
+    type SolveResult,
+    type SolverMeta,
+  } from "$lib/domain";
+  import { maybeRoundPlan } from "$lib/display";
   import { solveLocal, runMutationsLocal } from "$lib/solver";
   import { t } from "$lib/i18n";
   import SolveWorkspace from "$lib/components/model/SolveWorkspace.svelte";
@@ -10,54 +30,22 @@
     type SolveTransport,
     type WhatIfRow,
   } from "$lib/components/model/solve-session.svelte";
-  import type { Mutation } from "$lib/domain";
-
-  function asWhatIfRows(items: GuestWhatIfRow[] | undefined): WhatIfRow[] {
-    if (!items?.length) return [];
-    const out: WhatIfRow[] = [];
-    for (const raw of items) {
-      const m = raw.mutation as Mutation | undefined;
-      const model = raw.mutatedModel as WhatIfRow["mutatedModel"] | undefined;
-      const plan = raw.plan as Record<string, number> | undefined;
-      if (!m || !model || !plan) continue;
-      out.push({
-        title: String(raw.title ?? ""),
-        Z: typeof raw.Z === "number" ? raw.Z : Number.NaN,
-        baseZ: typeof raw.baseZ === "number" ? raw.baseZ : Number.NaN,
-        deltaZ: typeof raw.deltaZ === "number" ? raw.deltaZ : Number.NaN,
-        mutation: m,
-        mutatedModel: model,
-        before: typeof raw.before === "string" ? raw.before : "—",
-        after: typeof raw.after === "string" ? raw.after : "—",
-        plan,
-        shadowMetric:
-          typeof raw.shadowMetric === "number" || raw.shadowMetric === null
-            ? (raw.shadowMetric as number | null)
-            : null,
-        shadowKind:
-          raw.shadowKind === "resource" || raw.shadowKind === "modernization"
-            ? raw.shadowKind
-            : "none",
-        criticalResources: Array.isArray(raw.criticalResources)
-          ? (raw.criticalResources as string[])
-          : [],
-      });
-    }
-    return out;
-  }
 
   let {
     showLoginCta = true,
     compact = false,
   }: {
-    /** Show «Войти и сохранить» next to solve. */
     showLoginCta?: boolean;
-    /** Tighter spacing when embedded on home. */
     compact?: boolean;
   } = $props();
 
-  /** Kept for upload-on-login; not shown in guest UI. */
   let title = $state("");
+  let whatIfState = $state<GuestWhatIfState>({
+    generations: [],
+    activeGeneration: null,
+  });
+  let genIndex = $state(0);
+  let solverMeta = $state<SolverMeta | null>(null);
   const session = createSolveSession();
 
   const localTransport: SolveTransport = {
@@ -74,32 +62,104 @@
       ),
   };
 
+  const generations = $derived(
+    whatIfState.generations.map((g) => g.generation),
+  );
+  const pagerSlots = $derived(
+    buildPagerSlots(generations, whatIfState.activeGeneration),
+  );
+  const activeSlot = $derived(pagerSlots[genIndex] ?? null);
+  const activeGen = $derived(
+    activeSlot?.kind === "generation" ? activeSlot.generation : null,
+  );
+  const packBase = $derived(
+    activeGen != null
+      ? (whatIfState.generations.find((g) => g.generation === activeGen)
+          ?.base ?? null)
+      : null,
+  );
+  const whatIfRows = $derived.by((): WhatIfRow[] => {
+    if (activeGen == null || !packBase) return [];
+    const items = guestGenerationItems(whatIfState, activeGen);
+    return items.map((item) => {
+      const continuous = item.result;
+      const row = buildWhatIfRowData({
+        base: packBase.model,
+        baseResult: packBase.result,
+        mutation: item.mutation,
+        mutatedModel: item.model,
+        result: continuous,
+        valuesFromMutated: true,
+      });
+      if (continuous && session.roundPlan) {
+        const display = maybeRoundPlan(item.model, continuous, true);
+        const baseZ = packBase.result?.Z;
+        return {
+          ...row,
+          Z: display.Z,
+          deltaZ:
+            baseZ != null && Number.isFinite(baseZ)
+              ? display.Z - baseZ
+              : row.deltaZ,
+          plan: display.x,
+          shadowMetric:
+            row.shadowKind === "modernization" && baseZ != null
+              ? continuous.Z - baseZ
+              : row.shadowMetric,
+        };
+      }
+      return row;
+    });
+  });
+  const whatIfEmptyMessage = $derived(
+    activeSlot?.kind === "empty_current" ? t("whatIfNotRun") : null,
+  );
+  const whatIfBadge = $derived(activeSlot?.badge ?? null);
+  const whatIfShowRestore = $derived(
+    Boolean(activeSlot?.kind === "generation" && activeSlot.canRestore),
+  );
+  const showWhatIfChrome = $derived(
+    Boolean(session.result) &&
+      (generations.length > 0 || whatIfState.activeGeneration === null),
+  );
+
   function persist() {
     if (!session.model) return;
     saveGuest({
       title: title || t("newTask"),
       model: session.model,
       result: session.result ?? undefined,
-      what_if_items: session.whatIfItems.length
-        ? (session.whatIfItems as GuestWhatIfRow[])
-        : undefined,
+      solver_meta: solverMeta ?? undefined,
+      what_if_state: whatIfState,
       updated_at: new Date().toISOString(),
     });
+  }
+
+  function syncPagerToActive() {
+    genIndex = defaultPagerIndex(
+      buildPagerSlots(
+        whatIfState.generations.map((g) => g.generation),
+        whatIfState.activeGeneration,
+      ),
+    );
   }
 
   function initFromGuest(guest: ReturnType<typeof loadGuest>) {
     if (guest?.model) {
       title = guest.title || t("newTask");
+      whatIfState = guestWhatIfStateFromSnapshot(guest);
+      solverMeta = (guest.solver_meta as SolverMeta | undefined) ?? null;
       session.hydrate({
         model: guest.model as Model,
         result: (guest.result as SolveResult | undefined) ?? null,
-        whatIfItems: asWhatIfRows(guest.what_if_items),
+        whatIfItems: [],
       });
+      syncPagerToActive();
       return;
     }
-    // In-memory blank only — do not write localStorage until the user edits or solves
-    // (otherwise login/register uploads an empty «Новая задача»).
     title = t("newTask");
+    whatIfState = { generations: [], activeGeneration: null };
+    solverMeta = null;
     session.hydrate({
       model: createBlankModel(),
       result: null,
@@ -114,6 +174,21 @@
 
   function onModelChange(next: Model) {
     session.replaceModel(next);
+    const baseModel =
+      whatIfState.activeGeneration != null
+        ? whatIfState.generations.find(
+            (g) => g.generation === whatIfState.activeGeneration,
+          )?.base.model
+        : null;
+    const nextActive = resolveActiveAfterModelEdit(
+      whatIfState.activeGeneration,
+      baseModel,
+      next,
+    );
+    if (nextActive !== whatIfState.activeGeneration) {
+      whatIfState = { ...whatIfState, activeGeneration: nextActive };
+      syncPagerToActive();
+    }
     persist();
   }
 
@@ -125,9 +200,52 @@
     persist();
   }
 
+  function restoreBase() {
+    if (activeSlot?.kind !== "generation" || !activeSlot.canRestore) return;
+    const restored = restoreGuestGeneration(whatIfState, activeSlot.generation);
+    if (!restored) return;
+    whatIfState = restored.state;
+    session.hydrate({
+      model: restored.base.model,
+      result: restored.base.result,
+      whatIfItems: [],
+    });
+    solverMeta = restored.base.solver_meta;
+    syncPagerToActive();
+    persist();
+  }
+
   async function doSolve() {
     const cycle = await session.runSolveCycle(localTransport);
-    if (cycle) persist();
+    if (!cycle) return;
+    solverMeta = cycle.response.solver_meta ?? null;
+
+    if (
+      session.includeSensitivity &&
+      cycle.mutationsResponse?.status === "done"
+    ) {
+      const items = cycle.mutationsResponse.items.map((item) => ({
+        title: item.mutation.label ?? item.mutation.kind,
+        mutation: item.mutation as Mutation,
+        model: item.model,
+        result: item.response.result ?? null,
+        solver_meta: item.response.solver_meta ?? null,
+      }));
+      whatIfState = appendGuestGeneration(
+        whatIfState,
+        {
+          model: cycle.model,
+          result: cycle.result,
+          solver_meta: cycle.response.solver_meta ?? null,
+        },
+        items,
+      );
+      syncPagerToActive();
+    } else {
+      whatIfState = clearGuestActiveGeneration(whatIfState);
+      syncPagerToActive();
+    }
+    persist();
   }
 </script>
 
@@ -138,6 +256,15 @@
     {session}
     {showLoginCta}
     {compact}
+    whatIfRows={showWhatIfChrome ? whatIfRows : []}
+    whatIfGenerationIndex={genIndex}
+    whatIfGenerationCount={showWhatIfChrome ? pagerSlots.length : 0}
+    onWhatIfGenerationChange={(i) => (genIndex = i)}
+    whatIfBadge={showWhatIfChrome ? whatIfBadge : null}
+    whatIfEmptyMessage={showWhatIfChrome ? whatIfEmptyMessage : null}
+    whatIfBaseModel={showWhatIfChrome ? (packBase?.model ?? null) : null}
+    whatIfShowRestore={showWhatIfChrome && whatIfShowRestore}
+    onWhatIfRestore={restoreBase}
     {onModelChange}
     {onWhatIfChange}
     onSolve={doSolve}

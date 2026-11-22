@@ -35,8 +35,10 @@ App-`admin` ≠ `org_owner`. App-`mod` делит с admin управление 
 1. Template: `what_if`.
 2. Create корня → `model.what_if_defaults` = копия.
 3. UI sensitivity читает defaults, юзер правит %.
-4. Child: `mutation` + `model` после apply.
-5. Re-run: replace children (soft-delete старых).
+4. Per generation: child `kind=what_if_base` (снимок исходных `model`/`result`/`solver_meta`) + children `kind=sensitivity` (`mutation` + model после apply), общий `what_if_generation`.
+5. Корень: `active_what_if_generation` — какой шаг «Текущий» (`null` = анализ на текущем шаге не делался; виртуальный слот пейджера + empty copy).
+6. Re-run with sensitivity: soft-delete live `sensitivity` + `what_if_base`, новый gen, `active` → новый.
+7. Restore из «Прошлый»: корень ← base-снимок; undelete kids+base выбранного gen; soft-delete прочих live; `active` → этот gen.
 
 ### AGENTS / `schema_version`
 
@@ -139,7 +141,9 @@ Per-user last use of a **`public_repo`** template (home «Последние ш�
 
 ## `solve_nodes`
 
-Поля: `owner_id`, `org_id`, `org_visibility`, `parent_id`, `kind`, `title`, `model` (+ `schema_version`, `what_if_defaults`), `mutation`, `result`, `solver_meta`, `is_favorite`, timestamps, `deleted_at`.
+Поля: `owner_id`, `org_id`, `org_visibility`, `parent_id`, `kind`, `title`, `model` (+ `schema_version`, `what_if_defaults`), `mutation`, `result`, `solver_meta`, `what_if_generation`, `active_what_if_generation` (корень), `is_favorite`, timestamps, `deleted_at`.
+
+`kind` (app): `root` \| `sensitivity` \| `what_if_base` (и зарезервированный в доках `revision` — пока не пишется).
 
 **CHECK:** `is_favorite = false OR parent_id IS NULL`.  
 **CHECK (логика):** `org_id IS NULL ⇒ org_visibility IS NULL`; `org_id IS NOT NULL ⇒ org_visibility IN ('private','org')`.

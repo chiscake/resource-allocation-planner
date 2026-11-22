@@ -34,6 +34,11 @@
     onWhatIfGenerationChange,
     whatIfActiveHint,
     whatIfArchiveHint,
+    whatIfBadge = null,
+    whatIfEmptyMessage = null,
+    whatIfBaseModel = null,
+    whatIfShowRestore = false,
+    onWhatIfRestore,
     onCreateTaskFromScenario,
     onModelChange,
     onWhatIfChange,
@@ -56,6 +61,11 @@
     onWhatIfGenerationChange?: (index: number) => void;
     whatIfActiveHint?: string;
     whatIfArchiveHint?: string;
+    whatIfBadge?: "current" | "past" | null;
+    whatIfEmptyMessage?: string | null;
+    whatIfBaseModel?: Model | null;
+    whatIfShowRestore?: boolean;
+    onWhatIfRestore?: () => void;
     onCreateTaskFromScenario?: (row: WhatIfRowData) => void;
     onModelChange: (next: Model) => void;
     onWhatIfChange: (
@@ -156,9 +166,7 @@
 
     {#if session.result && session.displayResult}
       <RoundPlanToggle
-        bind:roundPlan={
-          () => session.roundPlan, (v) => (session.roundPlan = v)
-        }
+        bind:roundPlan={() => session.roundPlan, (v) => (session.roundPlan = v)}
       />
 
       {#key session.solveEpoch}
@@ -202,6 +210,11 @@
       onGenerationChange={onWhatIfGenerationChange}
       activeHint={whatIfActiveHint}
       archiveHint={whatIfArchiveHint}
+      badge={whatIfBadge}
+      emptyMessage={whatIfEmptyMessage}
+      baseModel={whatIfBaseModel}
+      showRestore={whatIfShowRestore}
+      onRestore={onWhatIfRestore}
       {onCreateTaskFromScenario}
     />
   </section>

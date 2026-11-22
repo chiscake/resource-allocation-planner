@@ -12,6 +12,17 @@
     cloneModel,
     isSolveMethod,
     buildWhatIfRowData,
+    KIND_SENSITIVITY,
+    KIND_WHAT_IF_BASE,
+    buildPagerSlots,
+    collectGenerations,
+    defaultPagerIndex,
+    findBaseForGeneration,
+    isSensitivityChild,
+    isWhatIfBase,
+    nextGenerationNumber,
+    resolveActiveAfterModelEdit,
+    sensitivityForGeneration,
     type Model,
     type SolveResult,
     type SolverMeta,
@@ -46,6 +57,7 @@
     result: SolveResult | null;
     parent_id: string | null;
     what_if_generation: number | null;
+    active_what_if_generation: number | null;
     deleted_at: string | null;
     mutation: Mutation | null;
     org_id: string | null;
@@ -69,7 +81,7 @@
 
   let node = $state<NodeRow | null>(null);
   let children = $state<NodeRow[]>([]);
-  let generations = $state<number[]>([]);
+  let activeWhatIfGeneration = $state<number | null>(null);
   let genIndex = $state(0);
   let error = $state("");
   let orgId = $state("");
@@ -88,23 +100,30 @@
       ? node.solver_meta.library
       : null,
   );
-  /** What-if kids only — revisions also use parent_id with kind='revision'. */
-  const whatIfChildren = $derived(
-    children.filter(
-      (c) => c.kind === "sensitivity" || c.what_if_generation != null,
-    ),
+  const generations = $derived(collectGenerations(children));
+  const pagerSlots = $derived(
+    buildPagerSlots(generations, activeWhatIfGeneration),
   );
-  const activeGen = $derived(generations[genIndex] ?? null);
+  const activeSlot = $derived(pagerSlots[genIndex] ?? null);
+  const activeGen = $derived(
+    activeSlot?.kind === "generation" ? activeSlot.generation : null,
+  );
+  const whatIfChildren = $derived(children.filter(isSensitivityChild));
   const visibleChildren = $derived(
-    whatIfChildren.filter((c) => c.what_if_generation === activeGen),
+    activeGen != null ? sensitivityForGeneration(children, activeGen) : [],
+  );
+  const generationBase = $derived(
+    activeGen != null ? findBaseForGeneration(children, activeGen) : null,
   );
   const whatIfRows = $derived<WhatIfRow[]>(
     visibleChildren.flatMap((c) => {
       if (!c.mutation || !node) return [];
+      const baseModel = generationBase?.model ?? node.model;
+      const baseResult = generationBase?.result ?? node.result;
       const continuous = c.result;
       const row = buildWhatIfRowData({
-        base: node.model,
-        baseResult: node.result,
+        base: baseModel,
+        baseResult,
         mutation: c.mutation,
         mutatedModel: c.model,
         result: continuous,
@@ -112,7 +131,7 @@
       });
       if (continuous && session.roundPlan) {
         const display = maybeRoundPlan(c.model, continuous, true);
-        const baseZ = node.result?.Z;
+        const baseZ = baseResult?.Z;
         return [
           {
             ...row,
@@ -122,7 +141,6 @@
                 ? display.Z - baseZ
                 : row.deltaZ,
             plan: display.x,
-            // Dual / modernization price from continuous solve.
             shadowMetric:
               row.shadowKind === "modernization" && baseZ != null
                 ? continuous.Z - baseZ
@@ -133,13 +151,27 @@
       return [row];
     }),
   );
+  const whatIfEmptyMessage = $derived(
+    activeSlot?.kind === "empty_current" ? t("whatIfNotRun") : null,
+  );
+  const whatIfBadge = $derived(activeSlot?.badge ?? null);
+  const whatIfShowRestore = $derived(
+    Boolean(activeSlot?.kind === "generation" && activeSlot.canRestore),
+  );
   const whatIfArchiveHint = $derived(
-    t("generationPurge", {
-      date: purgeDate(
-        children.find((c) => c.what_if_generation === activeGen)?.deleted_at ??
-          null,
-      ),
-    }),
+    activeSlot?.badge === "past"
+      ? t("generationPurge", {
+          date: purgeDate(
+            children.find(
+              (c) => c.what_if_generation === activeGen && c.deleted_at != null,
+            )?.deleted_at ?? null,
+          ),
+        })
+      : "",
+  );
+  const showWhatIfChrome = $derived(
+    Boolean(session.result) &&
+      (generations.length > 0 || activeWhatIfGeneration === null),
   );
   const orgSelectOptions = $derived(
     userOrgs.map((o) => ({ value: o.id, label: o.name })),
@@ -207,6 +239,7 @@
       return;
     }
     node = root as NodeRow;
+    activeWhatIfGeneration = node.active_what_if_generation ?? null;
     syncSessionFromNode();
     orgId = node.org_id ?? userOrgs[0]?.id ?? "";
     makePublic = node.org_visibility === "org";
@@ -216,18 +249,9 @@
       .eq("parent_id", id)
       .order("what_if_generation", { ascending: true });
     children = (kids ?? []) as NodeRow[];
-    const sensitivity = children.filter(
-      (c) => c.kind === "sensitivity" || c.what_if_generation != null,
+    genIndex = defaultPagerIndex(
+      buildPagerSlots(collectGenerations(children), activeWhatIfGeneration),
     );
-    const gens = [
-      ...new Set(
-        sensitivity
-          .map((c) => c.what_if_generation)
-          .filter((g): g is number => g != null),
-      ),
-    ].sort((a, b) => a - b);
-    generations = gens;
-    genIndex = Math.max(0, gens.length - 1);
 
     const { data: links } = await supabase
       .from("share_links")
@@ -264,7 +288,7 @@
     return true;
   }
 
-  /** Soft-delete active sensitivity kids when parent model/result is replaced. */
+  /** Soft-delete live sensitivity + what_if_base kids. */
   async function softDeleteActiveSensitivity(): Promise<boolean> {
     if (!node) return false;
     const now = new Date().toISOString();
@@ -272,12 +296,32 @@
       .from("solve_nodes")
       .update({ deleted_at: now })
       .eq("parent_id", node.id)
-      .eq("kind", "sensitivity")
+      .in("kind", [KIND_SENSITIVITY, KIND_WHAT_IF_BASE])
       .is("deleted_at", null);
     if (softErr) {
       error = softErr.message;
       return false;
     }
+    return true;
+  }
+
+  async function setActiveWhatIfGeneration(
+    next: number | null,
+  ): Promise<boolean> {
+    if (!node) return false;
+    const { error: upErr } = await supabase
+      .from("solve_nodes")
+      .update({
+        active_what_if_generation: next,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", node.id);
+    if (upErr) {
+      error = upErr.message;
+      return false;
+    }
+    activeWhatIfGeneration = next;
+    node = { ...node, active_what_if_generation: next };
     return true;
   }
 
@@ -302,7 +346,7 @@
     pack: RunMutationsResponse,
   ): Promise<boolean> {
     if (!node) return false;
-    const nextGen = (generations.at(-1) ?? 0) + 1;
+    const nextGen = nextGenerationNumber(generations);
     if (!(await softDeleteActiveSensitivity())) return false;
     const {
       data: { user },
@@ -311,12 +355,25 @@
       error = t("noSession");
       return false;
     }
+    const baseRow = {
+      owner_id: user.id,
+      parent_id: node.id,
+      org_id: node.org_id,
+      org_visibility: node.org_visibility,
+      kind: KIND_WHAT_IF_BASE,
+      title: t("whatIf"),
+      model: node.model,
+      mutation: null,
+      result: node.result,
+      solver_meta: node.solver_meta ?? null,
+      what_if_generation: nextGen,
+    };
     const rows = pack.items.map((item) => ({
       owner_id: user.id,
       parent_id: node!.id,
       org_id: node!.org_id,
       org_visibility: node!.org_visibility,
-      kind: "sensitivity",
+      kind: KIND_SENSITIVITY,
       title: item.mutation.label ?? item.mutation.kind,
       model: item.model,
       mutation: item.mutation,
@@ -324,12 +381,14 @@
       solver_meta: item.response.solver_meta,
       what_if_generation: nextGen,
     }));
-    const { error: insErr } = await supabase.from("solve_nodes").insert(rows);
+    const { error: insErr } = await supabase
+      .from("solve_nodes")
+      .insert([baseRow, ...rows]);
     if (insErr) {
       error = insErr.message;
       return false;
     }
-    return true;
+    return setActiveWhatIfGeneration(nextGen);
   }
 
   async function onVerifyReport(report: VerifyReport) {
@@ -402,15 +461,98 @@
         if (!wiOk) return;
         await load();
       } else if (!cycle.mutationsResponse) {
-        // Sensitivity enabled but no mutation families → archive stale kids.
-        if (whatIfChildren.some((c) => !c.deleted_at)) {
+        // Sensitivity enabled but no mutation families → archive + empty current.
+        if (
+          whatIfChildren.some((c) => !c.deleted_at) ||
+          children.some((c) => isWhatIfBase(c) && !c.deleted_at)
+        ) {
           if (!(await softDeleteActiveSensitivity())) return;
-          await load();
+        }
+        if (!(await setActiveWhatIfGeneration(null))) return;
+        await load();
+      }
+    } else {
+      if (
+        whatIfChildren.some((c) => !c.deleted_at) ||
+        children.some((c) => isWhatIfBase(c) && !c.deleted_at)
+      ) {
+        if (!(await softDeleteActiveSensitivity())) return;
+      }
+      if (!(await setActiveWhatIfGeneration(null))) return;
+      await load();
+    }
+  }
+
+  async function restoreWhatIfBase() {
+    if (!node || activeSlot?.kind !== "generation" || !activeSlot.canRestore) {
+      return;
+    }
+    const gen = activeSlot.generation;
+    const base = findBaseForGeneration(children, gen);
+    if (!base) {
+      error = t("notFound");
+      return;
+    }
+    session.busy = true;
+    error = "";
+    try {
+      const now = new Date().toISOString();
+      const { error: upRoot } = await supabase
+        .from("solve_nodes")
+        .update({
+          model: base.model,
+          result: base.result ?? null,
+          solver_meta: base.solver_meta ?? null,
+          active_what_if_generation: gen,
+          updated_at: now,
+        })
+        .eq("id", node.id);
+      if (upRoot) {
+        error = upRoot.message;
+        return;
+      }
+
+      const liveOthers = children.filter(
+        (c) =>
+          !c.deleted_at &&
+          c.what_if_generation !== gen &&
+          (isSensitivityChild(c) || isWhatIfBase(c)),
+      );
+      if (liveOthers.length) {
+        const { error: softErr } = await supabase
+          .from("solve_nodes")
+          .update({ deleted_at: now })
+          .in(
+            "id",
+            liveOthers.map((c) => c.id),
+          );
+        if (softErr) {
+          error = softErr.message;
+          return;
         }
       }
-    } else if (whatIfChildren.some((c) => !c.deleted_at)) {
-      if (!(await softDeleteActiveSensitivity())) return;
+
+      const reviveIds = children
+        .filter(
+          (c) =>
+            c.what_if_generation === gen &&
+            (isSensitivityChild(c) || isWhatIfBase(c)),
+        )
+        .map((c) => c.id);
+      if (reviveIds.length) {
+        const { error: reviveErr } = await supabase
+          .from("solve_nodes")
+          .update({ deleted_at: null })
+          .in("id", reviveIds);
+        if (reviveErr) {
+          error = reviveErr.message;
+          return;
+        }
+      }
+
       await load();
+    } finally {
+      session.busy = false;
     }
   }
 
@@ -561,6 +703,8 @@
           kind: "root",
           model: node.model,
           result: node.result,
+          solver_meta: node.solver_meta ?? null,
+          active_what_if_generation: activeWhatIfGeneration != null ? 1 : null,
           org_id: null,
           org_visibility: null,
         })
@@ -570,25 +714,52 @@
         error = e1?.message ?? "fork failed";
         return;
       }
-      const active = generations.at(-1);
+      const copyGen = activeWhatIfGeneration ?? generations.at(-1) ?? null;
       const activeKids = whatIfChildren.filter(
-        (c) => c.what_if_generation === active && !c.deleted_at,
+        (c) => c.what_if_generation === copyGen && !c.deleted_at,
       );
-      if (activeKids.length) {
-        await supabase.from("solve_nodes").insert(
-          activeKids.map((c) => ({
-            owner_id: user.id,
-            parent_id: root.id,
-            kind: "sensitivity",
-            title: c.title,
-            model: c.model,
-            mutation: c.mutation,
-            result: c.result,
-            what_if_generation: 1,
-            org_id: null,
-            org_visibility: null,
-          })),
-        );
+      const activeBase =
+        copyGen != null
+          ? children.find(
+              (c) =>
+                isWhatIfBase(c) &&
+                c.what_if_generation === copyGen &&
+                !c.deleted_at,
+            )
+          : null;
+      const forkKids = [];
+      if (activeBase) {
+        forkKids.push({
+          owner_id: user.id,
+          parent_id: root.id,
+          kind: KIND_WHAT_IF_BASE,
+          title: activeBase.title,
+          model: activeBase.model,
+          mutation: null,
+          result: activeBase.result,
+          solver_meta: activeBase.solver_meta ?? null,
+          what_if_generation: 1,
+          org_id: null,
+          org_visibility: null,
+        });
+      }
+      for (const c of activeKids) {
+        forkKids.push({
+          owner_id: user.id,
+          parent_id: root.id,
+          kind: KIND_SENSITIVITY,
+          title: c.title,
+          model: c.model,
+          mutation: c.mutation,
+          result: c.result,
+          solver_meta: c.solver_meta ?? null,
+          what_if_generation: 1,
+          org_id: null,
+          org_visibility: null,
+        });
+      }
+      if (forkKids.length) {
+        await supabase.from("solve_nodes").insert(forkKids);
       }
       await revokeAllShares();
       const now = new Date().toISOString();
@@ -681,6 +852,7 @@
           model: node.model,
           result: node.result,
           solver_meta: node.solver_meta ?? null,
+          active_what_if_generation: activeWhatIfGeneration != null ? 1 : null,
           org_id: null,
           org_visibility: null,
         })
@@ -690,26 +862,52 @@
         error = e1?.message ?? "fork failed";
         return;
       }
-      const active = generations.at(-1);
+      const copyGen = activeWhatIfGeneration ?? generations.at(-1) ?? null;
       const activeKids = whatIfChildren.filter(
-        (c) => c.what_if_generation === active && !c.deleted_at,
+        (c) => c.what_if_generation === copyGen && !c.deleted_at,
       );
-      if (activeKids.length) {
-        await supabase.from("solve_nodes").insert(
-          activeKids.map((c) => ({
-            owner_id: user.id,
-            parent_id: root.id,
-            kind: "sensitivity",
-            title: c.title,
-            model: c.model,
-            mutation: c.mutation,
-            result: c.result,
-            solver_meta: c.solver_meta ?? null,
-            what_if_generation: 1,
-            org_id: null,
-            org_visibility: null,
-          })),
-        );
+      const activeBase =
+        copyGen != null
+          ? children.find(
+              (c) =>
+                isWhatIfBase(c) &&
+                c.what_if_generation === copyGen &&
+                !c.deleted_at,
+            )
+          : null;
+      const forkKids = [];
+      if (activeBase) {
+        forkKids.push({
+          owner_id: user.id,
+          parent_id: root.id,
+          kind: KIND_WHAT_IF_BASE,
+          title: activeBase.title,
+          model: activeBase.model,
+          mutation: null,
+          result: activeBase.result,
+          solver_meta: activeBase.solver_meta ?? null,
+          what_if_generation: 1,
+          org_id: null,
+          org_visibility: null,
+        });
+      }
+      for (const c of activeKids) {
+        forkKids.push({
+          owner_id: user.id,
+          parent_id: root.id,
+          kind: KIND_SENSITIVITY,
+          title: c.title,
+          model: c.model,
+          mutation: c.mutation,
+          result: c.result,
+          solver_meta: c.solver_meta ?? null,
+          what_if_generation: 1,
+          org_id: null,
+          org_visibility: null,
+        });
+      }
+      if (forkKids.length) {
+        await supabase.from("solve_nodes").insert(forkKids);
       }
       await writeAudit({
         action: "fork",
@@ -792,6 +990,21 @@
 
   function onModelChange(next: Model) {
     session.replaceModel(next);
+    if (!node) return;
+    const baseModel =
+      activeWhatIfGeneration != null
+        ? findBaseForGeneration(children, activeWhatIfGeneration)?.model
+        : null;
+    const nextActive = resolveActiveAfterModelEdit(
+      activeWhatIfGeneration,
+      baseModel,
+      next,
+    );
+    if (nextActive === activeWhatIfGeneration) return;
+    void (async () => {
+      if (!(await setActiveWhatIfGeneration(nextActive))) return;
+      genIndex = defaultPagerIndex(buildPagerSlots(generations, nextActive));
+    })();
   }
 
   /** Rename allowed even after solve (title-only update). */
@@ -869,11 +1082,22 @@
         title={node.title}
         {solverLibrary}
         showCloudSplit
-        {whatIfRows}
+        whatIfRows={showWhatIfChrome ? whatIfRows : []}
         whatIfGenerationIndex={genIndex}
-        whatIfGenerationCount={generations.length || 1}
+        whatIfGenerationCount={showWhatIfChrome ? pagerSlots.length : 0}
         onWhatIfGenerationChange={(i) => (genIndex = i)}
+        whatIfActiveHint={activeSlot?.badge === "current" &&
+        activeSlot.kind === "generation"
+          ? t("generationActiveHint")
+          : undefined}
         {whatIfArchiveHint}
+        whatIfBadge={showWhatIfChrome ? whatIfBadge : null}
+        whatIfEmptyMessage={showWhatIfChrome ? whatIfEmptyMessage : null}
+        whatIfBaseModel={showWhatIfChrome
+          ? (generationBase?.model ?? null)
+          : null}
+        whatIfShowRestore={showWhatIfChrome && whatIfShowRestore}
+        onWhatIfRestore={() => void restoreWhatIfBase()}
         onCreateTaskFromScenario={(row) => void createTaskFromScenario(row)}
         {onModelChange}
         onWhatIfChange={updateWhatIf}
