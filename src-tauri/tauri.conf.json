@@ -5,7 +5,7 @@
   "identifier": "com.chis.resource-allocation-planner",
   "build": {
     "beforeDevCommand": "vite dev",
-    "devUrl": "http://localhost:5400",
+    "devUrl": "http://localhost:5402",
     "beforeBuildCommand": "vite build",
     "frontendDist": "../build"
   },

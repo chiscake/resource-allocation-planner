@@ -6,13 +6,21 @@ import fs from 'node:fs';
 import path from 'node:path';
 import dotenv from 'dotenv';
 
-/** Committed pointer: one path to the env file Vite should load. */
+/** Committed pointer: one path to the env file Vite should load (web / default). */
 const ENV_FILE_POINTER = 'vite.env-file';
 const DEFAULT_ENV_FILE = '.env.local';
+/** Prefer this under Tauri CLI hooks when the file exists. */
+const TAURI_ENV_FILE = '.env.tauri';
 
 function resolveViteEnvFile(): string {
   const fromEnv = process.env.RAP_ENV_FILE?.trim();
   if (fromEnv) return fromEnv;
+
+  // beforeDevCommand / beforeBuildCommand set TAURI_ENV_PLATFORM
+  if (process.env.TAURI_ENV_PLATFORM) {
+    const tauriAbs = path.resolve(process.cwd(), TAURI_ENV_FILE);
+    if (fs.existsSync(tauriAbs)) return TAURI_ENV_FILE;
+  }
 
   const pointer = path.resolve(process.cwd(), ENV_FILE_POINTER);
   if (fs.existsSync(pointer)) {
@@ -43,8 +51,17 @@ if (!fs.existsSync(envFileAbs)) {
 }
 
 const host = process.env.TAURI_DEV_HOST;
+/** Set by Tauri CLI for beforeDevCommand / beforeBuildCommand hooks. */
+const underTauriCli = Boolean(process.env.TAURI_ENV_PLATFORM);
 
-/** Reserved Labs ports: Vite 5400, HMR 5401 (see Labs/AGENTS.md). */
+/**
+ * Reserved Labs ports (see Labs/AGENTS.md → resource-allocation-planner 5400–5409):
+ * - `pnpm dev` (web): Vite 5400, HMR 5401
+ * - `tauri:dev`: Vite 5402, HMR 5403
+ */
+const vitePort = underTauriCli ? 5402 : 5400;
+const hmrPort = vitePort + 1;
+
 export default defineConfig({
   plugins: [tailwindcss(), sveltekit()],
   // Disable Vite's default .env* cascade — only the pointer / RAP_ENV_FILE file.
@@ -52,13 +69,13 @@ export default defineConfig({
   envDir: false,
   clearScreen: false,
   server: {
-    port: 5400,
+    port: vitePort,
     strictPort: true,
     host: host || '0.0.0.0',
     hmr: {
       protocol: 'ws',
       host: host || '127.0.0.1',
-      port: 5401,
+      port: hmrPort,
     },
     watch: {
       ignored: ['**/src-tauri/**'],
