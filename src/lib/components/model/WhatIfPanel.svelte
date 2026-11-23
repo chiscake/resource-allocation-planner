@@ -28,6 +28,7 @@
     showRestore = false,
     onRestore,
     onCreateTaskFromScenario,
+    onCompareScenario,
     interactiveBaseModel = null,
     interactiveBaseResult = null,
     interactiveMethod = 'lp' as SolveMethod,
@@ -54,6 +55,7 @@
     showRestore?: boolean;
     onRestore?: () => void;
     onCreateTaskFromScenario?: (row: WhatIfRowData) => void;
+    onCompareScenario?: (row: WhatIfRowData) => void;
     /** Base for interactive explorer (current root or active gen base). */
     interactiveBaseModel?: Model | null;
     interactiveBaseResult?: SolveResult | null;
@@ -256,7 +258,7 @@
         <p class="text-sm text-text-muted">{emptyMessage}</p>
       {:else if rows.length}
         {#key rowsFingerprint}
-          <WhatIfTableBody {rows} {onCreateTaskFromScenario} />
+          <WhatIfTableBody {rows} {onCreateTaskFromScenario} {onCompareScenario} />
         {/key}
       {/if}
     {/if}

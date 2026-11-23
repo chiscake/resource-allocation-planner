@@ -22,6 +22,8 @@ export type WhatIfRowData = {
   shadowMetric: number | null;
   shadowKind: 'resource' | 'modernization' | 'none';
   criticalResources: string[];
+  /** Persisted sensitivity child id when row comes from cloud solve_nodes. */
+  nodeId?: string;
 };
 
 function emptyPlan(model: Model): Record<string, number> {

@@ -298,7 +298,7 @@
       <textarea
         bind:value={draft}
         rows="2"
-        class="min-h-[4.5rem] w-full resize-y rounded-[8px] border border-border bg-bg px-3.5 py-2.5 text-[15px] text-text placeholder:text-text-faint focus:border-border-focus focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-2"
+        class="min-h-18 w-full resize-y rounded-[8px] border border-border bg-bg px-3.5 py-2.5 text-[15px] text-text placeholder:text-text-faint focus:border-border-focus focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-2"
         placeholder={t('commentsPlaceholder')}
         disabled={busy}
         onkeydown={(e) => {

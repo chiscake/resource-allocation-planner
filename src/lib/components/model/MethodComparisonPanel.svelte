@@ -141,7 +141,7 @@
   {#if resultsMounted}
     <div
       class={[
-        'grid transition-[grid-template-rows] duration-[320ms] ease-[cubic-bezier(0.16,1,0.3,1)]',
+        'grid transition-[grid-template-rows] duration-320ms ease-[cubic-bezier(0.16,1,0.3,1)]',
         prefersReducedMotion.current && 'transition-none',
       ]}
       style:grid-template-rows={resultsOpen ? '1fr' : '0fr'}

@@ -10,9 +10,11 @@
   let {
     rows,
     onCreateTaskFromScenario,
+    onCompareScenario,
   }: {
     rows: WhatIfRow[];
     onCreateTaskFromScenario?: (row: WhatIfRowData) => void;
+    onCompareScenario?: (row: WhatIfRowData) => void;
   } = $props();
 
   type SortMode = 'kind' | 'zDesc';
@@ -219,17 +221,30 @@
                 <LpModelMatrix model={row.mutatedModel} readonly />
               {/if}
 
-              {#if onCreateTaskFromScenario}
-                <div class="mt-4 flex justify-end">
-                  <Button
-                    variant="secondary"
-                    onclick={(e) => {
-                      e.stopPropagation();
-                      onCreateTaskFromScenario(row);
-                    }}
-                  >
-                    {t('createTaskFromScenario')}
-                  </Button>
+              {#if onCreateTaskFromScenario || (onCompareScenario && row.nodeId)}
+                <div class="mt-4 flex flex-wrap justify-end gap-2">
+                  {#if onCompareScenario && row.nodeId}
+                    <Button
+                      variant="secondary"
+                      onclick={(e) => {
+                        e.stopPropagation();
+                        onCompareScenario(row);
+                      }}
+                    >
+                      {t('compareRowLabel')}
+                    </Button>
+                  {/if}
+                  {#if onCreateTaskFromScenario}
+                    <Button
+                      variant="secondary"
+                      onclick={(e) => {
+                        e.stopPropagation();
+                        onCreateTaskFromScenario(row);
+                      }}
+                    >
+                      {t('createTaskFromScenario')}
+                    </Button>
+                  {/if}
                 </div>
               {/if}
             </td>

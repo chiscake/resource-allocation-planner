@@ -114,28 +114,28 @@ Local (`supabase/config.toml`): `enable_signup = true`, `enable_confirmations = 
 
 ## Routes
 
-| Path                    | Role                                                                            |
-| ----------------------- | ------------------------------------------------------------------------------- |
-| `/`                     | Marketing (web) / guest Task 13 → login; Tauri → onboarding or `/app`           |
-| `/login`                | Login / register / MFA challenge; guest upload on session                       |
-| `/app/settings`         | Account settings; TOTP 2FA enroll (QR / secret) + disable                       |
-| `/onboarding`           | Tauri first-run wizard                                                          |
-| `/app`                  | Home: new-task CTA, recent (≤6), recent templates mix                           |
-| `/app/create`           | Draft editor + CSV import (sessionStorage); DB insert on first solve            |
-| `/app/tasks`            | All owned roots; search by title; updated_at desc                               |
-| `/app/task/[id]`        | Solve, what-if pager, CSV import, Excel/PDF export, share; org if flag          |
-| `/app/notifications`    | Inbox; poll 60s + focus; layout unread badge                                    |
-| `/app/trash`            | Soft-deleted roots; restore → private; hard delete                              |
-| `/app/org`              | Org ids + feed; redirects to `/app` unless `PUBLIC_SHOW_ORGS` is on             |
-| `/app/compare`          | Side-by-side Z/plan/duals; saved comparisons hard-delete                        |
-| `/app/templates`        | Personal templates; create blank → `/app/templates/[id]?edit=1`                 |
-| `/app/templates/[id]`   | View (+ publish) / edit modes; staff can review pending + approve/reject        |
-| `/app/moderation`       | Pending queue; open template for review                                         |
-| `/app/public-templates` | Catalog; admin/mod: direct publish + remove                                     |
-| `/app/admin`            | Create users; list/block/unblock/delete (Edge `admin-users`); system tpl titles |
-| `/app/test`             | Scratch hub for control sandboxes (not product UX)                              |
-| `/app/test/viz-3d`      | 3D SceneCanvas sandbox (cube-as-ОДР demos, …)                                   |
-| `/share/[token]`        | Public share (non-revoked link)                                                 |
+| Path                    | Role                                                                                                                             |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `/`                     | Marketing (web) / guest Task 13 → login; Tauri → onboarding or `/app`                                                            |
+| `/login`                | Login / register / MFA challenge; guest upload on session                                                                        |
+| `/app/settings`         | Account settings; TOTP 2FA enroll (QR / secret) + disable                                                                        |
+| `/onboarding`           | Tauri first-run wizard                                                                                                           |
+| `/app`                  | Home: new-task CTA, recent (≤6), recent templates mix                                                                            |
+| `/app/create`           | Draft editor + CSV import (sessionStorage); DB insert on first solve                                                             |
+| `/app/tasks`            | All owned roots; search by title; updated_at desc                                                                                |
+| `/app/task/[id]`        | Solve, what-if pager, CSV import, Excel/PDF export, share; org if flag                                                           |
+| `/app/notifications`    | Inbox; poll 60s + focus; layout unread badge                                                                                     |
+| `/app/trash`            | Soft-deleted roots; restore → private; hard delete                                                                               |
+| `/app/org`              | Org ids + feed; redirects to `/app` unless `PUBLIC_SHOW_ORGS` is on                                                              |
+| `/app/compare`          | Side-by-side ≤4 nodes (`?ids=` primary-first); picker modal; Δ vs primary; saved hard-delete; task FAB + sensitivity compare CTA |
+| `/app/templates`        | Personal templates; create blank → `/app/templates/[id]?edit=1`                                                                  |
+| `/app/templates/[id]`   | View (+ publish) / edit modes; staff can review pending + approve/reject                                                         |
+| `/app/moderation`       | Pending queue; open template for review                                                                                          |
+| `/app/public-templates` | Catalog; admin/mod: direct publish + remove                                                                                      |
+| `/app/admin`            | Create users; list/block/unblock/delete (Edge `admin-users`); system tpl titles                                                  |
+| `/app/test`             | Scratch hub for control sandboxes (not product UX)                                                                               |
+| `/app/test/viz-3d`      | 3D SceneCanvas sandbox (cube-as-ОДР demos, …)                                                                                    |
+| `/share/[token]`        | Public share (non-revoked link)                                                                                                  |
 
 ---
 

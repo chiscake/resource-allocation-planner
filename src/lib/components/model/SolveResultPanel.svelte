@@ -2,13 +2,20 @@
   import type { Snippet } from 'svelte';
   import { tick } from 'svelte';
   import { prefersReducedMotion } from 'svelte/motion';
-  import { ChevronDown } from '@lucide/svelte';
-  import type { Model, SolveMethod, SolveResult, SolveTrace, WhatIfRowData } from '$lib/domain';
+  import { ChevronDown, Triangle } from '@lucide/svelte';
+  import type {
+    Model,
+    PlanDeltas,
+    SolveMethod,
+    SolveResult,
+    SolveTrace,
+    WhatIfRowData,
+  } from '$lib/domain';
   import type { VerifyReport } from '$lib/solver/verify';
   import { labeledProduct, labeledResource, objectiveUnit, shadowUnit } from '$lib/display/units';
   import { t } from '$lib/i18n';
   import Card from '$lib/components/ui/Card.svelte';
-  import { formatPlanNumber } from './format-plan-number';
+  import { formatCompareNumber, formatPlanNumber } from './format-plan-number';
   import SimplexStepsPanel from './SimplexStepsPanel.svelte';
   import GaStepsPanel from './GaStepsPanel.svelte';
   import LibraryVerifyPanel from './LibraryVerifyPanel.svelte';
@@ -32,6 +39,10 @@
     onRequestSteps,
     exportTitle = null,
     whatIfRows = [],
+    /** When set (compare page, non-primary), show Δ next to Z / plan / duals. */
+    compareDeltas = null,
+    /** Use decimal-stable formatting (compare page, both cards). */
+    comparePrecision = false,
     children,
   }: {
     result: SolveResult;
@@ -49,6 +60,8 @@
     /** When set (with `model`), shows Excel / PDF export of this result. */
     exportTitle?: string | null;
     whatIfRows?: WhatIfRowData[];
+    compareDeltas?: PlanDeltas | null;
+    comparePrecision?: boolean;
     children?: Snippet;
   } = $props();
 
@@ -84,9 +97,59 @@
 
   const zUnit = $derived(objectiveUnit(model));
 
+  const planDeltaByName = $derived.by(() => {
+    const map = new Map<string, { delta: number; pct: number | null }>();
+    if (!compareDeltas) return map;
+    for (const row of compareDeltas.perProduct) {
+      map.set(row.name, { delta: row.delta, pct: row.pct });
+    }
+    return map;
+  });
+
+  const shadowDeltaByName = $derived.by(() => {
+    const map = new Map<string, { delta: number; pct: number | null }>();
+    if (!compareDeltas) return map;
+    for (const row of compareDeltas.perShadow) {
+      map.set(row.name, { delta: row.delta, pct: row.pct });
+    }
+    return map;
+  });
+
+  const slackDeltaByName = $derived.by(() => {
+    const map = new Map<string, { delta: number; pct: number | null }>();
+    if (!compareDeltas) return map;
+    for (const row of compareDeltas.perSlack) {
+      map.set(row.name, { delta: row.delta, pct: row.pct });
+    }
+    return map;
+  });
+
   function isZeroPlan(v: number): boolean {
     return !Number.isFinite(v) || Math.abs(v) < ZERO_EPS;
   }
+
+  function fmtNum(v: number): string {
+    return comparePrecision ? formatCompareNumber(v) : formatPlanNumber(v);
+  }
+
+  function fmtSigned(v: number): string {
+    if (!Number.isFinite(v)) return '—';
+    if (Math.abs(v) < ZERO_EPS) return fmtNum(0);
+    const s = fmtNum(v);
+    return v > 0 ? `+${s}` : s;
+  }
+
+  function fmtPct(pct: number | null): string {
+    if (pct == null || !Number.isFinite(pct)) return '—';
+    return `${fmtNum(Math.abs(pct))}%`;
+  }
+
+  /** Compare ΔZ sign for Z-max caret; null = no marker. */
+  const zDeltaSign = $derived.by((): -1 | 0 | 1 | null => {
+    if (!compareDeltas || !Number.isFinite(compareDeltas.deltaZ)) return null;
+    if (Math.abs(compareDeltas.deltaZ) < ZERO_EPS) return 0;
+    return compareDeltas.deltaZ > 0 ? 1 : -1;
+  });
 
   function nextFrame(): Promise<void> {
     return new Promise((resolve) => {
@@ -138,13 +201,40 @@
 
 <Card>
   <div class="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
-    <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-      <span class="text-sm font-medium text-text-muted">{t('zMax')}</span>
-      <span class="font-mono text-4xl font-semibold tabular-nums tracking-tight text-brand">
-        {formatPlanNumber(result.Z)}
-      </span>
-      {#if zUnit}
-        <span class="text-sm text-text-soft">{zUnit}</span>
+    <div class="min-w-0 space-y-1">
+      <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        {#if zDeltaSign === 1}
+          <Triangle
+            class="size-6 shrink-0 self-center fill-success-text text-success-text sm:size-7"
+            strokeWidth={0}
+            aria-hidden="true"
+          />
+        {:else if zDeltaSign === -1}
+          <Triangle
+            class="size-6 shrink-0 rotate-180 self-center fill-danger-text text-danger-text sm:size-7"
+            strokeWidth={0}
+            aria-hidden="true"
+          />
+        {/if}
+        <span class="text-sm font-medium text-text-muted">{t('zMax')}</span>
+        <span class="font-mono text-4xl font-semibold tabular-nums tracking-tight text-brand">
+          {fmtNum(result.Z)}
+        </span>
+        {#if zUnit}
+          <span class="text-sm text-text-soft">{zUnit}</span>
+        {/if}
+      </div>
+      {#if compareDeltas}
+        <p class="font-mono text-sm tabular-nums text-text-muted">
+          {t('compareDeltaZ')}
+          {fmtSigned(compareDeltas.deltaZ)}
+          <span class="text-text-faint">({fmtPct(compareDeltas.pctZ)})</span>
+        </p>
+      {:else if comparePrecision}
+        <!-- Reserve ΔZ line height so primary aligns with other compare cards. -->
+        <p class="invisible font-mono text-sm tabular-nums" aria-hidden="true">
+          {t('compareDeltaZ')} +0 (0%)
+        </p>
       {/if}
     </div>
     {#if model && exportTitle != null}
@@ -176,6 +266,7 @@
     <table class="w-full text-sm">
       <tbody>
         {#each planEntries as [name, value] (name)}
+          {@const d = planDeltaByName.get(name)}
           <tr
             class="border-b border-border-soft last:border-0 {isZeroPlan(value)
               ? 'text-text-faint'
@@ -183,12 +274,27 @@
           >
             <td class="py-1.5 pr-3">{labeledProduct(model, name)}</td>
             <td class="py-1.5 text-right font-mono tabular-nums">
-              {formatPlanNumber(value)}
+              {fmtNum(value)}
             </td>
+            {#if compareDeltas}
+              <td class="py-1.5 pl-3 text-right font-mono text-xs tabular-nums text-text-muted">
+                {#if d}
+                  {fmtSigned(d.delta)}
+                  <span class="text-text-faint">({fmtPct(d.pct)})</span>
+                {:else}
+                  —
+                {/if}
+              </td>
+            {/if}
           </tr>
         {/each}
       </tbody>
     </table>
+    {#if compareDeltas?.onlyPrimary.length}
+      <p class="mt-2 text-xs text-text-muted">
+        {t('compareOnlyPrimary')}: {compareDeltas.onlyPrimary.join(', ')}
+      </p>
+    {/if}
   </div>
 
   {#if result.critical_resources.length}
@@ -213,13 +319,24 @@
       <table class="w-full text-sm">
         <tbody>
           {#each shadowEntries as [name, value] (name)}
+            {@const d = shadowDeltaByName.get(name)}
             <tr class="border-b border-border-soft last:border-0">
               <td class="py-1.5 pr-3 {criticalSet.has(name) ? 'text-text' : 'text-text-muted'}">
                 {labeledResource(model, name)}
               </td>
               <td class="py-1.5 text-right font-mono tabular-nums text-text">
-                {formatPlanNumber(value)}
+                {fmtNum(value)}
               </td>
+              {#if compareDeltas}
+                <td class="py-1.5 pl-3 text-right font-mono text-xs tabular-nums text-text-muted">
+                  {#if d}
+                    {fmtSigned(d.delta)}
+                    <span class="text-text-faint">({fmtPct(d.pct)})</span>
+                  {:else}
+                    —
+                  {/if}
+                </td>
+              {/if}
               <td class="w-0 whitespace-nowrap py-1.5 pl-2 text-xs text-text-soft">
                 {shadowUnit(model, name)}
               </td>
@@ -236,13 +353,24 @@
       <table class="w-full text-sm">
         <tbody>
           {#each slackEntries as [name, value] (name)}
+            {@const d = slackDeltaByName.get(name)}
             <tr class="border-b border-border-soft last:border-0">
               <td class="py-1.5 pr-3 text-text-muted">
                 {labeledResource(model, name)}
               </td>
               <td class="py-1.5 text-right font-mono tabular-nums text-text">
-                {formatPlanNumber(value)}
+                {fmtNum(value)}
               </td>
+              {#if compareDeltas}
+                <td class="py-1.5 pl-3 text-right font-mono text-xs tabular-nums text-text-muted">
+                  {#if d}
+                    {fmtSigned(d.delta)}
+                    <span class="text-text-faint">({fmtPct(d.pct)})</span>
+                  {:else}
+                    —
+                  {/if}
+                </td>
+              {/if}
             </tr>
           {/each}
         </tbody>
@@ -265,7 +393,7 @@
           </span>
           <ChevronDown
             class={[
-              'size-3.5 shrink-0 transition-transform duration-[320ms] ease-[cubic-bezier(0.16,1,0.3,1)]',
+              'size-3.5 shrink-0 transition-transform duration-320ms ease-[cubic-bezier(0.16,1,0.3,1)]',
               geometryOpen && 'rotate-180',
               prefersReducedMotion.current && 'transition-none',
             ]}
@@ -277,7 +405,7 @@
       {#if geometryMounted}
         <div
           class={[
-            'grid transition-[grid-template-rows] duration-[320ms] ease-[cubic-bezier(0.16,1,0.3,1)]',
+            'grid transition-[grid-template-rows] duration-320ms ease-[cubic-bezier(0.16,1,0.3,1)]',
             prefersReducedMotion.current && 'transition-none',
           ]}
           style:grid-template-rows={geometryOpen ? '1fr' : '0fr'}
@@ -308,7 +436,7 @@
           </span>
           <ChevronDown
             class={[
-              'size-3.5 shrink-0 transition-transform duration-[320ms] ease-[cubic-bezier(0.16,1,0.3,1)]',
+              'size-3.5 shrink-0 transition-transform duration-320ms ease-[cubic-bezier(0.16,1,0.3,1)]',
               stepsOpen && 'rotate-180',
               (stepsPreparing || prefersReducedMotion.current) && 'transition-none',
             ]}
@@ -320,7 +448,7 @@
       {#if stepsMounted}
         <div
           class={[
-            'grid transition-[grid-template-rows] duration-[320ms] ease-[cubic-bezier(0.16,1,0.3,1)]',
+            'grid transition-[grid-template-rows] duration-320ms ease-[cubic-bezier(0.16,1,0.3,1)]',
             prefersReducedMotion.current && 'transition-none',
           ]}
           style:grid-template-rows={stepsOpen ? '1fr' : '0fr'}

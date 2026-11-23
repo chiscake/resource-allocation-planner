@@ -47,6 +47,7 @@
     whatIfShowRestore = false,
     onWhatIfRestore,
     onCreateTaskFromScenario,
+    onCompareScenario,
     interactiveBaseModel = null,
     interactiveBaseResult = null,
     interactiveMethod = 'lp' as SolveMethod,
@@ -86,6 +87,7 @@
     whatIfShowRestore?: boolean;
     onWhatIfRestore?: () => void;
     onCreateTaskFromScenario?: (row: WhatIfRowData) => void;
+    onCompareScenario?: (row: WhatIfRowData) => void;
     interactiveBaseModel?: Model | null;
     interactiveBaseResult?: SolveResult | null;
     interactiveMethod?: SolveMethod;
@@ -229,6 +231,7 @@
       showRestore={whatIfShowRestore}
       onRestore={onWhatIfRestore}
       {onCreateTaskFromScenario}
+      {onCompareScenario}
       {interactiveBaseModel}
       {interactiveBaseResult}
       {interactiveMethod}

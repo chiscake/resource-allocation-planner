@@ -33,6 +33,7 @@
     type Mutation,
     type WhatIfDefaults,
     type RunMutationsResponse,
+    formatCompareIds,
   } from '$lib/domain';
   import { maybeRoundPlan } from '$lib/display';
   import { t } from '$lib/i18n';
@@ -54,7 +55,7 @@
   import type { InteractiveScenarioPayload } from '$lib/components/model/interactive-preview.svelte';
   import { resolveSolveMode } from '$lib/solver/mode';
   import type { VerifyReport } from '$lib/solver/verify';
-  import { Star, GitFork, Trash2, Eraser } from '@lucide/svelte';
+  import { Star, GitFork, Trash2, Eraser, GitCompareArrows } from '@lucide/svelte';
 
   type NodeRow = {
     id: string;
@@ -140,6 +141,7 @@
         return [
           {
             ...row,
+            nodeId: c.id,
             Z: display.Z,
             deltaZ: baseZ != null && Number.isFinite(baseZ) ? display.Z - baseZ : row.deltaZ,
             plan: display.x,
@@ -150,7 +152,7 @@
           },
         ];
       }
-      return [row];
+      return [{ ...row, nodeId: c.id }];
     }),
   );
   const whatIfEmptyMessage = $derived(
@@ -1242,6 +1244,11 @@
           whatIfShowRestore={showWhatIfChrome && whatIfShowRestore}
           onWhatIfRestore={() => void restoreWhatIfBase()}
           onCreateTaskFromScenario={(row) => void createTaskFromScenario(row)}
+          onCompareScenario={(row) => {
+            if (!node || !row.nodeId) return;
+            const q = formatCompareIds([node.id, row.nodeId]);
+            void goto(`/app/compare?ids=${encodeURIComponent(q)}`);
+          }}
           {interactiveBaseModel}
           {interactiveBaseResult}
           interactiveMethod={session.solveMethod}
@@ -1303,6 +1310,21 @@
         onGrant={grantToEmail}
         onRevokeGrant={revokeGrantOne}
       />
+    {/if}
+
+    {#if isEditable && node.result}
+      <button
+        type="button"
+        class="fixed right-5 bottom-5 z-50 flex size-14 cursor-pointer items-center justify-center rounded-full bg-accent text-white shadow-lg transition-colors hover:bg-text-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-offset-2"
+        aria-label={t('compareFabLabel')}
+        title={t('compareFabLabel')}
+        onclick={() => {
+          const q = formatCompareIds([node!.id]);
+          void goto(`/app/compare?ids=${encodeURIComponent(q)}`);
+        }}
+      >
+        <GitCompareArrows size={22} strokeWidth={1.75} aria-hidden="true" />
+      </button>
     {/if}
   </section>
 {/if}
