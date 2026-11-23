@@ -8,18 +8,18 @@ Purpose: fast orientation for coding agents. Prefer pointers over copying rules 
 
 ## Read first
 
-| If you need…                                         | Open                                                         |
-| ---------------------------------------------------- | ------------------------------------------------------------ |
-| Hard rules / overrides / migrations / schema_version | [`../AGENTS.md`](../AGENTS.md) (schema rule at **top**)      |
-| Commit / push / Vercel / Supabase cloud workflow     | [`COMMIT_WORKFLOW.md`](COMMIT_WORKFLOW.md)                   |
-| Tables, org/share/trash, RLS intent                  | [`data-model.md`](data-model.md)                             |
-| Design tokens / Cartesia UI                          | [`DESIGN.md`](DESIGN.md)                                     |
-| Shipped status / scope + tree                        | [`../ROADMAP.md`](../ROADMAP.md)                             |
-| Post-MVP / deferred backlog                          | [`TODO-later.md`](TODO-later.md)                             |
-| UI copy tone (RU end-user)                           | [`../AGENTS.md`](../AGENTS.md) + `.cursor/rules/ui-copy.mdc` |
-| Task 13 text                                         | [`course/assignment.md`](course/assignment.md)               |
-| Course formal requirements                           | [`course/requirements.md`](course/requirements.md)           |
-| UML diagrams (course graphic part)                   | [`uml/`](uml/) — one `.md` per diagram type                  |
+| If you need…                                     | Open                                                         |
+| ------------------------------------------------ | ------------------------------------------------------------ |
+| Hard rules / migrations / schema_version         | [`../AGENTS.md`](../AGENTS.md) (schema rule at **top**)      |
+| Commit / push / Vercel / Supabase cloud workflow | [`COMMIT_WORKFLOW.md`](COMMIT_WORKFLOW.md)                   |
+| Tables, org/share/trash, RLS intent              | [`data-model.md`](data-model.md)                             |
+| Design tokens / Cartesia UI                      | [`DESIGN.md`](DESIGN.md)                                     |
+| Shipped status / scope + tree                    | [`../ROADMAP.md`](../ROADMAP.md)                             |
+| Post-MVP / deferred backlog                      | [`TODO-later.md`](TODO-later.md)                             |
+| UI copy tone (RU end-user)                       | [`../AGENTS.md`](../AGENTS.md) + `.cursor/rules/ui-copy.mdc` |
+| Task 13 text                                     | [`course/assignment.md`](course/assignment.md)               |
+| Course formal requirements                       | [`course/requirements.md`](course/requirements.md)           |
+| UML diagrams (course graphic part)               | [`uml/`](uml/) — one `.md` per diagram type                  |
 
 Scratch only (not canon): `.tmp/task13_*.py/json`, `LP4DVisualizer.jsx`. Design canon: **`docs/DESIGN.md`**.
 

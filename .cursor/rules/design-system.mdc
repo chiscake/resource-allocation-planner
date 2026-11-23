@@ -16,7 +16,7 @@ Any UI, layout, theme tokens, typography, color, spacing, or component chrome wo
 
 1. Read `docs/DESIGN.md` for tokens (`colors`, type, spacing, motion) before inventing styles.
 2. Prefer CSS variables / a single theme module mapped from DESIGN tokens — do not hardcode one-off hex that contradicts the spec.
-3. **Canvas / page background:** use DESIGN `bg` / `bg-soft` (Cartesia clinical white), **not** Labs root `#f3f3f3`, unless the user asks otherwise.
+3. **Canvas / page background:** use DESIGN `bg` / `bg-soft` (Cartesia clinical white), unless the user asks otherwise.
 4. Brand / actions: DESIGN `brand` (`#2563eb`) and CTA rules from the spec; keep the “one deep blue + near-monochrome” language.
 5. UI copy stays **Russian for the end user** — see `.cursor/rules/ui-copy.mdc`. **Ignore DESIGN §11 English marketing voice** for app strings.
 6. Prefer existing `src/lib/components/ui/*` (Button variants: `primary|secondary|danger|ghost`) over one-off controls. DESIGN `button-blue` maps to app `primary`.

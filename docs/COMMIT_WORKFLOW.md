@@ -184,5 +184,4 @@ After a push you care about: `subscribe_github_ci` / `subscribe_origin_ci` on th
 - Pushing to `main` for routine UI work while Production still tracks `dev`.
 - Applying cloud migrations via MCP without a matching `supabase/migrations/NNN_*.sql` file.
 - Committing `.env.cloud` / service role keys.
-- Treating Labs root “skip tests” as applying here — tests are required (`AGENTS.md` Overrides).
 - Manual `vercel --prod` for the same SHA Git already builds, unless debugging the Git integration.

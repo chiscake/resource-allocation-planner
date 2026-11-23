@@ -4,7 +4,7 @@ Course project: client-server **Resource Allocation Planner** (UI: «Плани�
 
 **Canon for shipped status / scope.** Schema: `docs/data-model.md`. Agent rules: `AGENTS.md`. Map: `docs/AGENT_NAV.md`. Backlog: `docs/TODO-later.md`.
 
-**Ports:** Vite **5400**, HMR **5401** (block 5400–5409 reserved in `Labs/AGENTS.md`).
+**Ports:** Vite **5400**, HMR **5401** (block 5400–5409 reserved).
 
 **Production (web):** https://resource-allocation-planner-taupe.vercel.app · Vercel Production tracks branch **`dev`**.
 

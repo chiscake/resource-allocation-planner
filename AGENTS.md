@@ -1,6 +1,6 @@
 # AGENTS.md — resource-allocation-planner
 
-Agent instructions for this project. **This file overrides** `Labs/AGENTS.md` where they conflict (see [Overrides](#overrides)).
+Agent instructions for this project.
 
 ---
 
@@ -21,21 +21,6 @@ Human product copy / UI strings: Russian (see [UI copy](#ui-copy-russian)). **Ag
 Canonical status / shipped scope: [`ROADMAP.md`](ROADMAP.md). Schema: [`docs/data-model.md`](docs/data-model.md). Navigation map: [`docs/AGENT_NAV.md`](docs/AGENT_NAV.md) — **update AGENT_NAV when the tree or entrypoints change**.
 
 **Commits / push / Vercel / Supabase cloud ship:** follow [`docs/COMMIT_WORKFLOW.md`](docs/COMMIT_WORKFLOW.md). Run `pnpm preflight` **after staging** before committing on `dev`; `pnpm preflight:main` before promote/`main`. Default work branch is `dev` (also current Vercel Production).
-
----
-
-## Overrides
-
-Relative to workspace root `Labs/AGENTS.md`:
-
-| Topic                        | Labs root               | This project                                                                                               |
-| ---------------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------- |
-| Tests                        | Do not run unless asked | **Ignore Labs skip-tests.** Run `pnpm test` after non-trivial **solver** changes (see [Testing](#testing)) |
-| schema / model compatibility | (none)                  | **No backward-compat** while the schema_version rule above exists; breaking → `db reset`                   |
-| Ports                        | Discipline formula      | **5400–5409** reserved (Vite/HMR default **5400**/**5401**) — see root AGENTS reserved table               |
-| App canvas `#f3f3f3`         | Labs default            | **Cartesia** via `docs/DESIGN.md` (bg tokens) when styling UI                                              |
-| Write scope                  | Target lab folder       | `resource-allocation-planner/` (+ root AGENTS only when user asks, already done for ports)                 |
-| Report writing               | —                       | Do **not** write the course report unless the user explicitly asks                                         |
 
 ---
 
@@ -97,7 +82,7 @@ Follow [`docs/data-model.md`](docs/data-model.md); do not invent parallel owners
 
 - Vite: **5400**, HMR: **5401**, `strictPort: true`
 - Window / document title: **Планировщик распределения ресурсов** (or agreed short form if space-constrained — prefer full title)
-- **Visual design:** Cartesia canon in [`docs/DESIGN.md`](docs/DESIGN.md). Apply on UI work (see `.cursor/rules/design-system.mdc`). Overrides Labs canvas `#f3f3f3` in favor of DESIGN background tokens.
+- **Visual design:** Cartesia canon in [`docs/DESIGN.md`](docs/DESIGN.md). Apply on UI work (see `.cursor/rules/design-system.mdc`).
 
 ---
 
@@ -133,7 +118,7 @@ Prefer scripts from `package.json`:
 
 - Canon: `pnpm test` (Vitest under `src/**/*.test.ts`).
 - **Required:** new or changed **solver method** ⇒ unit tests for it. After non-trivial solver edits → `pnpm test`.
-- **UI / routes:** `pnpm check` after non-trivial Svelte work (Labs “analyzer” habit applies here as check).
+- **UI / routes:** `pnpm check` after non-trivial Svelte work.
 - **RLS / domain DB / Edge:** no automated suite yet — verify manually or via `pnpm db:reset`; do not invent ad-hoc test harnesses unless asked.
 - **Edge ≡ local parity:** **deferred** — local Vitest only for now; do not claim or implement Edge golden parity until explicitly requested.
 - GA/heuristic: feasibility / gap vs LP — **not** equality to simplex.
@@ -151,7 +136,7 @@ Prefer scripts from `package.json`:
 
 ## Tauri build
 
-- `src-tauri/.cargo/config.toml` sets `rustc-wrapper = "sccache"` (same as Labs Tauri labs). Keep it when touching Cargo config.
+- `src-tauri/.cargo/config.toml` sets `rustc-wrapper = "sccache"`. Keep it when touching Cargo config.
 
 ---
 
@@ -173,6 +158,5 @@ Do **not** silently grow alwaysApply rules. Prefer glob-scoped `.mdc` or a one-l
 ## Do not
 
 - Write the explanatory report / PDF unless asked.
-- Treat Labs root “skip tests” as applying here.
 - Add `source_id` on templates, `batch_id` what-if, or live template↔node links.
 - Use Kit `+server` for solve logic (Edge + client lib); keep Tauri/`adapter-static` viable.
