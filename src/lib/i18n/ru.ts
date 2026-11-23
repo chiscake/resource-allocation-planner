@@ -582,7 +582,7 @@ const ru = {
   runWhatIfHint: 'Запустите анализ чувствительности.',
   trashToBin: 'В корзину',
   deleteCard: 'Удалить',
-  cardDeleted: 'Карточка удалена',
+  cardDeleted: 'Задача удалена',
   undo: 'Отменить',
   deleteFailed: 'Не удалось удалить',
   restoreFailed: 'Не удалось восстановить',
