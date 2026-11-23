@@ -16,6 +16,7 @@
   } from '@lucide/svelte';
   import Button from '$lib/components/ui/Button.svelte';
   import Card from '$lib/components/ui/Card.svelte';
+  import AppIcon from '$lib/components/ui/AppIcon.svelte';
 
   type Feature = { icon: Component; label: RuKey };
 
@@ -51,13 +52,7 @@
 
 <main class="mx-auto flex min-h-screen max-w-3xl flex-col justify-center gap-8 p-8">
   <header class="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
-    <img
-      src="/android-chrome-192x192.png"
-      alt=""
-      width="72"
-      height="72"
-      class="size-[72px] shrink-0 rounded-[14px] shadow-sm"
-    />
+    <AppIcon size={72} class="shadow-sm" />
     <div class="min-w-0">
       <p class="text-sm font-medium tracking-wide text-text-soft uppercase">
         {t('desktopEdition')}

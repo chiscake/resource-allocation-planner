@@ -3,6 +3,7 @@
   import { page } from '$app/state';
   import { t } from '$lib/i18n';
   import Badge from '$lib/components/ui/Badge.svelte';
+  import AppIcon from '$lib/components/ui/AppIcon.svelte';
   import { chrome, toggleNav, openNotifications } from '$lib/chrome/chrome.svelte';
 
   let {
@@ -66,9 +67,10 @@
 
   <a
     href="/app"
-    class="min-w-0 truncate rounded-md px-1.5 py-1.5 text-sm font-medium text-text hover:bg-surface"
+    class="inline-flex min-w-0 items-center gap-2 truncate rounded-md px-1.5 py-1.5 text-sm font-medium text-text hover:bg-surface"
   >
-    {t('appTitle')}
+    <AppIcon size={28} />
+    <span class="min-w-0 truncate">{t('appTitle')}</span>
   </a>
 
   {#if listBack}

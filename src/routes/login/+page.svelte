@@ -10,6 +10,7 @@
   import Button from '$lib/components/ui/Button.svelte';
   import Input from '$lib/components/ui/Input.svelte';
   import InlineAlert from '$lib/components/ui/InlineAlert.svelte';
+  import AppIcon from '$lib/components/ui/AppIcon.svelte';
 
   type Mode = 'login' | 'register' | 'checkEmail' | 'mfa';
 
@@ -210,6 +211,7 @@
         <Button type="submit" disabled={busy}>{t('mfaLoginSubmit')}</Button>
       </form>
     {:else}
+      <AppIcon size={72} class="self-center" />
       <h1 class="text-2xl font-medium">
         {mode === 'login' ? t('login') : t('register')}
       </h1>
