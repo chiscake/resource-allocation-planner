@@ -6,7 +6,7 @@ export { default as SolveWorkspace } from './SolveWorkspace.svelte';
 export { default as WhatIfPanel } from './WhatIfPanel.svelte';
 export { default as SimplexStepsPanel } from './SimplexStepsPanel.svelte';
 export { default as LibraryVerifyPanel } from './LibraryVerifyPanel.svelte';
-export { formatPlanNumber } from './format-plan-number';
+export { formatPlanNumber, formatSensitivityNumber } from './format-plan-number';
 export {
   createSolveSession,
   inputToPct,

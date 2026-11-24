@@ -7,6 +7,7 @@
     sensitivityForGeneration,
   } from '$lib/domain';
   import { t } from '$lib/i18n';
+  import { formatPlanNumber } from '$lib/display';
   import Button from '$lib/components/ui/Button.svelte';
   import Card from '$lib/components/ui/Card.svelte';
   import InlineAlert from '$lib/components/ui/InlineAlert.svelte';
@@ -149,9 +150,9 @@
           <li class="rounded-[8px] border border-border-soft bg-bg-soft px-3 py-2 text-sm">
             <p class="font-medium text-text">{row.title}</p>
             <p class="mt-1 font-mono text-xs text-text-muted">
-              Z = {Number.isFinite(row.Z) ? row.Z.toFixed(4) : '—'}
+              Z = {formatPlanNumber(row.Z)}
               {#if Number.isFinite(row.deltaZ)}
-                · ΔZ = {row.deltaZ >= 0 ? '+' : ''}{row.deltaZ.toFixed(4)}
+                · ΔZ = {row.deltaZ >= 0 ? '+' : ''}{formatPlanNumber(row.deltaZ)}
               {/if}
             </p>
           </li>

@@ -19,7 +19,7 @@
   import Button from '$lib/components/ui/Button.svelte';
   import Select from '$lib/components/ui/Select.svelte';
   import LpModelMatrix from './LpModelMatrix.svelte';
-  import { formatPlanNumber } from './format-plan-number';
+  import { formatSensitivityNumber } from './format-plan-number';
   import {
     runInteractivePreview,
     shouldAutoPreview,
@@ -182,8 +182,8 @@
 
   function fmtDelta(v: number): string {
     if (!Number.isFinite(v)) return '—';
-    const s = formatPlanNumber(v);
-    if (Math.abs(v) < ZERO_EPS) return formatPlanNumber(0);
+    const s = formatSensitivityNumber(v);
+    if (Math.abs(v) < ZERO_EPS) return formatSensitivityNumber(0);
     return v > 0 ? `+${s}` : s;
   }
 
@@ -324,7 +324,7 @@
           <div>
             <p class="text-xs text-text-muted">Z</p>
             <p class="font-mono tabular-nums">
-              {Number.isFinite(previewRow.Z) ? formatPlanNumber(previewRow.Z) : '—'}
+              {Number.isFinite(previewRow.Z) ? formatSensitivityNumber(previewRow.Z) : '—'}
             </p>
           </div>
           <div>
@@ -337,7 +337,7 @@
             <p class="text-xs text-text-muted">{shadowLabel(previewRow)}</p>
             <p class="font-mono tabular-nums">
               {#if previewRow.shadowMetric != null && Number.isFinite(previewRow.shadowMetric)}
-                {formatPlanNumber(previewRow.shadowMetric)}
+                {formatSensitivityNumber(previewRow.shadowMetric)}
               {:else}
                 <span class="text-text-faint">{t('whatIfShadowNone')}</span>
               {/if}
@@ -348,7 +348,7 @@
             <p class="truncate font-mono text-xs tabular-nums text-text-muted">
               {planEntries(previewRow)
                 .filter(([, v]) => !isZeroPlan(v))
-                .map(([n, v]) => `${n}: ${formatPlanNumber(v)}`)
+                .map(([n, v]) => `${n}: ${formatSensitivityNumber(v)}`)
                 .join(' · ') || '—'}
             </p>
           </div>
@@ -369,7 +369,7 @@
                   >
                     <td class="py-1 pr-3">{name}</td>
                     <td class="py-1 text-right font-mono tabular-nums">
-                      {formatPlanNumber(value)}
+                      {formatSensitivityNumber(value)}
                     </td>
                   </tr>
                 {/each}

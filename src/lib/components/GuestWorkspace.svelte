@@ -144,10 +144,14 @@
       title = guest.title || t('newTask');
       whatIfState = guestWhatIfStateFromSnapshot(guest);
       solverMeta = (guest.solver_meta as SolverMeta | undefined) ?? null;
+      const hasSensitivityPack =
+        whatIfState.generations.some((g) => g.items.length > 0) ||
+        whatIfState.activeGeneration != null;
       session.hydrate({
         model: guest.model as Model,
         result: (guest.result as SolveResult | undefined) ?? null,
         whatIfItems: [],
+        includeSensitivity: hasSensitivityPack,
       });
       syncPagerToActive();
       return;

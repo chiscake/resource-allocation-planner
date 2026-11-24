@@ -201,7 +201,7 @@
     return crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
   }
 
-  function syncSessionFromNode() {
+  function syncSessionFromNode(opts?: { includeSensitivity?: boolean }) {
     if (!node?.model) {
       session.model = null;
       session.result = null;
@@ -214,6 +214,8 @@
       activeTab: isSolveMethod(loadedMethod) ? solveMethodToTab(loadedMethod) : session.activeTab,
       whatIfItems: [],
       lastWasCloud: node.solver_meta?.venue === 'cloud',
+      // Keep the checkbox in sync with existing pack results on the saved task.
+      includeSensitivity: opts?.includeSensitivity ?? session.includeSensitivity,
     });
   }
 
@@ -251,7 +253,6 @@
     }
     node = root as NodeRow;
     activeWhatIfGeneration = node.active_what_if_generation ?? null;
-    syncSessionFromNode();
     orgId = node.org_id ?? userOrgs[0]?.id ?? '';
     makePublic = node.org_visibility === 'org';
     const { data: kids } = await supabase
@@ -260,6 +261,9 @@
       .eq('parent_id', id)
       .order('what_if_generation', { ascending: true });
     children = (kids ?? []) as NodeRow[];
+    const hasSensitivityPack =
+      children.some(isSensitivityChild) || node.active_what_if_generation != null;
+    syncSessionFromNode({ includeSensitivity: hasSensitivityPack });
     genIndex = defaultPagerIndex(
       buildPagerSlots(collectGenerations(children), activeWhatIfGeneration),
     );
