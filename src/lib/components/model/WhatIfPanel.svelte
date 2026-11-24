@@ -236,6 +236,8 @@
       </div>
     {/if}
 
+    <p class="mb-3 text-xs text-text-soft">{t('whatIfContinuousHint')}</p>
+
     {#if hint && showPackHint}
       <p class="mb-3 text-xs text-text-soft">{hint}</p>
     {/if}
