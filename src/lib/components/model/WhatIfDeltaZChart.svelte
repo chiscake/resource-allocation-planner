@@ -94,20 +94,27 @@
   }
   const hZeroX = $derived(hX(0));
 
-  /** Value label at bar tip, but never into the Y-label gutter or past the right edge. */
+  /**
+   * Value at the outer tip when it fits in the plot; otherwise above the bar
+   * near mid-span so digits stay out of the Y-label gutter and off the fill.
+   */
   function hValuePlacement(
     deltaZ: number,
     x0: number,
     x1: number,
-  ): { x: number; anchor: 'start' | 'end' } {
+  ): { x: number; anchor: 'start' | 'end' | 'middle'; above: boolean } {
     if (deltaZ >= 0) {
       const outer = x1 + 3;
-      if (outer + hValueW > hViewW - 2) return { x: x1 - 3, anchor: 'end' };
-      return { x: outer, anchor: 'start' };
+      if (outer + hValueW > hViewW - 2) {
+        return { x: (hZeroX + x1) / 2, anchor: 'middle', above: true };
+      }
+      return { x: outer, anchor: 'start', above: false };
     }
     const outer = x0 - 3;
-    if (outer - hValueW < hPlotX0) return { x: x0 + 3, anchor: 'start' };
-    return { x: outer, anchor: 'end' };
+    if (outer - hValueW < hPlotX0 + 2) {
+      return { x: (hZeroX + x0) / 2, anchor: 'middle', above: true };
+    }
+    return { x: outer, anchor: 'end', above: false };
   }
 </script>
 
@@ -168,7 +175,7 @@
             {@const val = hValuePlacement(p.deltaZ, x0, x1)}
             <text
               x={val.x}
-              y={cy + 3}
+              y={val.above ? cy - 8 : cy + 3}
               text-anchor={val.anchor}
               class="fill-text-muted"
               font-size="8"
@@ -182,7 +189,7 @@
             <text
               x={hX(tick)}
               y={hViewH - 6}
-              text-anchor="middle"
+              text-anchor={tick === scale.min ? 'start' : tick === scale.max ? 'end' : 'middle'}
               class="fill-text-muted"
               font-size="9"
               font-family="ui-monospace, monospace"
