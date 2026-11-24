@@ -9,6 +9,7 @@ import {
   priceUnit,
   shadowUnit,
 } from '$lib/display/units';
+import { computeSensitivityRanges } from '$lib/solver';
 import { t, type RuKey } from '$lib/i18n';
 import { safeFilename } from './download';
 
@@ -36,14 +37,20 @@ const METHOD_KEY: Record<SolveMethod, RuKey> = {
   dln: 'methodDln',
 };
 
-/** Round away float noise; non-finite → null (rendered as «—»). */
-function num(v: number | undefined | null): number | null {
-  if (v == null || !Number.isFinite(v)) return null;
-  const r = Math.round(v * 1e6) / 1e6;
+/** Round to 2 decimal places for export; non-finite → null (rendered as «—»). ±∞ → string. */
+function num(v: number | undefined | null): number | string | null {
+  if (v == null) return null;
+  if (v === Number.POSITIVE_INFINITY) return '∞';
+  if (v === Number.NEGATIVE_INFINITY) return '−∞';
+  if (!Number.isFinite(v)) return null;
+  const r = Math.round(v * 100) / 100;
   return Object.is(r, -0) ? 0 : r;
 }
 
-const ruNumber = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 4 });
+const ruNumber = new Intl.NumberFormat('ru-RU', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
 
 function text(v: Cell): string {
   if (v == null) return '—';
@@ -123,6 +130,7 @@ export function whatIfTable(p: ExportPayload): Table {
       withUnitHeader(t('zMax'), obj),
       withUnitHeader(t('whatIfDeltaZ'), obj),
       t('whatIfShadowCol'),
+      t('exportBasisChanged'),
     ],
     body: (p.whatIfRows ?? []).map((r) => [
       r.title,
@@ -131,13 +139,64 @@ export function whatIfTable(p: ExportPayload): Table {
       num(r.Z),
       num(r.deltaZ),
       num(r.shadowMetric),
+      r.basisChanged ? t('compareYes') : t('compareNo'),
+    ]),
+  };
+}
+
+export function rhsRangesTable(p: ExportPayload): Table | null {
+  const sens = computeSensitivityRanges(p.model);
+  if (!sens) return null;
+  return {
+    head: [
+      t('exportResource'),
+      t('sensitivityColCurrent'),
+      t('sensitivityColAllowDec'),
+      t('sensitivityColAllowInc'),
+      t('sensitivityColLower'),
+      t('sensitivityColUpper'),
+      t('sensitivityColShadow'),
+    ],
+    body: sens.rhs.map((r) => [
+      labeledResource(p.model, r.index),
+      num(r.current),
+      num(r.allowDecrease),
+      num(r.allowIncrease),
+      num(r.lower),
+      num(r.upper),
+      num(r.shadowPrice),
+    ]),
+  };
+}
+
+export function objRangesTable(p: ExportPayload): Table | null {
+  const sens = computeSensitivityRanges(p.model);
+  if (!sens) return null;
+  return {
+    head: [
+      t('exportProduct'),
+      t('sensitivityColCurrent'),
+      t('sensitivityColAllowDec'),
+      t('sensitivityColAllowInc'),
+      t('sensitivityColLower'),
+      t('sensitivityColUpper'),
+      t('sensitivityColReducedCost'),
+    ],
+    body: sens.objective.map((r) => [
+      labeledProduct(p.model, r.index),
+      num(r.current),
+      num(r.allowDecrease),
+      num(r.allowIncrease),
+      num(r.lower),
+      num(r.upper),
+      num(r.reducedCost),
     ]),
   };
 }
 
 const HEAD_FILL = 'FFEFF6FF';
 const BORDER = 'FFE5E5E5';
-const NUM_FMT = '#,##0.####';
+const NUM_FMT = '#,##0.00';
 
 function addSheetTable(ws: ExcelJS.Worksheet, table: Table, startRow: number): number {
   const head = ws.getRow(startRow);
@@ -194,6 +253,22 @@ export async function buildExcelBlob(p: ExportPayload): Promise<{ blob: Blob; fi
   if (whatIf.body.length) {
     const ws = wb.addWorksheet(t('exportSheetWhatIf'));
     addSheetTable(ws, whatIf, 1);
+    ws.views = [{ state: 'frozen', ySplit: 1 }];
+    fitColumns(ws);
+  }
+
+  const rhsRanges = rhsRangesTable(p);
+  if (rhsRanges?.body.length) {
+    const ws = wb.addWorksheet(t('exportSheetRhsRanges'));
+    addSheetTable(ws, rhsRanges, 1);
+    ws.views = [{ state: 'frozen', ySplit: 1 }];
+    fitColumns(ws);
+  }
+
+  const objRanges = objRangesTable(p);
+  if (objRanges?.body.length) {
+    const ws = wb.addWorksheet(t('exportSheetObjRanges'));
+    addSheetTable(ws, objRanges, 1);
     ws.views = [{ state: 'frozen', ySplit: 1 }];
     fitColumns(ws);
   }
@@ -320,6 +395,10 @@ export function buildPdfBlob(p: ExportPayload, fonts: PdfFonts): { blob: Blob; f
   section(t('exportSheetResources'), resourceTable(p));
   const whatIf = whatIfTable(p);
   if (whatIf.body.length) section(t('exportSheetWhatIf'), whatIf);
+  const rhsRanges = rhsRangesTable(p);
+  if (rhsRanges?.body.length) section(t('exportSheetRhsRanges'), rhsRanges);
+  const objRanges = objRangesTable(p);
+  if (objRanges?.body.length) section(t('exportSheetObjRanges'), objRanges);
 
   return { blob: doc.output('blob'), filename: safeFilename(p.title, 'pdf', 'result') };
 }

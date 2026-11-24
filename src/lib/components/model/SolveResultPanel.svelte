@@ -15,7 +15,7 @@
   import { labeledProduct, labeledResource, objectiveUnit, shadowUnit } from '$lib/display/units';
   import { t } from '$lib/i18n';
   import Card from '$lib/components/ui/Card.svelte';
-  import { formatCompareNumber, formatPlanNumber } from './format-plan-number';
+  import { formatPlanNumber } from './format-plan-number';
   import SimplexStepsPanel from './SimplexStepsPanel.svelte';
   import GaStepsPanel from './GaStepsPanel.svelte';
   import LibraryVerifyPanel from './LibraryVerifyPanel.svelte';
@@ -129,7 +129,7 @@
   }
 
   function fmtNum(v: number): string {
-    return comparePrecision ? formatCompareNumber(v) : formatPlanNumber(v);
+    return formatPlanNumber(v);
   }
 
   function fmtSigned(v: number): string {

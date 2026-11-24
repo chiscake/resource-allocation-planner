@@ -12,8 +12,10 @@ import { solveLocal } from '$lib/solver';
 import {
   buildExcelBlob,
   buildPdfBlob,
+  objRangesTable,
   planTable,
   resourceTable,
+  rhsRangesTable,
   whatIfTable,
   type ExportPayload,
 } from './export-result';
@@ -62,6 +64,10 @@ describe('export-result', () => {
     expect(String(res.body[0]![0])).toContain(p.model.resource_units![0]!);
     expect(res.body[0]![2]).toBe(p.model.b[0]);
     expect(whatIfTable(p).body).toHaveLength(3);
+    expect(whatIfTable(p).head).toContain('Базис сменился');
+    expect(rhsRangesTable(p)?.body).toHaveLength(p.model.resources.length);
+    expect(objRangesTable(p)?.body).toHaveLength(p.model.products.length);
+    expect(rhsRangesTable(p)?.body[0]?.[4]).toBeCloseTo(65, 5);
   });
 
   it('writes an xlsx workbook that reads back', async () => {
@@ -70,7 +76,13 @@ describe('export-result', () => {
     expect(filename).toBe('Задача_13_тест.xlsx');
     const wb = new ExcelJS.Workbook();
     await wb.xlsx.load(await blob.arrayBuffer());
-    expect(wb.worksheets.map((w) => w.name)).toEqual(['Сводка', 'Ресурсы', 'Чувствительность']);
+    expect(wb.worksheets.map((w) => w.name)).toEqual([
+      'Сводка',
+      'Ресурсы',
+      'Чувствительность',
+      'Интервалы b',
+      'Интервалы c',
+    ]);
     const summary = wb.getWorksheet('Сводка')!;
     expect(summary.getCell('A1').value).toBe('Задача');
     expect(summary.getCell('B4').value).toBeCloseTo(p.result.Z, 6);
@@ -82,7 +94,13 @@ describe('export-result', () => {
     const p = { ...(await task13Payload()), whatIfRows: [] };
     const wb = new ExcelJS.Workbook();
     await wb.xlsx.load(await (await buildExcelBlob(p)).blob.arrayBuffer());
-    expect(wb.worksheets).toHaveLength(2);
+    // Summary + resources + two range sheets (ranges do not need pack rows).
+    expect(wb.worksheets.map((w) => w.name)).toEqual([
+      'Сводка',
+      'Ресурсы',
+      'Интервалы b',
+      'Интервалы c',
+    ]);
   });
 
   it('writes a PDF with an embedded Cyrillic font', async () => {

@@ -19,7 +19,6 @@
     type SolveResult,
     type SolverMeta,
   } from '$lib/domain';
-  import { maybeRoundPlan } from '$lib/display';
   import { solveLocal, runMutationsLocal } from '$lib/solver';
   import { t } from '$lib/i18n';
   import SolveWorkspace from '$lib/components/model/SolveWorkspace.svelte';
@@ -65,35 +64,20 @@
       ? (whatIfState.generations.find((g) => g.generation === activeGen)?.base ?? null)
       : null,
   );
+  /** Sensitivity pack always continuous — ignore session.roundPlan (base card only). */
   const whatIfRows = $derived.by((): WhatIfRow[] => {
     if (activeGen == null || !packBase) return [];
     const items = guestGenerationItems(whatIfState, activeGen);
-    return items.map((item) => {
-      const continuous = item.result;
-      const row = buildWhatIfRowData({
+    return items.map((item) =>
+      buildWhatIfRowData({
         base: packBase.model,
         baseResult: packBase.result,
         mutation: item.mutation,
         mutatedModel: item.model,
-        result: continuous,
+        result: item.result,
         valuesFromMutated: true,
-      });
-      if (continuous && session.roundPlan) {
-        const display = maybeRoundPlan(item.model, continuous, true);
-        const baseZ = packBase.result?.Z;
-        return {
-          ...row,
-          Z: display.Z,
-          deltaZ: baseZ != null && Number.isFinite(baseZ) ? display.Z - baseZ : row.deltaZ,
-          plan: display.x,
-          shadowMetric:
-            row.shadowKind === 'modernization' && baseZ != null
-              ? continuous.Z - baseZ
-              : row.shadowMetric,
-        };
-      }
-      return row;
-    });
+      }),
+    );
   });
   const whatIfEmptyMessage = $derived(
     activeSlot?.kind === 'empty_current' ? t('whatIfNotRun') : null,
@@ -144,10 +128,14 @@
       title = guest.title || t('newTask');
       whatIfState = guestWhatIfStateFromSnapshot(guest);
       solverMeta = (guest.solver_meta as SolverMeta | undefined) ?? null;
+      const hasSensitivityPack =
+        whatIfState.generations.some((g) => g.items.length > 0) ||
+        whatIfState.activeGeneration != null;
       session.hydrate({
         model: guest.model as Model,
         result: (guest.result as SolveResult | undefined) ?? null,
         whatIfItems: [],
+        includeSensitivity: hasSensitivityPack,
       });
       syncPagerToActive();
       return;

@@ -5,6 +5,9 @@
   import LpModelMatrix from './LpModelMatrix.svelte';
   import WhatIfTableBody from './WhatIfTableBody.svelte';
   import WhatIfInteractivePanel from './WhatIfInteractivePanel.svelte';
+  import SensitivityRangesTables from './SensitivityRangesTables.svelte';
+  import WhatIfDeltaZChart from './WhatIfDeltaZChart.svelte';
+  import ResourceParametricChart from './ResourceParametricChart.svelte';
   import type { WhatIfRow } from './solve-session.svelte';
   import type { Model, Mutation, SolveMethod, SolveResult, WhatIfRowData } from '$lib/domain';
   import type { WhatIfBadge } from '$lib/domain/whatif-generation';
@@ -191,6 +194,18 @@
           <LpModelMatrix model={displayBaseModel} readonly />
         {/key}
       </div>
+
+      <div class="mb-6 border-t border-border pt-5">
+        {#key rowsFingerprint}
+          <SensitivityRangesTables model={displayBaseModel} />
+        {/key}
+      </div>
+
+      <div class="mb-6 border-t border-border pt-5">
+        {#key `${rowsFingerprint}|param`}
+          <ResourceParametricChart model={displayBaseModel} />
+        {/key}
+      </div>
     {/if}
 
     {#if showInteractiveChrome}
@@ -260,6 +275,11 @@
         {#key rowsFingerprint}
           <WhatIfTableBody {rows} {onCreateTaskFromScenario} {onCompareScenario} />
         {/key}
+        <div class="mt-5 border-t border-border pt-5">
+          {#key rowsFingerprint}
+            <WhatIfDeltaZChart {rows} />
+          {/key}
+        </div>
       {/if}
     {/if}
   </Card>

@@ -10,6 +10,7 @@ export * from './verify';
 export * from './regenerate';
 export * from './compare';
 export * from './shared/resultBuild';
+export * from './shared/sensitivity-ranges';
 export * from './shared/lpDuals';
 export * from './methods/lp';
 export * from './methods/ipm';

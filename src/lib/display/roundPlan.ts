@@ -10,6 +10,9 @@ export type RoundingMethod = 'nearest';
  * Post-process a continuous LP result: round each \(x_i\) to nearest integer,
  * recompute Z, resource_usage, resource_slack, and feasible from A x <= b.
  * Keeps shadow_prices / critical / non_critical from the continuous dual.
+ *
+ * UI scope: base result card / compare / export of that card only.
+ * Do **not** apply to sensitivity (pack, interactive, ranges, Z(bᵢ) charts).
  */
 export function roundPlanNearest(
   model: Model,

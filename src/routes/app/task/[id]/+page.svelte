@@ -35,7 +35,6 @@
     type RunMutationsResponse,
     formatCompareIds,
   } from '$lib/domain';
-  import { maybeRoundPlan } from '$lib/display';
   import { t } from '$lib/i18n';
   import Button from '$lib/components/ui/Button.svelte';
   import Card from '$lib/components/ui/Card.svelte';
@@ -121,37 +120,20 @@
   const generationBase = $derived(
     activeGen != null ? findBaseForGeneration(children, activeGen) : null,
   );
+  /** Sensitivity pack always continuous — ignore session.roundPlan (base card only). */
   const whatIfRows = $derived<WhatIfRow[]>(
     visibleChildren.flatMap((c) => {
       if (!c.mutation || !node) return [];
       const baseModel = generationBase?.model ?? node.model;
       const baseResult = generationBase?.result ?? node.result;
-      const continuous = c.result;
       const row = buildWhatIfRowData({
         base: baseModel,
         baseResult,
         mutation: c.mutation,
         mutatedModel: c.model,
-        result: continuous,
+        result: c.result,
         valuesFromMutated: true,
       });
-      if (continuous && session.roundPlan) {
-        const display = maybeRoundPlan(c.model, continuous, true);
-        const baseZ = baseResult?.Z;
-        return [
-          {
-            ...row,
-            nodeId: c.id,
-            Z: display.Z,
-            deltaZ: baseZ != null && Number.isFinite(baseZ) ? display.Z - baseZ : row.deltaZ,
-            plan: display.x,
-            shadowMetric:
-              row.shadowKind === 'modernization' && baseZ != null
-                ? continuous.Z - baseZ
-                : row.shadowMetric,
-          },
-        ];
-      }
       return [{ ...row, nodeId: c.id }];
     }),
   );
@@ -201,7 +183,7 @@
     return crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
   }
 
-  function syncSessionFromNode() {
+  function syncSessionFromNode(opts?: { includeSensitivity?: boolean }) {
     if (!node?.model) {
       session.model = null;
       session.result = null;
@@ -214,6 +196,8 @@
       activeTab: isSolveMethod(loadedMethod) ? solveMethodToTab(loadedMethod) : session.activeTab,
       whatIfItems: [],
       lastWasCloud: node.solver_meta?.venue === 'cloud',
+      // Keep the checkbox in sync with existing pack results on the saved task.
+      includeSensitivity: opts?.includeSensitivity ?? session.includeSensitivity,
     });
   }
 
@@ -251,7 +235,6 @@
     }
     node = root as NodeRow;
     activeWhatIfGeneration = node.active_what_if_generation ?? null;
-    syncSessionFromNode();
     orgId = node.org_id ?? userOrgs[0]?.id ?? '';
     makePublic = node.org_visibility === 'org';
     const { data: kids } = await supabase
@@ -260,6 +243,9 @@
       .eq('parent_id', id)
       .order('what_if_generation', { ascending: true });
     children = (kids ?? []) as NodeRow[];
+    const hasSensitivityPack =
+      children.some(isSensitivityChild) || node.active_what_if_generation != null;
+    syncSessionFromNode({ includeSensitivity: hasSensitivityPack });
     genIndex = defaultPagerIndex(
       buildPagerSlots(collectGenerations(children), activeWhatIfGeneration),
     );

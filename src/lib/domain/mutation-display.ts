@@ -1,10 +1,9 @@
+import { formatPlanNumber } from '$lib/display/formatNumber';
 import { applyMutation } from './mutations';
 import type { Model, Mutation, MutationKind } from './types';
 
 function fmt(n: number): string {
-  if (!Number.isFinite(n)) return '—';
-  const r = Math.round(n * 1e6) / 1e6;
-  return String(r);
+  return formatPlanNumber(n);
 }
 
 const KIND_ORDER: Record<MutationKind, number> = {

@@ -2,7 +2,7 @@
   import { t } from '$lib/i18n';
   import { mutationKindOrder } from '$lib/domain';
   import Button from '$lib/components/ui/Button.svelte';
-  import { formatPlanNumber } from './format-plan-number';
+  import { formatSensitivityNumber } from './format-plan-number';
   import LpModelMatrix from './LpModelMatrix.svelte';
   import type { WhatIfRow } from './solve-session.svelte';
   import type { WhatIfRowData } from '$lib/domain';
@@ -53,7 +53,7 @@
   });
 
   const hasExpanded = $derived(expandedKeys.length > 0);
-  const colCount = 6;
+  const colCount = 7;
 
   function sortBtnClass(mode: SortMode): string {
     return sortMode === mode ? 'bg-brand-soft! text-brand!' : 'text-text-muted! hover:bg-surface!';
@@ -77,8 +77,8 @@
 
   function fmtDelta(v: number): string {
     if (!Number.isFinite(v)) return '—';
-    const s = formatPlanNumber(v);
-    if (Math.abs(v) < ZERO_EPS) return formatPlanNumber(0);
+    if (Math.abs(v) < ZERO_EPS) return formatSensitivityNumber(0);
+    const s = formatSensitivityNumber(v);
     return v > 0 ? `+${s}` : s;
   }
 
@@ -143,7 +143,8 @@
         <th class="py-2 pr-3">{t('mutationAfter')}</th>
         <th class="py-2 pr-3 text-right">Z</th>
         <th class="py-2 pr-3 text-right">{t('whatIfDeltaZ')}</th>
-        <th class="py-2 text-right">{t('whatIfShadowCol')}</th>
+        <th class="py-2 pr-3 text-right">{t('whatIfShadowCol')}</th>
+        <th class="py-2 text-right">{t('sensitivityBasisChanged')}</th>
       </tr>
     </thead>
     <tbody>
@@ -160,17 +161,20 @@
             {row.after ?? '—'}
           </td>
           <td class="py-2 pr-3 text-right font-mono tabular-nums">
-            {Number.isFinite(row.Z) ? formatPlanNumber(row.Z) : '—'}
+            {Number.isFinite(row.Z) ? formatSensitivityNumber(row.Z) : '—'}
           </td>
           <td class="py-2 pr-3 text-right font-mono tabular-nums text-text-muted">
             {fmtDelta(row.deltaZ)}
           </td>
-          <td class="py-2 text-right font-mono tabular-nums">
+          <td class="py-2 pr-3 text-right font-mono tabular-nums">
             {#if row.shadowMetric != null && Number.isFinite(row.shadowMetric)}
-              {formatPlanNumber(row.shadowMetric)}
+              {formatSensitivityNumber(row.shadowMetric)}
             {:else}
               <span class="text-text-faint">{t('whatIfShadowNone')}</span>
             {/if}
+          </td>
+          <td class="py-2 text-right text-xs">
+            {row.basisChanged ? t('sensitivityBasisYes') : t('sensitivityBasisNo')}
           </td>
         </tr>
         {#if isExpanded(key)}
@@ -196,7 +200,7 @@
                     >
                       <td class="py-1 pr-3">{name}</td>
                       <td class="py-1 text-right font-mono tabular-nums">
-                        {formatPlanNumber(value)}
+                        {formatSensitivityNumber(value)}
                       </td>
                     </tr>
                   {/each}

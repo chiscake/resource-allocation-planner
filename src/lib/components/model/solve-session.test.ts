@@ -52,6 +52,9 @@ describe('solve-session helpers', () => {
     expect(laborPlus!.shadowKind).toBe('resource');
     expect(laborPlus!.shadowMetric).toBeGreaterThan(0);
     expect(laborPlus!.plan['Частотомер']).toBeDefined();
+    // ±10% labor stays inside [65; 230] → same plan composition.
+    expect(laborPlus!.basisChanged).toBe(false);
+    expect(Number.isFinite(laborPlus!.deltaZ)).toBe(true);
 
     const mod = rows.find(
       (r) => r.mutation.kind === 'modernization' && r.mutation.target === 'Частотомер',
