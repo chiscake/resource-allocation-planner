@@ -14,7 +14,7 @@ export function shortDeltaZLabel(row: WhatIfRowData): string {
     case 'resource_change':
       return `${name} ${d}`;
     case 'modernization':
-      return `Норма: ${name}`;
+      return `Расход: ${name}`;
     case 'price_change':
       return `Цена: ${name} ${d}`;
     default:

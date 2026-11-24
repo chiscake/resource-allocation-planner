@@ -48,7 +48,7 @@ describe('shortDeltaZLabel', () => {
           mutation: { kind: 'modernization', target: 'Частотомер', delta: -0.1 },
         }),
       ),
-    ).toBe('Норма: Частотомер');
+    ).toBe('Расход: Частотомер');
 
     expect(
       shortDeltaZLabel(

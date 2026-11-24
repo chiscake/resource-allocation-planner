@@ -77,19 +77,38 @@
   const vZeroY = $derived(vY(0));
 
   // ——— Horizontal layout (narrow) ———
-  const hPad = { top: 12, right: 48, bottom: 28, left: 0 };
+  const hPad = { top: 12, right: 52, bottom: 28, left: 0 };
   const hViewW = 400;
   const hRowH = 22;
-  const hLabelW = 118;
+  /** Gutter for short labels; keep value digits out of this zone. */
+  const hLabelW = 128;
   const hViewH = $derived(hPad.top + hPad.bottom + points.length * hRowH);
   const hPlotX0 = hPad.left + hLabelW;
   const hPlotW = hViewW - hPlotX0 - hPad.right;
+  /** Approx width of «−18.00» at font 8 (viewBox units). */
+  const hValueW = 28;
 
   function hX(v: number): number {
     const t01 = (v - scale.min) / (scale.max - scale.min || 1);
     return hPlotX0 + t01 * hPlotW;
   }
   const hZeroX = $derived(hX(0));
+
+  /** Value label at bar tip, but never into the Y-label gutter or past the right edge. */
+  function hValuePlacement(
+    deltaZ: number,
+    x0: number,
+    x1: number,
+  ): { x: number; anchor: 'start' | 'end' } {
+    if (deltaZ >= 0) {
+      const outer = x1 + 3;
+      if (outer + hValueW > hViewW - 2) return { x: x1 - 3, anchor: 'end' };
+      return { x: outer, anchor: 'start' };
+    }
+    const outer = x0 - 3;
+    if (outer - hValueW < hPlotX0) return { x: x0 + 3, anchor: 'start' };
+    return { x: outer, anchor: 'end' };
+  }
 </script>
 
 {#if points.length}
@@ -146,10 +165,11 @@
             >
               <title>{p.title}: ΔZ = {formatSensitivityNumber(p.deltaZ)}</title>
             </rect>
+            {@const val = hValuePlacement(p.deltaZ, x0, x1)}
             <text
-              x={p.deltaZ >= 0 ? x1 + 3 : x0 - 3}
+              x={val.x}
               y={cy + 3}
-              text-anchor={p.deltaZ >= 0 ? 'start' : 'end'}
+              text-anchor={val.anchor}
               class="fill-text-muted"
               font-size="8"
               font-family="ui-monospace, monospace"
