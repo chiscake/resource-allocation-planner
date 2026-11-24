@@ -54,7 +54,7 @@
     const yMaxRaw = Math.max(coreMax, Math.min(worstMax, coreMax + room));
     const padY = span * 0.08;
     const yMin = yMinRaw - padY;
-    const yMax = yMaxRaw + padY;
+    const yMax = yMaxRaw;
     return {
       xMin: points[0].generation,
       xMax: Math.max(points[points.length - 1].generation, points[0].generation + 1),
