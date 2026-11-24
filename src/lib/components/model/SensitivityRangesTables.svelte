@@ -55,13 +55,15 @@
                 <td class="py-2 pr-3 text-right font-mono tabular-nums">
                   {formatSensitivityNumber(row.upper)}
                 </td>
-                <td class="py-2 text-right font-mono tabular-nums">
-                  {formatSensitivityNumber(row.shadowPrice)}
-                  {#if shadowUnit(model, row.index)}
-                    <span class="ml-1 text-[10px] text-text-faint">
-                      {shadowUnit(model, row.index)}
+                <td class="py-2">
+                  <div class="flex items-baseline justify-end">
+                    <span class="font-mono tabular-nums">
+                      {formatSensitivityNumber(row.shadowPrice)}
                     </span>
-                  {/if}
+                    <span class="ml-1 w-28 text-left text-[10px] text-text-faint">
+                      {shadowUnit(model, row.index) || ''}
+                    </span>
+                  </div>
                 </td>
               </tr>
             {/each}

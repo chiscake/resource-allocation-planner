@@ -626,12 +626,6 @@ const ru = {
   whatIfCreateNeedsLogin: 'Чтобы создать задачу, войдите в аккаунт',
   whatIfInteractiveNeedSolve: 'Сначала рассчитайте базовый план',
   whatIfInteractiveBusy: 'Пересчёт…',
-  /**
-   * Sensitivity card: rounding toggle does not apply here (continuous LP only).
-   * Instrument tone — short, what the block uses.
-   */
-  whatIfContinuousHint:
-    'Анализ считается по непрерывной модели. Округление плана до целых на этот блок не действует.',
   /** Stability ranges section inside the sensitivity card. */
   sensitivityRangesTitle: 'Интервалы устойчивости',
   sensitivityRangesHint:

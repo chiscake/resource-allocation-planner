@@ -24,14 +24,15 @@
   }
 
   /** Extra bottom room for x tick numbers + axis title. */
-  const pad = { top: 20, right: 16, bottom: 52, left: 52 };
-  const viewW = 640;
-  const viewH = 256;
+  const pad = { top: 20, right: 28, bottom: 50, left: 50 };
+  /** Mid-size viewBox; CSS max-width caps desktop stretch without going tiny. */
+  const viewW = 520;
+  const viewH = 248;
   const plotW = viewW - pad.left - pad.right;
   const plotH = viewH - pad.top - pad.bottom;
 
-  /** Approx. label half-width in viewBox px; ~30px on a 400px-wide render. */
-  const LABEL_CLOSE_PX = 48;
+  /** Approx. label half-width in viewBox units. */
+  const LABEL_CLOSE_PX = 44;
 
   const bounds = $derived.by(() => {
     const finite = samples.filter((s) => Number.isFinite(s.Z));
@@ -172,119 +173,127 @@
       </label>
     </div>
 
-    <div class="overflow-x-auto">
-      <svg
-        viewBox="0 0 {viewW} {viewH}"
-        class="h-auto w-full min-w-0 text-text"
-        role="img"
-        aria-label={t('sensitivityParametricChart')}
-      >
-        {#each yTicks as tick (tick)}
+    <div class="mx-auto w-full max-w-3xl">
+      <div class="overflow-x-auto">
+        <svg
+          viewBox="0 0 {viewW} {viewH}"
+          class="h-auto w-full min-w-0 text-text"
+          role="img"
+          aria-label={t('sensitivityParametricChart')}
+        >
+          {#each yTicks as tick (tick)}
+            <line
+              x1={pad.left}
+              x2={viewW - pad.right}
+              y1={yScale(tick)}
+              y2={yScale(tick)}
+              class="stroke-border"
+              stroke-width="1"
+            />
+            <text
+              x={pad.left - 6}
+              y={yScale(tick) + 3}
+              text-anchor="end"
+              class="fill-text-muted"
+              font-size="9"
+              font-family="ui-monospace, monospace"
+            >
+              {formatSensitivityNumber(tick)}
+            </text>
+          {/each}
+
+          <!-- X axis baseline + ticks -->
           <line
             x1={pad.left}
             x2={viewW - pad.right}
-            y1={yScale(tick)}
-            y2={yScale(tick)}
+            y1={pad.top + plotH}
+            y2={pad.top + plotH}
             class="stroke-border"
             stroke-width="1"
           />
-          <text
-            x={pad.left - 6}
-            y={yScale(tick) + 3}
-            text-anchor="end"
-            class="fill-text-muted"
-            font-size="10"
-            font-family="ui-monospace, monospace"
-          >
-            {formatSensitivityNumber(tick)}
-          </text>
-        {/each}
+          {#each xTicks as tick, i (tick)}
+            <line
+              x1={xScale(tick)}
+              x2={xScale(tick)}
+              y1={pad.top + plotH}
+              y2={pad.top + plotH + 4}
+              class="stroke-text-muted"
+              stroke-width="1"
+            />
+            <text
+              x={xScale(tick)}
+              y={pad.top + plotH + 16}
+              text-anchor={i === 0 ? 'start' : i === xTicks.length - 1 ? 'end' : 'middle'}
+              class="fill-text-muted"
+              font-size="9"
+              font-family="ui-monospace, monospace"
+            >
+              {formatSensitivityNumber(tick)}
+            </text>
+          {/each}
 
-        <!-- X axis baseline + ticks -->
-        <line
-          x1={pad.left}
-          x2={viewW - pad.right}
-          y1={pad.top + plotH}
-          y2={pad.top + plotH}
-          class="stroke-border"
-          stroke-width="1"
-        />
-        {#each xTicks as tick (tick)}
-          <line
-            x1={xScale(tick)}
-            x2={xScale(tick)}
-            y1={pad.top + plotH}
-            y2={pad.top + plotH + 4}
-            class="stroke-text-muted"
-            stroke-width="1"
+          {#each markers as m (m.id)}
+            <line
+              x1={m.x}
+              x2={m.x}
+              y1={pad.top}
+              y2={pad.top + plotH}
+              class={m.kind === 'current' ? 'stroke-text' : 'stroke-brand'}
+              stroke-width={m.kind === 'current' ? 1.5 : 1.25}
+              stroke-dasharray={m.kind === 'bound' ? '4 3' : undefined}
+            >
+              <title>{m.title}</title>
+            </line>
+            <text
+              x={m.labelX}
+              y={m.labelY}
+              text-anchor={m.labelAnchor}
+              class={m.kind === 'current' ? 'fill-text' : 'fill-brand'}
+              font-size="9"
+              font-family="ui-monospace, monospace"
+            >
+              {m.label}
+            </text>
+          {/each}
+
+          <path
+            d={pathD}
+            fill="none"
+            class="stroke-brand"
+            stroke-width="2"
+            stroke-linejoin="round"
           />
+
           <text
-            x={xScale(tick)}
-            y={pad.top + plotH + 16}
+            x={pad.left + plotW / 2}
+            y={viewH - 6}
             text-anchor="middle"
             class="fill-text-muted"
-            font-size="10"
-            font-family="ui-monospace, monospace"
+            font-size="9"
           >
-            {formatSensitivityNumber(tick)}
+            {axisTitle}
           </text>
-        {/each}
+        </svg>
+      </div>
 
-        {#each markers as m (m.id)}
-          <line
-            x1={m.x}
-            x2={m.x}
-            y1={pad.top}
-            y2={pad.top + plotH}
-            class={m.kind === 'current' ? 'stroke-text' : 'stroke-brand'}
-            stroke-width={m.kind === 'current' ? 1.5 : 1.25}
-            stroke-dasharray={m.kind === 'bound' ? '4 3' : undefined}
-          >
-            <title>{m.title}</title>
-          </line>
-          <text
-            x={m.labelX}
-            y={m.labelY}
-            text-anchor={m.labelAnchor}
-            class={m.kind === 'current' ? 'fill-text' : 'fill-brand'}
-            font-size="10"
-            font-family="ui-monospace, monospace"
-          >
-            {m.label}
-          </text>
-        {/each}
-
-        <path d={pathD} fill="none" class="stroke-brand" stroke-width="2" stroke-linejoin="round" />
-
-        <text
-          x={pad.left + plotW / 2}
-          y={viewH - 6}
-          text-anchor="middle"
-          class="fill-text-muted"
-          font-size="10"
-        >
-          {axisTitle}
-        </text>
-      </svg>
+      <ul
+        class="mt-1.5 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[10px] text-text-muted"
+        aria-label={t('sensitivityParametricChart')}
+      >
+        <li class="flex items-center gap-1.5">
+          <span class="inline-block h-0.5 w-4 rounded-sm bg-brand" aria-hidden="true"></span>
+          <span>{t('sensitivityLegendZ')}</span>
+        </li>
+        <li class="flex items-center gap-1.5">
+          <span class="inline-block h-3 w-0 border-l-[1.5px] border-text" aria-hidden="true"></span>
+          <span>{t('sensitivityLegendCurrent')}</span>
+        </li>
+        <li class="flex items-center gap-1.5">
+          <span class="inline-block h-3 w-0 border-l border-dashed border-brand" aria-hidden="true"
+          ></span>
+          <span>{t('sensitivityLegendBounds')}</span>
+        </li>
+      </ul>
     </div>
-
-    <ul
-      class="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-text-muted"
-      aria-label={t('sensitivityParametricChart')}
-    >
-      <li class="flex items-center gap-1.5">
-        <span class="inline-block h-0.5 w-4 rounded-sm bg-brand" aria-hidden="true"></span>
-        <span>{t('sensitivityLegendZ')}</span>
-      </li>
-      <li class="flex items-center gap-1.5">
-        <span class="inline-block h-3 w-0 border-l-[1.5px] border-text" aria-hidden="true"></span>
-        <span>{t('sensitivityLegendCurrent')}</span>
-      </li>
-      <li class="flex items-center gap-1.5">
-        <span class="inline-block h-3 w-0 border-l border-dashed border-brand" aria-hidden="true"
-        ></span>
-        <span>{t('sensitivityLegendBounds')}</span>
-      </li>
-    </ul>
   </div>
 {/if}
