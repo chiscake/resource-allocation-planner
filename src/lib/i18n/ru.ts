@@ -517,7 +517,6 @@ const ru = {
   exportSheetWhatIf: 'Чувствительность',
   exportSheetRhsRanges: 'Интервалы b',
   exportSheetObjRanges: 'Интервалы c',
-  exportBasisChanged: 'Базис сменился',
   /** Units row / column header in the LP tableau. */
   matrixUnit: 'Ед. изм.',
   /** Faint hint in an empty unit cell. */
@@ -639,9 +638,6 @@ const ru = {
   sensitivityColUpper: 'Верхняя граница',
   sensitivityColShadow: 'Теневая цена',
   sensitivityColReducedCost: 'Приведённая стоимость',
-  sensitivityBasisChanged: 'Смена базиса',
-  sensitivityBasisYes: 'Да',
-  sensitivityBasisNo: 'Нет',
   sensitivityDeltaZChart: 'ΔZ по сценариям пакета',
   sensitivityParametricChart: 'Z при изменении запаса ресурса',
   sensitivityParametricResource: 'Ресурс для графика',

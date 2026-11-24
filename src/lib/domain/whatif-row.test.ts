@@ -60,6 +60,5 @@ describe('sensitivity rows stay continuous', () => {
     expect(row.shadowMetric).toBeCloseTo(solved.result!.shadow_prices['Труд']!, 6);
     // Labor +10% stays in [65;230] → continuous ΔZ = y₁·8 = 32/3
     expect(row.deltaZ).toBeCloseTo((4 / 3) * 8, 5);
-    expect(row.basisChanged).toBe(false);
   });
 });

@@ -64,7 +64,8 @@ describe('export-result', () => {
     expect(String(res.body[0]![0])).toContain(p.model.resource_units![0]!);
     expect(res.body[0]![2]).toBe(p.model.b[0]);
     expect(whatIfTable(p).body).toHaveLength(3);
-    expect(whatIfTable(p).head).toContain('Базис сменился');
+    expect(whatIfTable(p).head).not.toContain('Базис сменился');
+    expect(whatIfTable(p).body[0]).toHaveLength(whatIfTable(p).head.length);
     expect(rhsRangesTable(p)?.body).toHaveLength(p.model.resources.length);
     expect(objRangesTable(p)?.body).toHaveLength(p.model.products.length);
     expect(rhsRangesTable(p)?.body[0]?.[4]).toBeCloseTo(65, 5);

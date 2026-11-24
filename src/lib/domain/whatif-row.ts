@@ -2,25 +2,6 @@ import { formatMutationLabel } from './mutations';
 import { mutationBeforeAfter, mutationBeforeAfterFromMutated } from './mutation-display';
 import type { Model, Mutation, SolveResult } from './types';
 
-const PLAN_SUPPORT_EPS = 1e-6;
-
-/** True when the set of positive plan variables differs from the base. */
-export function planCompositionChanged(
-  baseX: Record<string, number> | null | undefined,
-  nextX: Record<string, number> | null | undefined,
-  eps = PLAN_SUPPORT_EPS,
-): boolean {
-  const support = (x: Record<string, number> | null | undefined) =>
-    Object.entries(x ?? {})
-      .filter(([, v]) => Number.isFinite(v) && Math.abs(v) > eps)
-      .map(([k]) => k)
-      .sort();
-  const a = support(baseX);
-  const b = support(nextX);
-  if (a.length !== b.length) return true;
-  return a.some((k, i) => k !== b[i]);
-}
-
 /** Sensitivity row payload for the what-if table (UI). */
 export type WhatIfRowData = {
   title: string;
@@ -41,8 +22,6 @@ export type WhatIfRowData = {
   shadowMetric: number | null;
   shadowKind: 'resource' | 'modernization' | 'none';
   criticalResources: string[];
-  /** Optimal plan composition (support of x) differs from the base solution. */
-  basisChanged: boolean;
   /** Persisted sensitivity child id when row comes from cloud solve_nodes. */
   nodeId?: string;
 };
@@ -98,6 +77,5 @@ export function buildWhatIfRowData(input: {
     shadowMetric,
     shadowKind,
     criticalResources: result?.critical_resources ? [...result.critical_resources] : [],
-    basisChanged: planCompositionChanged(baseResult?.x, plan),
   };
 }

@@ -15,7 +15,6 @@ function row(
     plan: {},
     shadowMetric: null,
     shadowKind: 'none',
-    basisChanged: false,
     criticalResources: [],
     ...partial,
   };

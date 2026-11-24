@@ -53,7 +53,7 @@
   });
 
   const hasExpanded = $derived(expandedKeys.length > 0);
-  const colCount = 7;
+  const colCount = 6;
 
   function sortBtnClass(mode: SortMode): string {
     return sortMode === mode ? 'bg-brand-soft! text-brand!' : 'text-text-muted! hover:bg-surface!';
@@ -143,8 +143,7 @@
         <th class="py-2 pr-3">{t('mutationAfter')}</th>
         <th class="py-2 pr-3 text-right">Z</th>
         <th class="py-2 pr-3 text-right">{t('whatIfDeltaZ')}</th>
-        <th class="py-2 pr-3 text-right">{t('whatIfShadowCol')}</th>
-        <th class="py-2 text-right">{t('sensitivityBasisChanged')}</th>
+        <th class="py-2 text-right">{t('whatIfShadowCol')}</th>
       </tr>
     </thead>
     <tbody>
@@ -166,15 +165,12 @@
           <td class="py-2 pr-3 text-right font-mono tabular-nums text-text-muted">
             {fmtDelta(row.deltaZ)}
           </td>
-          <td class="py-2 pr-3 text-right font-mono tabular-nums">
+          <td class="py-2 text-right font-mono tabular-nums">
             {#if row.shadowMetric != null && Number.isFinite(row.shadowMetric)}
               {formatSensitivityNumber(row.shadowMetric)}
             {:else}
               <span class="text-text-faint">{t('whatIfShadowNone')}</span>
             {/if}
-          </td>
-          <td class="py-2 text-right text-xs">
-            {row.basisChanged ? t('sensitivityBasisYes') : t('sensitivityBasisNo')}
           </td>
         </tr>
         {#if isExpanded(key)}

@@ -130,7 +130,6 @@ export function whatIfTable(p: ExportPayload): Table {
       withUnitHeader(t('zMax'), obj),
       withUnitHeader(t('whatIfDeltaZ'), obj),
       t('whatIfShadowCol'),
-      t('exportBasisChanged'),
     ],
     body: (p.whatIfRows ?? []).map((r) => [
       r.title,
@@ -139,7 +138,6 @@ export function whatIfTable(p: ExportPayload): Table {
       num(r.Z),
       num(r.deltaZ),
       num(r.shadowMetric),
-      r.basisChanged ? t('compareYes') : t('compareNo'),
     ]),
   };
 }

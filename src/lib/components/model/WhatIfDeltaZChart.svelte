@@ -31,7 +31,6 @@
       title: r.title,
       short: shortDeltaZLabel(r),
       deltaZ: Number.isFinite(r.deltaZ) ? r.deltaZ : 0,
-      basisChanged: r.basisChanged,
     })),
   );
 
@@ -167,7 +166,7 @@
               y={cy - 6}
               width={Math.max(x1 - x0, 1)}
               height={12}
-              class={p.basisChanged ? 'fill-danger-text/80' : 'fill-brand'}
+              class="fill-brand"
               rx="2"
             >
               <title>{p.title}: ΔZ = {formatSensitivityNumber(p.deltaZ)}</title>
@@ -240,14 +239,7 @@
             {@const y = Math.min(vY(p.deltaZ), vZeroY)}
             {@const h = Math.abs(vY(p.deltaZ) - vZeroY)}
             {@const cx = x + vBarW() / 2}
-            <rect
-              {x}
-              {y}
-              width={vBarW()}
-              height={Math.max(h, 1)}
-              class={p.basisChanged ? 'fill-danger-text/80' : 'fill-brand'}
-              rx="2"
-            >
+            <rect {x} {y} width={vBarW()} height={Math.max(h, 1)} class="fill-brand" rx="2">
               <title>{p.title}: ΔZ = {formatSensitivityNumber(p.deltaZ)}</title>
             </rect>
             <text
