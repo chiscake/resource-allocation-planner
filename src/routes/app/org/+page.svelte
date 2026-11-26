@@ -9,12 +9,17 @@
   import PageHeader from '$lib/components/ui/PageHeader.svelte';
   import Button from '$lib/components/ui/Button.svelte';
   import Card from '$lib/components/ui/Card.svelte';
+  import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
   import EmptyState from '$lib/components/ui/EmptyState.svelte';
 
+  type FeedRow = { id: string; title: string; owner_id: string; org_id: string | null };
+
   let orgs = $state<{ id: string; name: string }[]>([]);
-  let feed = $state<{ id: string; title: string; owner_id: string; org_id: string | null }[]>([]);
+  let feed = $state<FeedRow[]>([]);
   let isOrgOwner = $state(false);
   let myId = $state('');
+  let confirmOpen = $state(false);
+  let pendingHide = $state<FeedRow | null>(null);
 
   async function load() {
     const { data: auth } = await supabase.auth.getUser();
@@ -55,12 +60,14 @@
     void load();
   });
 
-  async function hideAsOrgOwner(row: {
-    id: string;
-    title: string;
-    owner_id: string;
-    org_id: string | null;
-  }) {
+  function requestHide(row: FeedRow) {
+    pendingHide = row;
+    confirmOpen = true;
+  }
+
+  async function hideAsOrgOwner() {
+    if (!pendingHide) return;
+    const row = pendingHide;
     await supabase.from('solve_nodes').update({ org_visibility: 'private' }).eq('id', row.id);
     await supabase
       .from('solve_nodes')
@@ -84,6 +91,7 @@
       visibility_from: 'org',
       visibility_to: 'private',
     });
+    pendingHide = null;
     await load();
   }
 </script>
@@ -116,7 +124,7 @@
           <Card padding={false} class="flex items-center justify-between gap-2 px-4 py-3">
             <a class="text-brand hover:underline" href="/app/task/{n.id}">{n.title}</a>
             {#if isOrgOwner && n.owner_id !== myId}
-              <Button variant="ghost" class="text-danger-text!" onclick={() => hideAsOrgOwner(n)}>
+              <Button variant="ghost" class="text-danger-text!" onclick={() => requestHide(n)}>
                 {t('hide')}
               </Button>
             {/if}
@@ -126,3 +134,14 @@
     {/if}
   </div>
 </section>
+
+<ConfirmModal
+  bind:open={confirmOpen}
+  title={t('confirmHideOrgTitle')}
+  body={pendingHide ? t('confirmHideOrgBody', { title: pendingHide.title }) : ''}
+  confirmLabel={t('hide')}
+  onconfirm={hideAsOrgOwner}
+  oncancel={() => {
+    pendingHide = null;
+  }}
+/>

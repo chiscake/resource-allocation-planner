@@ -119,8 +119,8 @@
       })}
     </p>
   {/if}
-  <div class="mt-6 flex justify-end gap-2">
-    <Button variant="ghost" onclick={cancelImport}>{t('cancel')}</Button>
-    <Button onclick={applyImport}>{t('csvImportApply')}</Button>
+  <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+    <Button variant="ghost" class="w-full sm:w-auto" onclick={cancelImport}>{t('cancel')}</Button>
+    <Button class="w-full sm:w-auto" onclick={applyImport}>{t('csvImportApply')}</Button>
   </div>
 </Modal>

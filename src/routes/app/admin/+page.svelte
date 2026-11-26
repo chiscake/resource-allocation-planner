@@ -1025,8 +1025,8 @@
 
 <Modal bind:open={confirmOpen} title={confirmTitle} onclose={closeConfirm}>
   <p class="text-sm text-text-muted">{confirmBody}</p>
-  <div class="mt-6 flex justify-end gap-2">
-    <Button variant="ghost" onclick={closeConfirm} disabled={confirming}>
+  <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+    <Button variant="ghost" class="w-full sm:w-auto" onclick={closeConfirm} disabled={confirming}>
       {t('cancel')}
     </Button>
     <Button
@@ -1034,6 +1034,7 @@
       (pendingMutation?.kind === 'set_blocked' && pendingMutation.blocked)
         ? 'danger'
         : 'primary'}
+      class="w-full sm:w-auto"
       onclick={runConfirm}
       disabled={confirming}
     >

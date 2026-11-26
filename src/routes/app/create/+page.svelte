@@ -13,6 +13,7 @@
     type TaskDraft,
   } from '$lib/db/task-draft';
   import Button from '$lib/components/ui/Button.svelte';
+  import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
   import { Eraser } from '@lucide/svelte';
   import { recordPublicTemplateUse } from '$lib/db/template-uses';
   import { solveModel, runMutations } from '$lib/api/solve';
@@ -28,6 +29,7 @@
   import type { VerifyReport } from '$lib/solver/verify';
 
   let title = $state(t('newTask'));
+  let clearConfirmOpen = $state(false);
   let draftHint = $state(true);
   let ready = $state(false);
   const session = createSolveSession();
@@ -251,7 +253,7 @@
           disabled={session.busy}
           aria-label={t('clearDraft')}
           title={t('clearDraftHint')}
-          onclick={() => void clearDraft()}
+          onclick={() => (clearConfirmOpen = true)}
         >
           <Eraser size={18} strokeWidth={1.75} aria-hidden="true" />
         </Button>
@@ -272,4 +274,12 @@
       {/snippet}
     </SolveWorkspace>
   </section>
+
+  <ConfirmModal
+    bind:open={clearConfirmOpen}
+    title={t('confirmClearDraftTitle')}
+    body={t('confirmClearDraftBody')}
+    confirmLabel={t('clearDraft')}
+    onconfirm={clearDraft}
+  />
 {/if}

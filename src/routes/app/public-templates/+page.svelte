@@ -15,6 +15,7 @@
   import PageHeader from '$lib/components/ui/PageHeader.svelte';
   import Button from '$lib/components/ui/Button.svelte';
   import CardIconButton from '$lib/components/ui/CardIconButton.svelte';
+  import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
   import EmptyState from '$lib/components/ui/EmptyState.svelte';
   import TemplatePreviewCard from '$lib/components/TemplatePreviewCard.svelte';
   import InlineAlert from '$lib/components/ui/InlineAlert.svelte';
@@ -38,6 +39,8 @@
   let okMsg = $state('');
   let catalogFailed = $state(false);
   let catalogLoading = $state(true);
+  let confirmOpen = $state(false);
+  let pendingRemove = $state<Row | null>(null);
 
   async function reloadCatalog() {
     catalogLoading = true;
@@ -165,8 +168,15 @@
     busyId = null;
   }
 
-  async function removeFromCatalog(row: Row) {
+  function requestRemoveFromCatalog(row: Row) {
     if (!canManage || busyId) return;
+    pendingRemove = row;
+    confirmOpen = true;
+  }
+
+  async function removeFromCatalog() {
+    if (!canManage || !pendingRemove || busyId) return;
+    const row = pendingRemove;
     busyId = row.id;
     msg = '';
     okMsg = '';
@@ -187,6 +197,7 @@
       }
     }
     busyId = null;
+    pendingRemove = null;
   }
 
   async function publishMine() {
@@ -303,7 +314,7 @@
                       disabled={busyId === r.id}
                       aria-label={t('catalogRemove')}
                       title={t('catalogRemove')}
-                      onclick={() => removeFromCatalog(r)}
+                      onclick={() => requestRemoveFromCatalog(r)}
                     >
                       <Trash2 size={18} strokeWidth={1.75} aria-hidden="true" />
                     </CardIconButton>
@@ -317,3 +328,14 @@
     </ul>
   {/if}
 </section>
+
+<ConfirmModal
+  bind:open={confirmOpen}
+  title={t('confirmCatalogRemoveTitle')}
+  body={pendingRemove ? t('confirmCatalogRemoveBody', { title: pendingRemove.title }) : ''}
+  confirmLabel={t('catalogRemove')}
+  onconfirm={removeFromCatalog}
+  oncancel={() => {
+    pendingRemove = null;
+  }}
+/>

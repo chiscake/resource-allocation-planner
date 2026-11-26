@@ -10,6 +10,7 @@
   import Button from '$lib/components/ui/Button.svelte';
   import Card from '$lib/components/ui/Card.svelte';
   import EmptyState from '$lib/components/ui/EmptyState.svelte';
+  import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 
   type Row = {
     id: string;
@@ -23,6 +24,8 @@
   let mine = $state<Row[]>([]);
   let orgTrash = $state<Row[]>([]);
   let isOrgOwner = $state(false);
+  let confirmOpen = $state(false);
+  let pendingHardDelete = $state<Row | null>(null);
   const showOrgs = isOrgsUiEnabled(env.PUBLIC_SHOW_ORGS);
 
   async function load() {
@@ -64,9 +67,17 @@
     await load();
   }
 
-  async function hardDelete(id: string) {
+  function requestHardDelete(row: Row) {
+    pendingHardDelete = row;
+    confirmOpen = true;
+  }
+
+  async function hardDelete() {
+    if (!pendingHardDelete) return;
+    const id = pendingHardDelete.id;
     await supabase.from('solve_nodes').delete().eq('id', id);
     await writeAudit({ action: 'hard_delete', entity_type: 'solve_node', entity_id: id });
+    pendingHardDelete = null;
     await load();
   }
 </script>
@@ -89,7 +100,11 @@
             </div>
             <div class="flex gap-2">
               <Button variant="ghost" onclick={() => restore(r)}>{t('restore')}</Button>
-              <Button variant="ghost" class="text-danger-text!" onclick={() => hardDelete(r.id)}>
+              <Button
+                variant="ghost"
+                class="text-danger-text!"
+                onclick={() => requestHardDelete(r)}
+              >
                 {t('hardDelete')}
               </Button>
             </div>
@@ -118,3 +133,14 @@
     </div>
   {/if}
 </section>
+
+<ConfirmModal
+  bind:open={confirmOpen}
+  title={t('confirmHardDeleteTitle')}
+  body={pendingHardDelete ? t('confirmHardDeleteBody', { title: pendingHardDelete.title }) : ''}
+  confirmLabel={t('hardDelete')}
+  onconfirm={hardDelete}
+  oncancel={() => {
+    pendingHardDelete = null;
+  }}
+/>

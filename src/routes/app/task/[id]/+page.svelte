@@ -39,6 +39,7 @@
   import { isLikelyNetworkFailure, isOnline, networkFailureMessage } from '$lib/online';
   import Button from '$lib/components/ui/Button.svelte';
   import Card from '$lib/components/ui/Card.svelte';
+  import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
   import PageHeader from '$lib/components/ui/PageHeader.svelte';
   import SolveWorkspace from '$lib/components/model/SolveWorkspace.svelte';
   import NodeComments from '$lib/components/NodeComments.svelte';
@@ -110,6 +111,8 @@
   let shareGrants = $state<ShareGrantRow[]>([]);
   let viewerId = $state<string | null>(null);
   let actionsMenuOpen = $state(false);
+  let trashConfirmOpen = $state(false);
+  let clearConfirmOpen = $state(false);
   const session = createSolveSession();
   const showOrgs = isOrgsUiEnabled(env.PUBLIC_SHOW_ORGS);
 
@@ -702,10 +705,23 @@
     hasActiveShare = false;
   }
 
+  function requestSoftDelete() {
+    trashConfirmOpen = true;
+  }
+
+  function requestClearDraft() {
+    clearConfirmOpen = true;
+  }
+
   async function softDelete() {
     if (!node) return;
     await softDeleteSolveNode({ id: node.id, org_id: node.org_id });
     await goto('/app/trash');
+  }
+
+  function clearDraftAndGoCreate() {
+    resetTaskDraftToBlank();
+    void goto('/app/create');
   }
 
   async function toggleFavorite() {
@@ -1263,10 +1279,7 @@
               disabled={session.busy}
               aria-label={t('clearDraft')}
               title={t('clearDraftHint')}
-              onclick={() => {
-                resetTaskDraftToBlank();
-                void goto('/app/create');
-              }}
+              onclick={requestClearDraft}
             >
               <Eraser size={18} strokeWidth={1.75} aria-hidden="true" />
             </Button>
@@ -1308,7 +1321,7 @@
               disabled={session.busy}
               aria-label={t('trashToBin')}
               title={t('trashToBin')}
-              onclick={softDelete}
+              onclick={requestSoftDelete}
             >
               <Trash2 size={18} strokeWidth={1.75} aria-hidden="true" />
             </Button>
@@ -1347,8 +1360,7 @@
                   title={t('clearDraftHint')}
                   onclick={() => {
                     closeActionsMenu();
-                    resetTaskDraftToBlank();
-                    void goto('/app/create');
+                    requestClearDraft();
                   }}
                 >
                   <Eraser size={16} strokeWidth={1.75} aria-hidden="true" />
@@ -1396,7 +1408,7 @@
                   disabled={session.busy}
                   onclick={() => {
                     closeActionsMenu();
-                    softDelete();
+                    requestSoftDelete();
                   }}
                 >
                   <Trash2 size={16} strokeWidth={1.75} aria-hidden="true" />
@@ -1525,4 +1537,20 @@
       </button>
     {/if}
   </section>
+
+  <ConfirmModal
+    bind:open={trashConfirmOpen}
+    title={t('confirmTrashTitle')}
+    body={node ? t('confirmTrashBody', { title: node.title }) : ''}
+    confirmLabel={t('trashToBin')}
+    onconfirm={softDelete}
+  />
+
+  <ConfirmModal
+    bind:open={clearConfirmOpen}
+    title={t('confirmClearDraftTitle')}
+    body={t('confirmClearDraftBody')}
+    confirmLabel={t('clearDraft')}
+    onconfirm={clearDraftAndGoCreate}
+  />
 {/if}

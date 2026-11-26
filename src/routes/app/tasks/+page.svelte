@@ -6,6 +6,7 @@
   import { t } from '$lib/i18n';
   import { optimisticDeleteWithUndo } from '$lib/ui/optimistic-delete';
   import Button from '$lib/components/ui/Button.svelte';
+  import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
   import EmptyState from '$lib/components/ui/EmptyState.svelte';
   import Input from '$lib/components/ui/Input.svelte';
   import PageHeader from '$lib/components/ui/PageHeader.svelte';
@@ -28,6 +29,8 @@
   let query = $state('');
   let msg = $state('');
   let loading = $state(true);
+  let confirmOpen = $state(false);
+  let pendingDelete = $state<Row | null>(null);
 
   const filtered = $derived.by(() => {
     const q = query.trim().toLowerCase();
@@ -71,7 +74,14 @@
     loading = false;
   }
 
-  async function deleteCard(row: Row) {
+  function requestDelete(row: Row) {
+    pendingDelete = row;
+    confirmOpen = true;
+  }
+
+  async function deleteCard() {
+    if (!pendingDelete) return;
+    const row = pendingDelete;
     await optimisticDeleteWithUndo({
       item: row,
       removeOptimistic: () => {
@@ -87,6 +97,7 @@
       softDelete: () => softDeleteSolveNode({ id: row.id, org_id: row.org_id }),
       restore: () => restoreSolveNode({ id: row.id, org_id: row.org_id }),
     });
+    pendingDelete = null;
   }
 
   onMount(() => {
@@ -129,9 +140,20 @@
           createdAt={r.created_at}
           model={r.model}
           favorite={r.is_favorite}
-          onDelete={() => deleteCard(r)}
+          onDelete={() => requestDelete(r)}
         />
       {/snippet}
     </ScenarioCardGrid>
   {/if}
 </section>
+
+<ConfirmModal
+  bind:open={confirmOpen}
+  title={t('confirmTrashTitle')}
+  body={pendingDelete ? t('confirmTrashBody', { title: pendingDelete.title }) : ''}
+  confirmLabel={t('trashToBin')}
+  onconfirm={deleteCard}
+  oncancel={() => {
+    pendingDelete = null;
+  }}
+/>

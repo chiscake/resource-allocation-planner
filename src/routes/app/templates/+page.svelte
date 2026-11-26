@@ -17,6 +17,7 @@
   import Button from '$lib/components/ui/Button.svelte';
   import Badge from '$lib/components/ui/Badge.svelte';
   import CardIconButton from '$lib/components/ui/CardIconButton.svelte';
+  import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
   import PageHeader from '$lib/components/ui/PageHeader.svelte';
   import EmptyState from '$lib/components/ui/EmptyState.svelte';
   import InlineAlert from '$lib/components/ui/InlineAlert.svelte';
@@ -35,6 +36,8 @@
   let creating = $state(false);
   let msg = $state('');
   let okMsg = $state('');
+  let confirmOpen = $state(false);
+  let pendingDelete = $state<Row | null>(null);
 
   function sortByTitle(list: Row[]) {
     return [...list].sort((a, b) => a.title.localeCompare(b.title, 'ru'));
@@ -85,10 +88,22 @@
     busyId = null;
   }
 
-  async function deleteTemplate(row: Row) {
+  function requestDelete(row: Row) {
     if (busyId || creating) return;
     if (isPublishedCatalog(row)) {
       msg = t('publishLockedHint');
+      return;
+    }
+    pendingDelete = row;
+    confirmOpen = true;
+  }
+
+  async function deleteTemplate() {
+    if (!pendingDelete || busyId || creating) return;
+    const row = pendingDelete;
+    if (isPublishedCatalog(row)) {
+      msg = t('publishLockedHint');
+      pendingDelete = null;
       return;
     }
     busyId = row.id;
@@ -106,6 +121,7 @@
       restore: () => restoreTemplate(row.id),
     });
     busyId = null;
+    pendingDelete = null;
   }
 </script>
 
@@ -162,7 +178,7 @@
                       disabled={busyId === r.id || creating}
                       aria-label={t('deleteCard')}
                       title={t('deleteCard')}
-                      onclick={() => deleteTemplate(r)}
+                      onclick={() => requestDelete(r)}
                     >
                       <Trash2 size={18} strokeWidth={1.75} aria-hidden="true" />
                     </CardIconButton>
@@ -176,3 +192,14 @@
     </ul>
   {/if}
 </section>
+
+<ConfirmModal
+  bind:open={confirmOpen}
+  title={t('confirmDeleteTemplateTitle')}
+  body={pendingDelete ? t('confirmDeleteTemplateBody', { title: pendingDelete.title }) : ''}
+  confirmLabel={t('deleteCard')}
+  onconfirm={deleteTemplate}
+  oncancel={() => {
+    pendingDelete = null;
+  }}
+/>

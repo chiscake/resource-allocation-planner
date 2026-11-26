@@ -10,6 +10,7 @@
   import PageHeader from '$lib/components/ui/PageHeader.svelte';
   import Button from '$lib/components/ui/Button.svelte';
   import Card from '$lib/components/ui/Card.svelte';
+  import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
   import EmptyState from '$lib/components/ui/EmptyState.svelte';
   import RoundPlanToggle from '$lib/components/model/RoundPlanToggle.svelte';
   import CompareTaskCard from '$lib/components/model/CompareTaskCard.svelte';
@@ -32,6 +33,8 @@
   let loading = $state(false);
   /** Avoid re-opening picker if user dismissed it for the same single-id entry. */
   let autoPickerFor = $state('');
+  let confirmOpen = $state(false);
+  let pendingHardDeleteId = $state<string | null>(null);
 
   const primary = $derived(views[0] ?? null);
 
@@ -180,8 +183,16 @@
     }
   });
 
-  async function hardDelete(id: string) {
+  function requestHardDelete(id: string) {
+    pendingHardDeleteId = id;
+    confirmOpen = true;
+  }
+
+  async function hardDelete() {
+    if (!pendingHardDeleteId) return;
+    const id = pendingHardDeleteId;
     await supabase.from('comparisons').delete().eq('id', id);
+    pendingHardDeleteId = null;
     await loadSaved();
   }
 
@@ -254,7 +265,11 @@
             >
               {savedLabel(s)}
             </button>
-            <Button variant="ghost" class="text-danger-text!" onclick={() => void hardDelete(s.id)}>
+            <Button
+              variant="ghost"
+              class="text-danger-text!"
+              onclick={() => requestHardDelete(s.id)}
+            >
               {t('hardDelete')}
             </Button>
           </Card>
@@ -263,3 +278,14 @@
     {/if}
   </div>
 </section>
+
+<ConfirmModal
+  bind:open={confirmOpen}
+  title={t('confirmDeleteCompareTitle')}
+  body={t('confirmDeleteCompareBody')}
+  confirmLabel={t('hardDelete')}
+  onconfirm={hardDelete}
+  oncancel={() => {
+    pendingHardDeleteId = null;
+  }}
+/>
