@@ -67,8 +67,8 @@ resource-allocation-planner/
 │           ├── compare/, trash/, org/, notifications/, admin/
 │           ├── test/            # scratch sandboxes (viz-3d, …); not product UX
 ├── supabase/
-│   ├── migrations/000…083       # …082_share_grant_access_lock; 083_share_public_comments
-│   ├── functions/               # solve, run_mutations, admin-create-user, admin-users
+│   ├── migrations/000…084       # …083_share_public_comments; 084_device_sessions
+│   ├── functions/               # solve, run_mutations, admin-create-user, admin-users, session-revoke
 │   │   └── _shared/solver/      # Edge mirror: registry + methods (keep ↔ src/lib/solver)
 │   └── seed.sql                 # noop; users via seed:users
 ├── src-tauri/
@@ -118,7 +118,7 @@ Local (`supabase/config.toml`): `enable_signup = true`, `enable_confirmations = 
 | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | `/`                     | Marketing (web) / guest Task 13 → login; Tauri → onboarding or `/app`                                                            |
 | `/login`                | Login / register / MFA challenge; guest upload on session                                                                        |
-| `/app/settings`         | Account settings; TOTP 2FA enroll (QR / secret) + disable                                                                        |
+| `/app/settings`         | Account settings; TOTP 2FA; active device sessions (list / revoke one / revoke others)                                           |
 | `/onboarding`           | Tauri first-run wizard                                                                                                           |
 | `/app`                  | Home: new-task CTA, recent (≤6), recent templates mix                                                                            |
 | `/app/create`           | Draft editor + CSV import (sessionStorage); DB insert on first solve                                                             |
@@ -154,7 +154,7 @@ Local (`supabase/config.toml`): `enable_signup = true`, `enable_confirmations = 
 | Cloud seed  | `pnpm seed:users:cloud` — same users against linked RAP project                                           |
 | Local stack | `pnpm db:reset` — start + reset + seed + `db:fn:serve`; Edge: `db:fn:serve` / `db:fn:stop`                |
 | Installer   | `pnpm tauri:build` — desktop bundle (local only)                                                          |
-| Edge        | `solve`, `run_mutations`, `admin-create-user`, `admin-users`                                              |
+| Edge        | `solve`, `run_mutations`, `admin-create-user`, `admin-users`, `session-revoke`                            |
 | Venue       | Web = cloud when online (fallback local); Tauri UI toggle                                                 |
 
 ---
@@ -173,6 +173,7 @@ Local (`supabase/config.toml`): `enable_signup = true`, `enable_confirmations = 
 | Compute venue                                      | `src/lib/solver/venue.ts`                                                                                                                                                                                                                           |
 | Guest slot                                         | `src/lib/db/guest.ts`                                                                                                                                                                                                                               |
 | Audit writes                                       | `src/lib/db/audit.ts`                                                                                                                                                                                                                               |
+| Device sessions (settings)                         | `src/lib/db/device-sessions.ts` + `device-session-label.ts`; Edge `session-revoke`; migration `084_device_sessions`                                                                                                                                 |
 | Soft-delete / restore                              | `src/lib/db/soft-delete.ts` (+ toast undo: `src/lib/ui/toast-undo.ts`, optimistic list: `src/lib/ui/optimistic-delete.ts`)                                                                                                                          |
 | Share grant by email/UUID                          | RPC `share_grant_by_identifier` (`081_…`); grantee SELECT + soft-lock + comments ACL (`082_share_grant_access_lock`); `src/lib/db/share-grant.ts`; UI `SharePanel` + task page                                                                      |
 | Shared result / task viewer                        | `ResultViewer`, `SharedTaskViewer`; `/share/[token]` uses `AppShell` + `get_shared_node` / comment RPCs (`083_share_public_comments`); grantee/locked on `/app/task/[id]`                                                                           |

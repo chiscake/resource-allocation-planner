@@ -22,6 +22,8 @@ MVP still delivers: dual solver, what-if children, share/trash/audit, notificati
 - [x] Public self-signup
 - [ ] OAuth / social login
 - [x] 2FA (TOTP enroll in `/app/settings` + login challenge; local `auth.mfa.totp` on)
+- [x] Active device sessions list on `/app/settings` (presence table + revoke one / others)
+- [ ] Device sessions: OS grouping UI, richer device names, per-group revoke, denser heartbeat
 - [ ] Invite-code productization beyond seed / Dashboard create (if needed)
 
 ---

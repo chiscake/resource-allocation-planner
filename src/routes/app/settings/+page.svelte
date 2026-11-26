@@ -1,9 +1,18 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import type { Factor } from '@supabase/supabase-js';
-  import { Copy, KeyRound, Mail, Shield, User } from '@lucide/svelte';
+  import { Copy, KeyRound, Laptop, Mail, Monitor, Shield, Smartphone, User } from '@lucide/svelte';
   import { mfaErrorMessage } from '$lib/db/mfa-errors';
   import { supabase } from '$lib/db/supabase';
+  import {
+    listDeviceSessions,
+    reconcileDeviceSessions,
+    revokeDeviceSession,
+    revokeOtherDeviceSessions,
+    upsertDevicePresence,
+    type DeviceOsFamily,
+    type DeviceSessionRow,
+  } from '$lib/db/device-sessions';
   import { t } from '$lib/i18n';
   import { copyToClipboard } from '$lib/ui/clipboard';
   import PageHeader from '$lib/components/ui/PageHeader.svelte';
@@ -11,6 +20,8 @@
   import Input from '$lib/components/ui/Input.svelte';
   import InlineAlert from '$lib/components/ui/InlineAlert.svelte';
   import Card from '$lib/components/ui/Card.svelte';
+  import Badge from '$lib/components/ui/Badge.svelte';
+  import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
 
   type EnrollDraft = {
     factorId: string;
@@ -34,6 +45,91 @@
   let error = $state('');
   let info = $state('');
   let busy = $state(false);
+
+  let sessionsLoading = $state(false);
+  let sessionsError = $state('');
+  let sessions = $state<DeviceSessionRow[]>([]);
+  let currentAuthSessionId = $state<string | null>(null);
+  let sessionsBusy = $state(false);
+  let revokeTargetId = $state<string | null>(null);
+  let revokeOneOpen = $state(false);
+  let revokeOthersOpen = $state(false);
+
+  const hasOtherSessions = $derived(
+    sessions.some((s) => s.auth_session_id !== currentAuthSessionId),
+  );
+
+  function osIcon(os: DeviceOsFamily) {
+    if (os === 'android' || os === 'ios') return Smartphone;
+    if (os === 'windows' || os === 'macos' || os === 'linux') return Laptop;
+    return Monitor;
+  }
+
+  function formatSeenAt(iso: string, isCurrent: boolean): string {
+    if (isCurrent) return t('settingsSessionsNow');
+    const ms = Date.parse(iso);
+    if (!Number.isFinite(ms)) return iso;
+    try {
+      return new Date(ms).toLocaleString('ru-RU', {
+        dateStyle: 'short',
+        timeStyle: 'short',
+      });
+    } catch {
+      return iso;
+    }
+  }
+
+  async function loadSessions() {
+    sessionsError = '';
+    sessionsLoading = true;
+    try {
+      await upsertDevicePresence({ force: true });
+      await reconcileDeviceSessions();
+      const listed = await listDeviceSessions();
+      sessions = listed.rows;
+      currentAuthSessionId = listed.currentAuthSessionId;
+    } catch (e) {
+      sessionsError = e instanceof Error && e.message ? e.message : t('settingsSessionsLoadFailed');
+      sessions = [];
+    } finally {
+      sessionsLoading = false;
+    }
+  }
+
+  function askRevokeOne(authSessionId: string) {
+    revokeTargetId = authSessionId;
+    revokeOneOpen = true;
+  }
+
+  async function confirmRevokeOne() {
+    if (!revokeTargetId) return;
+    sessionsBusy = true;
+    sessionsError = '';
+    try {
+      await revokeDeviceSession(revokeTargetId);
+      revokeTargetId = null;
+      await loadSessions();
+    } catch (e) {
+      sessionsError =
+        e instanceof Error && e.message ? e.message : t('settingsSessionsRevokeFailed');
+    } finally {
+      sessionsBusy = false;
+    }
+  }
+
+  async function confirmRevokeOthers() {
+    sessionsBusy = true;
+    sessionsError = '';
+    try {
+      await revokeOtherDeviceSessions();
+      await loadSessions();
+    } catch (e) {
+      sessionsError =
+        e instanceof Error && e.message ? e.message : t('settingsSessionsRevokeOthersFailed');
+    } finally {
+      sessionsBusy = false;
+    }
+  }
 
   function roleLabel(role: string | undefined): string {
     const r = (role ?? 'user').trim().toLowerCase();
@@ -101,6 +197,7 @@
       if (!signedIn) return;
       await loadAccount();
       await refreshFactors();
+      await loadSessions();
     })();
   });
 
@@ -422,5 +519,90 @@
         <Button disabled={busy} onclick={() => void startEnroll()}>{t('mfaStartSetup')}</Button>
       {/if}
     </Card>
+
+    <Card class="space-y-4">
+      <div>
+        <h2 class="text-base font-medium text-text">{t('settingsSessionsTitle')}</h2>
+        <p class="mt-1 text-sm leading-relaxed text-text-muted">
+          {t('settingsSessionsHint')}
+        </p>
+      </div>
+
+      {#if sessionsError}
+        <InlineAlert>{sessionsError}</InlineAlert>
+      {/if}
+
+      {#if sessionsLoading}
+        <p class="text-sm text-text-muted">{t('settingsSessionsLoading')}</p>
+      {:else if sessions.length === 0}
+        <p class="text-sm text-text-muted">{t('settingsSessionsEmpty')}</p>
+      {:else}
+        <ul class="divide-y divide-border rounded-[8px] border border-border">
+          {#each sessions as row (row.id)}
+            {@const isCurrent = row.auth_session_id === currentAuthSessionId}
+            {@const Icon = osIcon(row.os_family)}
+            <li class="flex items-start gap-3 px-3 py-3">
+              <span
+                class="inline-flex size-8 shrink-0 items-center justify-center rounded-[8px] border border-border bg-bg-soft text-text-muted"
+                aria-hidden="true"
+              >
+                <Icon size={16} strokeWidth={1.75} />
+              </span>
+              <div class="min-w-0 flex-1 space-y-1">
+                <div class="flex flex-wrap items-center gap-2">
+                  <p class="text-sm font-medium text-text">{row.label}</p>
+                  {#if isCurrent}
+                    <Badge variant="brand">{t('settingsSessionsCurrent')}</Badge>
+                  {/if}
+                </div>
+                <p class="text-xs text-text-muted">
+                  {formatSeenAt(row.last_seen_at, isCurrent)}
+                </p>
+              </div>
+              {#if !isCurrent}
+                <Button
+                  variant="danger"
+                  class="shrink-0"
+                  disabled={sessionsBusy}
+                  onclick={() => askRevokeOne(row.auth_session_id)}
+                >
+                  {t('settingsSessionsRevoke')}
+                </Button>
+              {/if}
+            </li>
+          {/each}
+        </ul>
+      {/if}
+
+      <Button
+        variant="secondary"
+        disabled={sessionsBusy || sessionsLoading || !hasOtherSessions}
+        onclick={() => {
+          revokeOthersOpen = true;
+        }}
+      >
+        {t('settingsSessionsRevokeOthers')}
+      </Button>
+    </Card>
+
+    <ConfirmModal
+      bind:open={revokeOneOpen}
+      title={t('settingsSessionsRevokeTitle')}
+      body={t('settingsSessionsRevokeBody')}
+      confirmLabel={t('settingsSessionsConfirmRevoke')}
+      busy={sessionsBusy}
+      onconfirm={() => confirmRevokeOne()}
+      oncancel={() => {
+        revokeTargetId = null;
+      }}
+    />
+    <ConfirmModal
+      bind:open={revokeOthersOpen}
+      title={t('settingsSessionsRevokeOthersTitle')}
+      body={t('settingsSessionsRevokeOthersBody')}
+      confirmLabel={t('settingsSessionsConfirmRevokeOthers')}
+      busy={sessionsBusy}
+      onconfirm={() => confirmRevokeOthers()}
+    />
   {/if}
 </section>

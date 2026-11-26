@@ -5,6 +5,7 @@
   import { env } from '$env/dynamic/public';
   import type { User } from '@supabase/supabase-js';
   import { supabase } from '$lib/db/supabase';
+  import { startDevicePresenceTracking } from '$lib/db/device-sessions';
   import AppHeader from '$lib/components/chrome/AppHeader.svelte';
   import AppSidebar from '$lib/components/chrome/AppSidebar.svelte';
   import DevQuickLoginBar from '$lib/components/chrome/DevQuickLoginBar.svelte';
@@ -63,13 +64,14 @@
   }
 
   async function logout() {
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: 'local' });
     location.href = '/app';
   }
 
   onMount(() => {
     initChromeNav();
     void loadAuth();
+    const stopPresence = startDevicePresenceTracking();
 
     // App chrome owns scrolling via <main>. Lock the document so overscroll
     // at the end of main cannot chain into body (header slides away while
@@ -97,6 +99,7 @@
       void applyUser(session?.user ?? null);
     });
     return () => {
+      stopPresence();
       subscription.unsubscribe();
       html.style.overflow = prev.htmlOverflow;
       body.style.overflow = prev.bodyOverflow;

@@ -228,7 +228,7 @@ RLS: select/insert своих; app-admin — все. UI-браузера нет 
 | `visibility_from` / `visibility_to` | text null (`private`/`org`/…)                     |
 | …                                   | при необходимости ещё 1–2 узких колонки, не jsonb |
 
-**MVP actions (основные):** create/delete решений; visibility/attach; share link/grant create/revoke.  
+**MVP actions (основные):** create/delete решений; visibility/attach; share link/grant create/revoke; `session_revoke` / `session_revoke_others` (`entity_type: device_sessions`).  
 Фильтры на UI — у app-`admin` и `org_owner` later/потом.
 
 **RLS для `org_owner`:** видит строки audit **только** с `org_id` ∈ своих org, где он `org_owner`.  
@@ -256,9 +256,30 @@ App-`admin` — по политике платформы (шире), отдел�
 
 ---
 
+## `device_sessions`
+
+Клиентское присутствие для списка «Активные сеансы» в `/app/settings` (не замена `auth.sessions`).
+
+| Поле              | Смысл                                                            |
+| ----------------- | ---------------------------------------------------------------- |
+| `user_id`         | владелец                                                         |
+| `auth_session_id` | id строки в `auth.sessions` (JWT `session_id`)                   |
+| `platform`        | `web` \| `tauri`                                                 |
+| `os_family`       | `windows` \| `macos` \| `linux` \| `android` \| `ios` \| `other` |
+| `label`           | грубая подпись («Windows · веб»)                                 |
+| `user_agent`      | сырой UA (nullable)                                              |
+| `last_seen_at`    | последний upsert присутствия                                     |
+
+**RLS:** CRUD только своих строк (`user_id = auth.uid()`).  
+**RPC:** `reconcile_device_sessions()` — удаляет сирот без живой `auth.sessions` (caller).  
+**Revoke one:** Edge `session-revoke` → `admin_revoke_device_session` (service_role): delete `auth.sessions` + row + `audit_events.action = session_revoke`.  
+**Revoke others:** client `signOut({ scope: 'others' })` + cleanup rows + audit `session_revoke_others`.
+
+---
+
 ## Auth / admin (app)
 
-Публичный email signup (`auth.signUp`); seed (в т.ч. `mod@example.com`); Edge `admin-create-user` + `admin-users` (list / ban / delete); app-`admin`: users; app-`admin`/`mod`: публичный каталог + модерация.
+Публичный email signup (`auth.signUp`); seed (в т.ч. `mod@example.com`); Edge `admin-create-user` + `admin-users` (list / ban / delete) + `session-revoke`; app-`admin`: users; app-`admin`/`mod`: публичный каталог + модерация. TOTP 2FA + список устройств на `/app/settings`.
 
 ---
 
