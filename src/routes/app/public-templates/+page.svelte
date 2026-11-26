@@ -11,6 +11,7 @@
   import { publishTemplateDirect, unpublishTemplate } from '$lib/db/template-publish';
   import type { Model } from '$lib/domain';
   import { t } from '$lib/i18n';
+  import { isLikelyNetworkFailure, isOnline, networkFailureMessage } from '$lib/online';
   import PageHeader from '$lib/components/ui/PageHeader.svelte';
   import Button from '$lib/components/ui/Button.svelte';
   import CardIconButton from '$lib/components/ui/CardIconButton.svelte';
@@ -35,8 +36,17 @@
   let publishPick = $state('');
   let msg = $state('');
   let okMsg = $state('');
+  let catalogFailed = $state(false);
+  let catalogLoading = $state(true);
 
   async function reloadCatalog() {
+    catalogLoading = true;
+    if (!isOnline()) {
+      catalogFailed = true;
+      msg = t('templatesOfflineBody');
+      catalogLoading = false;
+      return;
+    }
     const { data, error } = await supabase
       .from('templates')
       .select('id, title, model, owner_id')
@@ -45,11 +55,20 @@
       .is('deleted_at', null)
       .order('title');
     if (error) {
-      msg = error.message;
-      rows = [];
+      catalogFailed = true;
+      msg = networkFailureMessage(error, t('templatesOfflineBody'));
+      if (isLikelyNetworkFailure(error)) {
+        // Keep any previously loaded rows; do not pretend the catalog is empty.
+      } else {
+        rows = [];
+      }
+      catalogLoading = false;
       return;
     }
+    catalogFailed = false;
+    msg = '';
     rows = (data ?? []) as Row[];
+    catalogLoading = false;
   }
 
   async function reloadPersonal() {
@@ -78,13 +97,31 @@
     }
   }
 
-  onMount(async () => {
-    const { data: auth } = await supabase.auth.getUser();
-    signedIn = Boolean(auth.user);
-    const role = auth.user?.app_metadata?.role;
-    canManage = role === 'admin' || role === 'mod';
+  async function reloadAll() {
+    msg = '';
+    okMsg = '';
     await reloadCatalog();
     await reloadPersonal();
+  }
+
+  onMount(async () => {
+    try {
+      const { data: auth, error: authErr } = await supabase.auth.getUser();
+      if (authErr && isLikelyNetworkFailure(authErr)) {
+        catalogFailed = true;
+        msg = t('templatesOfflineBody');
+        catalogLoading = false;
+        return;
+      }
+      signedIn = Boolean(auth.user);
+      const role = auth.user?.app_metadata?.role;
+      canManage = role === 'admin' || role === 'mod';
+      await reloadAll();
+    } catch (e) {
+      catalogFailed = true;
+      msg = networkFailureMessage(e, t('templatesOfflineBody'));
+      catalogLoading = false;
+    }
   });
 
   async function useTemplate(id: string) {
@@ -93,7 +130,9 @@
     msg = '';
     okMsg = '';
     const err = await useTemplateAndOpen(id);
-    if (err) msg = err.error || t('useFailed');
+    if (err) {
+      msg = networkFailureMessage(err.error ?? err, t('templatesOfflineBody')) || t('useFailed');
+    }
     busyId = null;
   }
 
@@ -104,7 +143,8 @@
     okMsg = '';
     const result = await copyTemplateToAccount(id);
     if ('error' in result) {
-      msg = result.error || t('saveTemplateFailed');
+      msg =
+        networkFailureMessage(result.error, t('templatesOfflineBody')) || t('saveTemplateFailed');
     } else {
       okMsg = t('saveTemplateDone');
     }
@@ -117,7 +157,11 @@
     msg = '';
     okMsg = '';
     const err = await copyTemplateAndEdit(id);
-    if (err) msg = err.error || t('saveTemplateFailed');
+    if (err) {
+      msg =
+        networkFailureMessage(err.error ?? err, t('templatesOfflineBody')) ||
+        t('saveTemplateFailed');
+    }
     busyId = null;
   }
 
@@ -167,7 +211,7 @@
     description={canManage ? t('publicTemplatesManageHint') : t('publicTemplatesHint')}
   />
 
-  {#if msg}
+  {#if msg && !catalogFailed}
     <InlineAlert>{msg}</InlineAlert>
   {/if}
   {#if okMsg}
@@ -201,9 +245,27 @@
     </div>
   {/if}
 
-  {#if rows.length === 0}
+  {#if catalogFailed && rows.length === 0}
+    <EmptyState title={t('templatesOfflineTitle')} description={msg || t('templatesOfflineBody')}>
+      {#snippet action()}
+        <Button variant="secondary" disabled={catalogLoading} onclick={() => void reloadAll()}>
+          {t('retry')}
+        </Button>
+      {/snippet}
+    </EmptyState>
+  {:else if catalogLoading && rows.length === 0}
+    <p class="text-sm text-text-muted">…</p>
+  {:else if rows.length === 0}
     <EmptyState title={t('catalogEmpty')} />
   {:else}
+    {#if catalogFailed}
+      <div class="flex flex-wrap items-center gap-3">
+        <InlineAlert class="min-w-0 flex-1">{msg || t('templatesOfflineBody')}</InlineAlert>
+        <Button variant="secondary" disabled={catalogLoading} onclick={() => void reloadAll()}>
+          {t('retry')}
+        </Button>
+      </div>
+    {/if}
     <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {#each rows as r (r.id)}
         <li>

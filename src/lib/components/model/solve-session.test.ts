@@ -8,6 +8,8 @@ import {
 import { solveLocal, runMutationsLocal } from '$lib/solver';
 import {
   inputToPct,
+  preserveTraceForMeta,
+  responseFromSaved,
   solveMethodToTab,
   tabToSolveMethod,
   whatIfRowsFromMutations,
@@ -20,6 +22,42 @@ describe('solve-session helpers', () => {
     expect(inputToPct('10')).toBeCloseTo(0.1);
     expect(inputToPct('0')).toBe(0);
     expect(inputToPct('nope')).toBeNull();
+  });
+
+  it('responseFromSaved rebuilds done stub without requiring a trace', () => {
+    const model = createTask13Model();
+    const solved = solveLocal(model, 'local', 0, 'ga', 'native', {
+      ga: { preset: 'fast', seed: 3 },
+    });
+    expect(solved.status).toBe('done');
+    const stub = responseFromSaved(solved.result, solved.solver_meta);
+    expect(stub?.status).toBe('done');
+    expect(stub?.trace).toBeUndefined();
+    expect(stub?.solver_meta.provenance?.method).toBe('ga');
+    expect(responseFromSaved(null, solved.solver_meta)).toBeNull();
+  });
+
+  it('preserveTraceForMeta keeps GA frames across post-solve reload', () => {
+    const model = createTask13Model();
+    const solved = solveLocal(model, 'local', 0, 'ga', 'native', {
+      ga: { preset: 'fast', seed: 5, maxGenerations: 12 },
+    });
+    expect(solved.trace?.method).toBe('ga');
+    if (solved.trace?.method !== 'ga') return;
+    expect(solved.trace.generations.length).toBeGreaterThan(0);
+
+    // Simulate task load(): DB has meta+result, not the in-memory trace.
+    const kept = preserveTraceForMeta(solved.trace, solved.solver_meta);
+    expect(kept).toBe(solved.trace);
+    expect(kept?.method).toBe('ga');
+    if (kept?.method === 'ga') {
+      expect(kept.generations.length).toBe(solved.trace.generations.length);
+    }
+
+    // Method mismatch or missing meta → drop (avoid stale LP frames on GA tab).
+    expect(preserveTraceForMeta(solved.trace, { ...solved.solver_meta, method: 'lp' })).toBeNull();
+    expect(preserveTraceForMeta(solved.trace, null)).toBeNull();
+    expect(preserveTraceForMeta(null, solved.solver_meta)).toBeNull();
   });
 
   it('tabToSolveMethod / solveMethodToTab round-trip', () => {

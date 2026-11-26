@@ -110,12 +110,13 @@
   function onRequestSteps() {
     if (session.lastTrace || !session.model) return;
     const method = session.solveMethod;
-    const provenance = session.lastResponse?.solver_meta.provenance;
+    const meta = session.lastResponse?.solver_meta;
     const { trace } = regenerateTrace(
       session.model,
-      provenance,
+      meta?.provenance,
       method,
-      session.lastResponse?.solver_meta.engine ?? 'native',
+      meta?.engine ?? 'native',
+      session.buildRunOptions(method),
     );
     session.lastTrace = trace;
   }
@@ -199,11 +200,8 @@
           {onRequestSteps}
           exportTitle={title || t('newTask')}
           whatIfRows={rows}
-        >
-          {#if resultExtras}
-            {@render resultExtras()}
-          {/if}
-        </SolveResultPanel>
+          {resultExtras}
+        />
       {/key}
 
       {#if !compact}

@@ -80,7 +80,14 @@
         sectionValue,
       });
     }
-    return buildLpScene(model, null, { mode: m, axisX, axisY, axisZ });
+    return buildLpScene(model, null, {
+      mode: m,
+      axisX,
+      axisY,
+      axisZ,
+      sectionAxis,
+      sectionValue,
+    });
   });
 
   const maxIndex = $derived(Math.max(0, scene.frames.length - 1));
