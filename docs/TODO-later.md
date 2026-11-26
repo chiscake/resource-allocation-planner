@@ -41,7 +41,7 @@ MVP still delivers: dual solver, what-if children, share/trash/audit, notificati
 - [ ] `source_id` on templates (explicitly rejected for MVP)
 - [ ] `batch_id` for grouped what-if / runs
 - [ ] Fork / unshare: copy **all** what-if generations + base snapshots (MVP: latest live gen only)
-- [ ] Guest login upload: persist what-if generation history (MVP: root only; local guest keeps generations in localStorage)
+- [x] Guest login upload: persist what-if generation history → cloud children + `active_what_if_generation` (`upload-guest.ts`; clearGuest only on full success)
 - [ ] Share **sensitivity-child** nodes (MVP: root + children fork as decided; no child-only share productization)
 - [ ] `jsonb` payloads on `audit_events` (MVP: typed columns only)
 - [ ] Full write-ACL beyond hide / soft-delete rules already fixed
