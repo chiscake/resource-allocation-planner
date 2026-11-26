@@ -73,6 +73,16 @@ describe('ga trace + provenance', () => {
     const { response } = regenerateTrace(model, first.solver_meta.provenance, 'ga', 'native');
     expect(response.result?.x).toEqual(first.result?.x);
   });
+
+  it('regenerateTrace fallback options still emit GA generation frames', () => {
+    const model = createTask13Model();
+    const { trace } = regenerateTrace(model, undefined, 'ga', 'native', {
+      ga: { preset: 'fast', seed: 42, maxGenerations: 15 },
+    });
+    expect(trace?.method).toBe('ga');
+    if (trace?.method !== 'ga') return;
+    expect(trace.generations.length).toBeGreaterThan(0);
+  });
 });
 
 describe('method comparison', () => {

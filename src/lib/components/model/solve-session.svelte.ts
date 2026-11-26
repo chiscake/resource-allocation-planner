@@ -50,6 +50,32 @@ export function solveMethodToTab(method: SolveMethod): SolveTabId {
   return 'plan';
 }
 
+/**
+ * Rebuild a SolveResponse stub from DB fields (result + solver_meta).
+ * Trace is never persisted — callers may attach an in-memory trace separately.
+ */
+export function responseFromSaved(
+  result: SolveResult | null | undefined,
+  solver_meta: SolveResponse['solver_meta'] | null | undefined,
+): SolveResponse | null {
+  if (!result || !solver_meta) return null;
+  return { status: 'done', result, solver_meta };
+}
+
+/**
+ * Keep the post-solve in-memory trace across hydrate/reload when the saved
+ * meta still refers to the same method (trace itself is not stored in DB).
+ */
+export function preserveTraceForMeta(
+  previous: SolveTrace | null | undefined,
+  solver_meta: SolveResponse['solver_meta'] | null | undefined,
+): SolveTrace | null {
+  if (!previous || !solver_meta) return null;
+  const method = solver_meta.method ?? solver_meta.provenance?.method;
+  if (method == null || previous.method !== method) return null;
+  return previous;
+}
+
 export function whatIfRowsFromMutations(
   pack: RunMutationsResponse,
   base: Model,
@@ -219,6 +245,8 @@ export function createSolveSession(init?: {
     includeSensitivity?: boolean;
     whatIfItems?: WhatIfRow[];
     lastResponse?: SolveResponse | null;
+    /** In-memory viz frames (not persisted). Used when lastResponse has no trace. */
+    lastTrace?: SolveTrace | null;
     verifyReport?: VerifyReport | null;
     lastWasCloud?: boolean;
   }) {
@@ -228,7 +256,8 @@ export function createSolveSession(init?: {
     if (next.includeSensitivity != null) includeSensitivity = next.includeSensitivity;
     whatIfItems = next.whatIfItems ?? [];
     lastResponse = next.lastResponse ?? null;
-    lastTrace = next.lastResponse?.trace ?? null;
+    // Prefer trace on the response; else explicit lastTrace (post-solve preserve).
+    lastTrace = next.lastResponse?.trace ?? next.lastTrace ?? null;
     verifyReport = next.verifyReport ?? null;
     lastWasCloud = next.lastWasCloud ?? false;
   }
