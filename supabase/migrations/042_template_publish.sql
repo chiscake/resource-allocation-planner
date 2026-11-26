@@ -33,17 +33,22 @@ create index if not exists templates_publish_status_idx
   where deleted_at is null;
 
 -- RLS: catalog only when approved; mods see pending; owners keep own rows
+-- Owner/admin (and mod for public_repo) must SELECT soft-deleted rows: UPDATE … SET deleted_at
+-- also applies SELECT policies to the new row; deleted_at IS NULL alone blocks soft-delete.
 drop policy if exists templates_select on public.templates;
 create policy templates_select on public.templates
   for select to authenticated
   using (
-    deleted_at is null and (
-      public.is_admin()
-      or owner_id = auth.uid()
-      or (system_kind = 'public_repo' and publish_status = 'approved')
-      or system_kind = 'signup_seed'
-      or (public.is_mod() and publish_status = 'pending')
-      or (org_id is not null and public.is_org_member(org_id))
+    public.is_admin()
+    or owner_id = auth.uid()
+    or (public.is_mod() and system_kind = 'public_repo')
+    or (
+      deleted_at is null and (
+        (system_kind = 'public_repo' and publish_status = 'approved')
+        or system_kind = 'signup_seed'
+        or (public.is_mod() and publish_status = 'pending')
+        or (org_id is not null and public.is_org_member(org_id))
+      )
     )
   );
 

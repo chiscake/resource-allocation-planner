@@ -29,11 +29,11 @@ describe('display/units', () => {
 
   it('derives Task 13 units from the model', () => {
     const model = createTask13Model();
-    expect(objectiveUnit(model)).toBe('у.е.');
+    expect(objectiveUnit(model)).toBe('тыс. р.');
     expect(labeledProduct(model, 0)).toBe('Осциллограф (шт)');
     expect(labeledResource(model, 0)).toBe('Труд (чел./дней)');
-    expect(priceUnit(model, 0)).toBe('у.е./шт');
-    expect(shadowUnit(model, 1)).toBe('у.е./кг');
+    expect(priceUnit(model, 0)).toBe('тыс. р./шт');
+    expect(shadowUnit(model, 1)).toBe('тыс. р./кг');
     expect(coeffUnit(model, 1, 0)).toBe('кг/шт');
   });
 

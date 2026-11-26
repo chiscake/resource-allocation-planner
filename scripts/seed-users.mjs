@@ -70,7 +70,7 @@ const TASK13_MODEL = withWhatIfDefaults({
   c: [3, 4, 3, 1],
   resource_units: ['чел./дней', 'кг', 'станков/ч'],
   product_units: ['шт', 'шт', 'шт', 'шт'],
-  objective_unit: 'у.е.',
+  objective_unit: 'тыс. р.',
 });
 
 /** Public catalog examples (from task1–3 CSV fixtures). */

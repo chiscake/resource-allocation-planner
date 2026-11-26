@@ -34,7 +34,7 @@ describe('csv-model', () => {
     expect(res.model.resource_units).toEqual(model.resource_units);
     expect(res.model.product_units).toEqual(model.product_units);
     expect(res.model.objective_unit).toBe(model.objective_unit);
-    expect(csv.startsWith('Ед. прибыли;у.е.')).toBe(true);
+    expect(csv.startsWith('Ед. прибыли;тыс. р.')).toBe(true);
   });
 
   it('round-trips through , CSV with decimals', () => {

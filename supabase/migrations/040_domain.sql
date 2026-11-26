@@ -69,15 +69,19 @@ alter table public.comparisons enable row level security;
 alter table public.node_comments enable row level security;
 
 -- templates
+-- Owner/admin must SELECT soft-deleted rows so UPDATE … SET deleted_at passes RLS
+-- (Postgres also applies SELECT policies to the new row when WHERE/RETURNING is used).
 create policy templates_select on public.templates
   for select to authenticated
   using (
-    deleted_at is null and (
-      public.is_admin()
-      or owner_id = auth.uid()
-      or system_kind = 'public_repo'
-      or system_kind = 'signup_seed'
-      or (org_id is not null and public.is_org_member(org_id))
+    public.is_admin()
+    or owner_id = auth.uid()
+    or (
+      deleted_at is null and (
+        system_kind = 'public_repo'
+        or system_kind = 'signup_seed'
+        or (org_id is not null and public.is_org_member(org_id))
+      )
     )
   );
 
