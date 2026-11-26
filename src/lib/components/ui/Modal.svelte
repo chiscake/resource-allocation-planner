@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import { fade } from 'svelte/transition';
+  import { portalToBody } from '$lib/components/ui/portal';
 
   type ModalSize = 'md' | 'xl';
 
@@ -56,6 +57,7 @@
     class="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4"
     role="presentation"
     transition:fade={{ duration: 150 }}
+    {@attach portalToBody}
   >
     <button
       type="button"

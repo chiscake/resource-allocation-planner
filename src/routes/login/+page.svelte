@@ -7,6 +7,7 @@
   import { toast } from 'svelte-sonner';
   import { clearGuest, isGuestWorthUploading, loadGuest } from '$lib/db/guest';
   import { uploadGuestIfAny } from '$lib/db/upload-guest';
+  import { authErrorMessage } from '$lib/db/auth-errors';
   import { mfaErrorMessage } from '$lib/db/mfa-errors';
   import Button from '$lib/components/ui/Button.svelte';
   import Input from '$lib/components/ui/Input.svelte';
@@ -71,7 +72,7 @@
       password,
     });
     if (err || !data.user) {
-      error = err?.message?.trim() || t('loginFailed');
+      error = authErrorMessage(err?.message, 'loginFailed');
       return;
     }
     if (await maybeRequireMfa(data.user.id)) return;
@@ -128,7 +129,7 @@
       },
     });
     if (err) {
-      error = err.message?.trim() || t('registerFailed');
+      error = authErrorMessage(err.message, 'registerFailed');
       return;
     }
 

@@ -83,6 +83,8 @@ const ru = {
   passwordTooShort: 'Пароль не короче 8 символов',
   displayNameRequired: 'Укажите отображаемое имя',
   registerFailed: 'Не удалось зарегистрироваться',
+  registerAlreadyRegistered: 'Этот email уже зарегистрирован',
+  loginInvalidCredentials: 'Неверный email или пароль',
   registerCheckEmailTitle: 'Проверьте почту',
   registerCheckEmail:
     'Аккаунт создан. Откройте письмо и подтвердите адрес — вход выполнится автоматически.',
