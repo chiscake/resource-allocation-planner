@@ -1,7 +1,11 @@
 <script lang="ts">
+  import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
+  import { toast } from 'svelte-sonner';
   import { supabase } from '$lib/db/supabase';
   import { softDeleteSolveNode, restoreSolveNode } from '$lib/db/soft-delete';
+  import { isGuestWorthUploading, loadGuest } from '$lib/db/guest';
+  import { uploadGuestIfAny } from '$lib/db/upload-guest';
   import type { Model } from '$lib/domain';
   import { t } from '$lib/i18n';
   import { optimisticDeleteWithUndo } from '$lib/ui/optimistic-delete';
@@ -40,9 +44,16 @@
   let authReady = $state(false);
   let recent = $state<Row[]>([]);
   let recentTemplates = $state<TemplatePreview[]>([]);
+  let pendingGuestUpload = $state(false);
+  let guestUploadBusy = $state(false);
 
   const listSelect =
     'id, title, updated_at, created_at, is_favorite, org_id, org_visibility, model';
+
+  function refreshPendingGuest() {
+    const guest = loadGuest();
+    pendingGuestUpload = !!guest && isGuestWorthUploading(guest);
+  }
 
   function removeFromRecent(id: string) {
     recent = recent.filter((r) => r.id !== id);
@@ -143,6 +154,33 @@
     await loadRecentTemplates(user.id);
   }
 
+  async function retryGuestUpload() {
+    if (guestUploadBusy) return;
+    guestUploadBusy = true;
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const uploaded = await uploadGuestIfAny(user.id);
+      if (!uploaded.ok) {
+        toast.error(uploaded.error);
+        return;
+      }
+      if (uploaded.rootId) {
+        toast.success(t('guestUploadOk'));
+        pendingGuestUpload = false;
+        await loadCloudLists();
+        void goto(`/app/task/${uploaded.rootId}`);
+      } else {
+        pendingGuestUpload = false;
+      }
+    } finally {
+      guestUploadBusy = false;
+    }
+  }
+
   async function deleteCard(row: Row) {
     await optimisticDeleteWithUndo({
       item: row,
@@ -163,6 +201,7 @@
       signedIn = !!data.session?.user;
       authReady = true;
       if (signedIn) {
+        refreshPendingGuest();
         await loadCloudLists();
       }
     })();
@@ -173,8 +212,10 @@
       signedIn = !!session?.user;
       authReady = true;
       if (signedIn) {
+        refreshPendingGuest();
         void loadCloudLists();
       } else {
+        pendingGuestUpload = false;
         recent = [];
         recentTemplates = [];
       }
@@ -208,6 +249,22 @@
     </aside>
   {:else}
     <PageHeader title={t('home')} description={t('homeHint')} />
+
+    {#if pendingGuestUpload}
+      <div
+        class="flex flex-col gap-3 rounded-[8px] bg-warning-bg px-3 py-3 sm:flex-row sm:items-center sm:justify-between"
+      >
+        <p class="text-sm text-warning-text">{t('guestUploadPending')}</p>
+        <Button
+          variant="secondary"
+          class="shrink-0"
+          disabled={guestUploadBusy}
+          onclick={() => void retryGuestUpload()}
+        >
+          {t('guestUploadRetry')}
+        </Button>
+      </div>
+    {/if}
 
     <div>
       <Button
