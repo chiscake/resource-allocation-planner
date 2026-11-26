@@ -90,6 +90,22 @@
     void loadAuth();
     const stopPresence = startDevicePresenceTracking();
 
+    // Pinch-zoom + pan can scroll the document (not <main>). The header lives in
+    // normal flow inside the shell, so body scrollY hides it under the top edge
+    // until a top overscroll snaps it back. Keep the document pinned at 0 so
+    // only <main> scrolls — native pull-to-refresh still works via overscroll
+    // chaining at main's top (scrollY stays 0).
+    const clampDocScroll = () => {
+      if (window.scrollX !== 0 || window.scrollY !== 0) {
+        window.scrollTo(0, 0);
+      }
+    };
+    clampDocScroll();
+    window.addEventListener('scroll', clampDocScroll, { passive: true });
+    const vv = window.visualViewport;
+    vv?.addEventListener('scroll', clampDocScroll, { passive: true });
+    vv?.addEventListener('resize', clampDocScroll, { passive: true });
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -98,6 +114,9 @@
     return () => {
       stopPresence();
       subscription.unsubscribe();
+      window.removeEventListener('scroll', clampDocScroll);
+      vv?.removeEventListener('scroll', clampDocScroll);
+      vv?.removeEventListener('resize', clampDocScroll);
     };
   });
 
