@@ -142,12 +142,15 @@ Per-user last use of a **`public_repo`** template (home «Последние ш�
 
 ## `solve_nodes`
 
-Поля: `owner_id`, `org_id`, `org_visibility`, `parent_id`, `kind`, `title`, `model` (+ `schema_version`, `what_if_defaults`), `mutation`, `result`, `solver_meta`, `what_if_generation`, `active_what_if_generation` (корень), `is_favorite`, timestamps, `deleted_at`.
+Поля: `owner_id`, `org_id`, `org_visibility`, `parent_id`, `kind`, `title`, `model` (+ `schema_version`, `what_if_defaults`), `mutation`, `result`, `solver_meta`, `what_if_generation`, `active_what_if_generation` (корень), `is_favorite`, timestamps, `deleted_at`, плюс provenance форка (на **новом** корне): `forked_from_id`, `fork_kind` (`task` \| `mutation`), `fork_source_title`, `fork_source_z`.
 
 `kind` (app): `root` \| `sensitivity` \| `what_if_base` (и зарезервированный в доках `revision` — пока не пишется).
 
 **CHECK:** `is_favorite = false OR parent_id IS NULL`.  
-**CHECK (логика):** `org_id IS NULL ⇒ org_visibility IS NULL`; `org_id IS NOT NULL ⇒ org_visibility IN ('private','org')`.
+**CHECK (логика):** `org_id IS NULL ⇒ org_visibility IS NULL`; `org_id IS NOT NULL ⇒ org_visibility IN ('private','org')`.  
+**CHECK:** `forked_from_id IS NULL ⇔ fork_kind IS NULL`; `fork_kind IN ('task','mutation')` когда задан. `ON DELETE SET NULL` для `forked_from_id`.
+
+**Lineage graph (`/app/graph`):** live-корни + их live `sensitivity`; рёбра `parent` и `fork`. Soft-deleted корень **не** рисуется как кластер (дети тоже скрыты). Серый узел — только недоступный / удалённый **источник форка** (снимок `fork_source_*` или fetched deleted). `what_if_base` на холсте не рисуется.
 
 Допустимый update: title, favorite, org attach/visibility, soft-delete — не перепись model/result корня.  
 **Title** можно менять и после расчёта (UI: inline rename).

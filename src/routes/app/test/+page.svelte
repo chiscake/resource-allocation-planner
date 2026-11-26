@@ -23,4 +23,14 @@
       </Card>
     </a>
   </li>
+  <li>
+    <a href="/app/test/graph" class="block no-underline">
+      <Card class="transition-colors hover:border-brand">
+        <p class="text-sm font-medium text-text">Граф связей (stub)</p>
+        <p class="mt-1 text-xs text-text-muted">
+          Жёстко заданные узлы — pan/zoom, клик, тултип, стрелки на рёбрах.
+        </p>
+      </Card>
+    </a>
+  </li>
 </ul>

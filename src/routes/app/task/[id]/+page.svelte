@@ -34,6 +34,8 @@
     type WhatIfDefaults,
     type RunMutationsResponse,
     formatCompareIds,
+    taskForkProvenance,
+    mutationForkProvenance,
   } from '$lib/domain';
   import { formatSavedAt } from '$lib/display/formatDateTime';
   import { t } from '$lib/i18n';
@@ -1011,6 +1013,7 @@
           active_what_if_generation: activeWhatIfGeneration != null ? 1 : null,
           org_id: null,
           org_visibility: null,
+          ...taskForkProvenance(node.id, node.title, node.result),
         })
         .select('id')
         .single();
@@ -1178,6 +1181,7 @@
           active_what_if_generation: activeWhatIfGeneration != null ? 1 : null,
           org_id: null,
           org_visibility: null,
+          ...taskForkProvenance(node.id, node.title, node.result),
         })
         .select('id')
         .single();
@@ -1354,6 +1358,21 @@
           c.mutation.delta === row.mutation.delta,
       );
       const title = `${node.title} · ${row.title}`;
+      const scenarioResult =
+        child?.result ??
+        ({
+          x: row.plan,
+          Z: row.Z,
+          resource_usage: {},
+          resource_slack: {},
+          shadow_prices: {},
+          critical_resources: row.criticalResources,
+          non_critical_resources: [],
+          feasible: true,
+        } as const);
+      const provenance = child?.id
+        ? mutationForkProvenance(child.id, node.title, row.title, scenarioResult)
+        : null;
       const { data: root, error: e1 } = await supabase
         .from('solve_nodes')
         .insert({
@@ -1361,19 +1380,11 @@
           title,
           kind: 'root',
           model: row.mutatedModel,
-          result: child?.result ?? {
-            x: row.plan,
-            Z: row.Z,
-            resource_usage: {},
-            resource_slack: {},
-            shadow_prices: {},
-            critical_resources: row.criticalResources,
-            non_critical_resources: [],
-            feasible: true,
-          },
+          result: scenarioResult,
           solver_meta: child?.solver_meta ?? node.solver_meta ?? null,
           org_id: null,
           org_visibility: null,
+          ...(provenance ?? {}),
         })
         .select('id')
         .single();

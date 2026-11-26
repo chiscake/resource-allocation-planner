@@ -43,13 +43,14 @@ resource-allocation-planner/
 ├── src/
 │   ├── app.css                  # Tailwind v4 + Cartesia @theme
 │   ├── lib/
-│   │   ├── domain/              # Model, mutations, what-if generations, task13
+│   │   ├── domain/              # Model, mutations, what-if generations, lineage-graph, task13
+│   │   ├── graph/               # Lineage canvas (slim ContactWeb-derived; pan/zoom/force)
 │   │   ├── solver/              # contract/registry/run + methods/{lp,ipm,ga,dln} × engine
 │   │   ├── display/             # roundPlan / roundPref (UI post-process, not solver)
 │   │   ├── api/solve.ts         # Edge or local transport (+ method + engine + local fallback)
 │   │   ├── db/                  # supabase, local-session, guest, upload-guest, offline-*, audit, …
 │   │   ├── chrome/              # nav/drawer chrome state
-│   │   ├── components/          # chrome/ (AppShell, AppHeader, …) + model/
+│   │   ├── components/          # chrome/ (AppShell, AppHeader, …) + model/ + graph/
 │   │   ├── i18n/                # ru
 │   │   ├── io/                  # CSV model import/export, Excel/PDF result export, PDF fonts (OFL)
 │   │   ├── online.ts            # fetch timeout + network failure helpers
@@ -69,10 +70,10 @@ resource-allocation-planner/
 │           ├── tasks/           # all owned roots + search
 │           ├── task/[id]/      # solve (lp|ipm|ga|dln), what-if ←i/N→, share/fork (+org when flagged)
 │           ├── templates/, public-templates/, moderation/
-│           ├── compare/, trash/, org/, notifications/, admin/
-│           ├── test/            # scratch sandboxes (viz-3d, …); not product UX
+│           ├── compare/, graph/, trash/, org/, notifications/, admin/
+│           ├── test/            # scratch sandboxes (viz-3d, graph, …); not product UX
 ├── supabase/
-│   ├── migrations/000…084       # …083_share_public_comments; 084_device_sessions
+│   ├── migrations/000…085       # …084_device_sessions; 085_solve_node_fork_provenance
 │   ├── functions/               # solve, run_mutations, admin-create-user, admin-users, session-revoke
 │   │   └── _shared/solver/      # Edge mirror: registry + methods (keep ↔ src/lib/solver)
 │   └── seed.sql                 # noop; users via seed:users
@@ -133,6 +134,8 @@ Local (`supabase/config.toml`): `enable_signup = true`, `enable_confirmations = 
 | `/app/trash`            | Soft-deleted roots; restore → private; hard delete                                                                               |
 | `/app/org`              | Org ids + feed; redirects to `/app` unless `PUBLIC_SHOW_ORGS` is on                                                              |
 | `/app/compare`          | Side-by-side ≤4 nodes (`?ids=` primary-first); picker modal; Δ vs primary; saved hard-delete; task FAB + sensitivity compare CTA |
+| `/app/graph`            | Task lineage canvas (own roots + sensitivity + fork sources); RO panel; fork provenance                                          |
+| `/app/test/graph`       | Stub lineage canvas (hardcoded nodes/edges; no Supabase)                                                                         |
 | `/app/templates`        | Personal templates; create blank → `/app/templates/[id]?edit=1`                                                                  |
 | `/app/templates/[id]`   | View (+ publish) / edit modes; staff can review pending + approve/reject                                                         |
 | `/app/moderation`       | Pending queue; open template for review                                                                                          |

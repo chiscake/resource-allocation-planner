@@ -6,3 +6,5 @@ export * from './whatif-generation';
 export * from './interactive-sensitivity';
 export * from './task13';
 export * from './compare-tasks';
+export * from './fork-provenance';
+export * from './lineage-graph';

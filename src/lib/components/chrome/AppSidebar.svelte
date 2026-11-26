@@ -8,6 +8,7 @@
     LayoutTemplate,
     Globe2,
     GitCompareArrows,
+    GitFork,
     Trash2,
     Building2,
     Shield,
@@ -49,6 +50,7 @@
     { href: '/app/templates', label: 'templates', icon: LayoutTemplate },
     { href: '/app/public-templates', label: 'publicTemplates', icon: Globe2 },
     { href: '/app/compare', label: 'compare', icon: GitCompareArrows },
+    { href: '/app/graph', label: 'lineageGraph', icon: GitFork },
     { href: '/app/trash', label: 'trash', icon: Trash2 },
     { href: '/app/org', label: 'org', icon: Building2 },
     {
@@ -64,6 +66,7 @@
     { href: '/app/tasks', label: 'myTasks', icon: ListTodo },
     { href: '/app/templates', label: 'templates', icon: LayoutTemplate },
     { href: '/app/compare', label: 'compare', icon: GitCompareArrows },
+    { href: '/app/graph', label: 'lineageGraph', icon: GitFork },
     { href: '/app/trash', label: 'trash', icon: Trash2 },
     { href: '/app/org', label: 'org', icon: Building2 },
     {
