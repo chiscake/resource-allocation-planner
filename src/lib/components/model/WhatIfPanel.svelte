@@ -1,5 +1,6 @@
 <script lang="ts">
   import { t } from '$lib/i18n';
+  import { ChevronLeft, ChevronRight } from '@lucide/svelte';
   import Button from '$lib/components/ui/Button.svelte';
   import Card from '$lib/components/ui/Card.svelte';
   import LpModelMatrix from './LpModelMatrix.svelte';
@@ -162,21 +163,23 @@
             {/if}
             <div class="flex items-center gap-3">
               <Button
-                variant="ghost"
+                variant="secondary"
                 class="px-2! py-1!"
                 disabled={generationIndex <= 0}
+                aria-label={t('whatIfPrevGeneration')}
                 onclick={() => onGenerationChange(generationIndex - 1)}
               >
-                ←
+                <ChevronLeft size={16} strokeWidth={1.75} aria-hidden="true" />
               </Button>
               <span class="font-mono text-sm">{generationIndex + 1}/{generationCount}</span>
               <Button
-                variant="ghost"
+                variant="secondary"
                 class="px-2! py-1!"
                 disabled={generationIndex >= generationCount - 1}
+                aria-label={t('whatIfNextGeneration')}
                 onclick={() => onGenerationChange(generationIndex + 1)}
               >
-                →
+                <ChevronRight size={16} strokeWidth={1.75} aria-hidden="true" />
               </Button>
             </div>
           </div>

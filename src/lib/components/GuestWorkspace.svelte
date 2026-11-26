@@ -45,6 +45,8 @@
   });
   let genIndex = $state(0);
   let solverMeta = $state<SolverMeta | null>(null);
+  /** Virtual empty «Текущий» — armed only by sensitivity solve without a pack. */
+  let showEmptyCurrentSlot = $state(false);
   const session = createSolveSession();
 
   const localTransport: SolveTransport = {
@@ -55,7 +57,12 @@
   };
 
   const generations = $derived(whatIfState.generations.map((g) => g.generation));
-  const pagerSlots = $derived(buildPagerSlots(generations, whatIfState.activeGeneration));
+  const includeEmptyCurrent = $derived(
+    whatIfState.activeGeneration == null && showEmptyCurrentSlot,
+  );
+  const pagerSlots = $derived(
+    buildPagerSlots(generations, whatIfState.activeGeneration, { includeEmptyCurrent }),
+  );
   const activeSlot = $derived(pagerSlots[genIndex] ?? null);
   const currentPagerIndex = $derived(pagerSlots.findIndex((s) => s.badge === 'current'));
   const activeGen = $derived(activeSlot?.kind === 'generation' ? activeSlot.generation : null);
@@ -119,6 +126,9 @@
       buildPagerSlots(
         whatIfState.generations.map((g) => g.generation),
         whatIfState.activeGeneration,
+        {
+          includeEmptyCurrent: whatIfState.activeGeneration == null && showEmptyCurrentSlot,
+        },
       ),
     );
   }
@@ -164,6 +174,7 @@
         : null;
     const nextActive = resolveActiveAfterModelEdit(whatIfState.activeGeneration, baseModel, next);
     if (nextActive !== whatIfState.activeGeneration) {
+      showEmptyCurrentSlot = false;
       whatIfState = { ...whatIfState, activeGeneration: nextActive };
       syncPagerToActive();
     }
@@ -196,6 +207,7 @@
     solverMeta = cycle.response.solver_meta ?? null;
 
     if (session.includeSensitivity && cycle.mutationsResponse?.status === 'done') {
+      showEmptyCurrentSlot = false;
       const items = cycle.mutationsResponse.items.map((item) => ({
         title: item.mutation.label ?? item.mutation.kind,
         mutation: item.mutation as Mutation,
@@ -213,7 +225,12 @@
         items,
       );
       syncPagerToActive();
+    } else if (session.includeSensitivity) {
+      showEmptyCurrentSlot = true;
+      whatIfState = clearGuestActiveGeneration(whatIfState);
+      syncPagerToActive();
     } else {
+      showEmptyCurrentSlot = false;
       whatIfState = clearGuestActiveGeneration(whatIfState);
       syncPagerToActive();
     }

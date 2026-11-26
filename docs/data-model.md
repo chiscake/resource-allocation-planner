@@ -36,7 +36,7 @@ App-`admin` ≠ `org_owner`. App-`mod` делит с admin управление 
 2. Create корня → `model.what_if_defaults` = копия.
 3. UI sensitivity читает defaults, юзер правит %.
 4. Per generation: child `kind=what_if_base` (снимок исходных `model`/`result`/`solver_meta`) + children `kind=sensitivity` (`mutation` + model после apply), общий `what_if_generation`.
-5. Корень: `active_what_if_generation` — какой шаг «Текущий» (`null` = анализ на текущем шаге не делался; виртуальный слот пейджера + empty copy).
+5. Корень: `active_what_if_generation` — какой шаг «Текущий» (`null` = нет активного пака). Виртуальный empty «Текущий» в пейджере — только после solve с включённым sensitivity, когда пака на этом шаге ещё нет (не после clear / правки модели / solve без sensitivity).
 6. Re-run with sensitivity: soft-delete live `sensitivity` + `what_if_base`, новый gen, `active` → новый.
 7. Restore из «Прошлый»: корень ← base-снимок; undelete kids+base выбранного gen; soft-delete прочих live; `active` → этот gen.
 8. Interactive explorer (UI tab): one `Mutation` + `solve`; **«В таблицу»** appends a `sensitivity` child to the **active** gen, or creates gen 1 (`what_if_base` + one child) when `active` was null. Duplicates by `kind+target+delta` rejected. Past steps: interactive write disabled.

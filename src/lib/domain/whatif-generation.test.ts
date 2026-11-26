@@ -130,8 +130,12 @@ describe('buildPagerSlots', () => {
     expect(slots.every((s) => s.kind === 'generation')).toBe(true);
   });
 
-  it('appends virtual empty_current when active is null', () => {
-    const slots = buildPagerSlots([1, 2], null);
+  it('appends virtual empty_current only when opted in', () => {
+    expect(buildPagerSlots([1, 2], null)).toHaveLength(2);
+    expect(buildPagerSlots([1, 2], null).every((s) => s.kind === 'generation')).toBe(true);
+    expect(buildPagerSlots([1, 2], null).map((s) => s.badge)).toEqual(['past', 'past']);
+
+    const slots = buildPagerSlots([1, 2], null, { includeEmptyCurrent: true });
     expect(slots).toHaveLength(3);
     expect(slots[0]).toMatchObject({
       kind: 'generation',
@@ -152,8 +156,9 @@ describe('buildPagerSlots', () => {
     });
   });
 
-  it('empty gens + null active → only virtual current', () => {
-    const slots = buildPagerSlots([], null);
+  it('empty gens + null active → only virtual current when opted in', () => {
+    expect(buildPagerSlots([], null)).toEqual([]);
+    const slots = buildPagerSlots([], null, { includeEmptyCurrent: true });
     expect(slots).toEqual([{ kind: 'empty_current', badge: 'current', canRestore: false }]);
     expect(defaultPagerIndex(slots)).toBe(0);
   });
@@ -161,7 +166,8 @@ describe('buildPagerSlots', () => {
   it('defaultPagerIndex prefers current badge', () => {
     expect(defaultPagerIndex(buildPagerSlots([1, 2, 3], 1))).toBe(0);
     expect(defaultPagerIndex(buildPagerSlots([1, 2, 3], 3))).toBe(2);
-    expect(defaultPagerIndex(buildPagerSlots([1, 2], null))).toBe(2);
+    expect(defaultPagerIndex(buildPagerSlots([1, 2], null))).toBe(1);
+    expect(defaultPagerIndex(buildPagerSlots([1, 2], null, { includeEmptyCurrent: true }))).toBe(2);
   });
 });
 
@@ -243,6 +249,7 @@ describe('guest what-if state reducer', () => {
     const slots = buildPagerSlots(
       state.generations.map((g) => g.generation),
       state.activeGeneration,
+      { includeEmptyCurrent: true },
     );
     expect(slots.at(-1)?.kind).toBe('empty_current');
     expect(slots.filter((s) => s.kind === 'generation')).toHaveLength(2);
@@ -298,7 +305,11 @@ describe('guest what-if state reducer', () => {
     );
     expect(nextActive).toBeNull();
     const cleared = { ...state, activeGeneration: nextActive };
-    expect(buildPagerSlots([1], cleared.activeGeneration).at(-1)?.kind).toBe('empty_current');
+    // Model diverge alone: past gens only (no virtual empty current).
+    expect(buildPagerSlots([1], cleared.activeGeneration).map((s) => s.badge)).toEqual(['past']);
+    expect(
+      buildPagerSlots([1], cleared.activeGeneration, { includeEmptyCurrent: true }).at(-1)?.kind,
+    ).toBe('empty_current');
   });
 
   it('guestGenerationItems returns pack rows', () => {

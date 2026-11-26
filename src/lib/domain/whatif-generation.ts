@@ -109,12 +109,15 @@ export function modelsEqual(a: Model, b: Model): boolean {
 }
 
 /**
- * Pager slots: real generations + optional virtual empty «current» when
- * activeGeneration is null (solve without sensitivity / model diverged).
+ * Pager slots: real generations + optional virtual empty «current».
+ * Empty current is opt-in (`includeEmptyCurrent`) — used after a solve with
+ * sensitivity enabled when this step has no pack yet. Not after clear / model
+ * diverge alone / solve without sensitivity.
  */
 export function buildPagerSlots(
   generations: number[],
   activeGeneration: number | null,
+  options?: { includeEmptyCurrent?: boolean },
 ): WhatIfPagerSlot[] {
   const slots: WhatIfPagerSlot[] = generations.map((generation) => {
     const isCurrent = activeGeneration === generation;
@@ -125,7 +128,7 @@ export function buildPagerSlots(
       canRestore: !isCurrent,
     };
   });
-  if (activeGeneration == null) {
+  if (activeGeneration == null && options?.includeEmptyCurrent) {
     slots.push({
       kind: 'empty_current',
       badge: 'current',

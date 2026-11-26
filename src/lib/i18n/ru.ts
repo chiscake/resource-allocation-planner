@@ -102,9 +102,13 @@ const ru = {
   createTask: 'Создать задачу',
   clearDraft: 'Очистить',
   clearDraftHint: 'Сбросить черновик до пустой задачи 2×2',
+  clearTaskHint: 'Сбросить исходные данные до пустой задачи 2×2',
   confirmClearDraftTitle: 'Очистить черновик?',
   confirmClearDraftBody:
     'Модель будет сброшена до пустой задачи 2×2. Текущие данные черновика пропадут.',
+  confirmClearTaskTitle: 'Очистить исходные данные?',
+  confirmClearTaskBody:
+    'Модель будет сброшена до пустой задачи 2×2. Шаги анализа чувствительности сохранятся.',
   confirmTrashTitle: 'Отправить в корзину?',
   confirmTrashBody: 'Задача «{title}» попадёт в корзину. Её можно восстановить в течение 30 дней.',
   confirmHardDeleteTitle: 'Удалить навсегда?',
@@ -405,6 +409,10 @@ const ru = {
   tabWhatIfBoth: 'Вместе',
   /** Pager: jump to the current (active) generation slot. */
   whatIfGoToCurrent: 'К текущему',
+  /** Pager: previous what-if generation step. */
+  whatIfPrevGeneration: 'Предыдущий шаг',
+  /** Pager: next what-if generation step. */
+  whatIfNextGeneration: 'Следующий шаг',
   tabIpm: 'Внутренняя точка',
   tabGa: 'Генетический алгоритм',
   tabDln: 'DLN',

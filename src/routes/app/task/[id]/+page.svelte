@@ -8,11 +8,11 @@
   import { writeAudit } from '$lib/db/audit';
   import { classifyShareIdentifier, isSelfShareIdentifier } from '$lib/db/share-grant';
   import { softDeleteSolveNode } from '$lib/db/soft-delete';
-  import { resetTaskDraftToBlank } from '$lib/db/task-draft';
   import { solveModel, runMutations } from '$lib/api/solve';
   import { logSolverMismatches } from '$lib/db/solver-mismatch';
   import {
     cloneModel,
+    createBlankModel,
     isSolveMethod,
     buildWhatIfRowData,
     KIND_SENSITIVITY,
@@ -113,6 +113,11 @@
   let actionsMenuOpen = $state(false);
   let trashConfirmOpen = $state(false);
   let clearConfirmOpen = $state(false);
+  /**
+   * Virtual empty «Текущий» — armed only by solve with sensitivity when this
+   * step has no pack yet. Cleared by clear / model diverge / pack success.
+   */
+  let showEmptyCurrentSlot = $state(false);
   const session = createSolveSession();
   const showOrgs = isOrgsUiEnabled(env.PUBLIC_SHOW_ORGS);
 
@@ -129,7 +134,10 @@
     typeof node?.solver_meta?.library === 'string' ? node.solver_meta.library : null,
   );
   const generations = $derived(collectGenerations(children));
-  const pagerSlots = $derived(buildPagerSlots(generations, activeWhatIfGeneration));
+  const includeEmptyCurrent = $derived(activeWhatIfGeneration == null && showEmptyCurrentSlot);
+  const pagerSlots = $derived(
+    buildPagerSlots(generations, activeWhatIfGeneration, { includeEmptyCurrent }),
+  );
   const activeSlot = $derived(pagerSlots[genIndex] ?? null);
   const currentPagerIndex = $derived(pagerSlots.findIndex((s) => s.badge === 'current'));
   const activeGen = $derived(activeSlot?.kind === 'generation' ? activeSlot.generation : null);
@@ -174,8 +182,9 @@
         })
       : '',
   );
+  /** Keep history visible after clear (no root result) when past gens exist. */
   const showWhatIfChrome = $derived(
-    Boolean(session.result) && (generations.length > 0 || activeWhatIfGeneration === null),
+    generations.length > 0 || (Boolean(session.result) && activeWhatIfGeneration === null),
   );
   /** Interactive explorer base: active gen snapshot, else current root. */
   const interactiveBaseModel = $derived(
@@ -308,7 +317,9 @@
         pendingRetry = null;
       }
       genIndex = defaultPagerIndex(
-        buildPagerSlots(collectGenerations(children), activeWhatIfGeneration),
+        buildPagerSlots(collectGenerations(children), activeWhatIfGeneration, {
+          includeEmptyCurrent: activeWhatIfGeneration == null && showEmptyCurrentSlot,
+        }),
       );
 
       if (viewerId && node.owner_id === viewerId) {
@@ -542,6 +553,7 @@
 
     if (session.includeSensitivity) {
       if (cycle.mutationsResponse?.status === 'done') {
+        showEmptyCurrentSlot = false;
         const wiOk = await persistSensitivityKids(cycle.mutationsResponse);
         if (!wiOk) return;
         await load();
@@ -553,10 +565,12 @@
         ) {
           if (!(await softDeleteActiveSensitivity())) return;
         }
+        showEmptyCurrentSlot = true;
         if (!(await setActiveWhatIfGeneration(null))) return;
         await load();
       }
     } else {
+      showEmptyCurrentSlot = false;
       if (
         whatIfChildren.some((c) => !c.deleted_at) ||
         children.some((c) => isWhatIfBase(c) && !c.deleted_at)
@@ -719,9 +733,22 @@
     await goto('/app/trash');
   }
 
-  function clearDraftAndGoCreate() {
-    resetTaskDraftToBlank();
-    void goto('/app/create');
+  async function clearTaskSourceData() {
+    if (!node || !isEditable || session.busy) return;
+    session.busy = true;
+    error = '';
+    try {
+      const blank = createBlankModel();
+      session.replaceModel(blank);
+      if (!(await persistSolveOutcome(blank, null, null))) return;
+      showEmptyCurrentSlot = false;
+      if (!(await setActiveWhatIfGeneration(null))) return;
+      // History only as «Прошлый» — no virtual empty «Текущий» until next sensitivity solve.
+      const slots = buildPagerSlots(generations, null, { includeEmptyCurrent: false });
+      genIndex = generations.length > 0 ? generations.length - 1 : defaultPagerIndex(slots);
+    } finally {
+      session.busy = false;
+    }
   }
 
   async function toggleFavorite() {
@@ -1223,8 +1250,11 @@
     const nextActive = resolveActiveAfterModelEdit(activeWhatIfGeneration, baseModel, next);
     if (nextActive === activeWhatIfGeneration) return;
     void (async () => {
+      showEmptyCurrentSlot = false;
       if (!(await setActiveWhatIfGeneration(nextActive))) return;
-      genIndex = defaultPagerIndex(buildPagerSlots(generations, nextActive));
+      genIndex = defaultPagerIndex(
+        buildPagerSlots(generations, nextActive, { includeEmptyCurrent: false }),
+      );
     })();
   }
 
@@ -1278,7 +1308,7 @@
               class="px-2.5! py-2.5!"
               disabled={session.busy}
               aria-label={t('clearDraft')}
-              title={t('clearDraftHint')}
+              title={t('clearTaskHint')}
               onclick={requestClearDraft}
             >
               <Eraser size={18} strokeWidth={1.75} aria-hidden="true" />
@@ -1357,7 +1387,7 @@
                   role="menuitem"
                   class="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-sm text-text hover:bg-bg-soft disabled:cursor-not-allowed disabled:opacity-50"
                   disabled={session.busy}
-                  title={t('clearDraftHint')}
+                  title={t('clearTaskHint')}
                   onclick={() => {
                     closeActionsMenu();
                     requestClearDraft();
@@ -1548,9 +1578,10 @@
 
   <ConfirmModal
     bind:open={clearConfirmOpen}
-    title={t('confirmClearDraftTitle')}
-    body={t('confirmClearDraftBody')}
+    title={t('confirmClearTaskTitle')}
+    body={t('confirmClearTaskBody')}
     confirmLabel={t('clearDraft')}
-    onconfirm={clearDraftAndGoCreate}
+    busy={session.busy}
+    onconfirm={clearTaskSourceData}
   />
 {/if}
