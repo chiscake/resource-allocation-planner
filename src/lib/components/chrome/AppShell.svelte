@@ -13,6 +13,7 @@
   import { isDevQuickLoginEnabled } from '$lib/devQuickLogin';
   import { t } from '$lib/i18n';
   import { chrome, initChromeNav, closeMobileNav } from '$lib/chrome/chrome.svelte';
+  import { startConnectivityTracking } from '$lib/connectivity.svelte';
 
   let { children }: { children: Snippet } = $props();
 
@@ -87,6 +88,7 @@
 
   onMount(() => {
     initChromeNav();
+    const stopConnectivity = startConnectivityTracking();
     void loadAuth();
     const stopPresence = startDevicePresenceTracking();
 
@@ -112,6 +114,7 @@
       void applyUser(session?.user ?? null);
     });
     return () => {
+      stopConnectivity();
       stopPresence();
       subscription.unsubscribe();
       window.removeEventListener('scroll', clampDocScroll);

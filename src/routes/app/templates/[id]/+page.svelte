@@ -2,9 +2,14 @@
   import { page } from '$app/state';
   import { goto } from '$app/navigation';
   import { supabase } from '$lib/db/supabase';
+  import { getLocalUser } from '$lib/db/local-session';
   import type { Model } from '$lib/domain';
   import { cloneModel } from '$lib/domain';
   import { useTemplateAndOpen } from '$lib/db/create-solve-node';
+  import {
+    getPersonalTemplateCacheRow,
+    upsertPersonalTemplateCache,
+  } from '$lib/db/offline-templates';
   import {
     requestTemplatePublish,
     withdrawTemplatePublish,
@@ -15,6 +20,15 @@
     isPublishPending,
     type PublishStatus,
   } from '$lib/db/template-publish';
+  import { formatSavedAt } from '$lib/display/formatDateTime';
+  import { isAppOffline, refreshConnectivityProbe } from '$lib/connectivity.svelte';
+  import {
+    DEFAULT_NETWORK_TIMEOUT_MS,
+    isLikelyNetworkFailure,
+    isOnline,
+    networkFailureMessage,
+    withTimeout,
+  } from '$lib/online';
   import { t } from '$lib/i18n';
   import LpModelMatrix from '$lib/components/model/LpModelMatrix.svelte';
   import Button from '$lib/components/ui/Button.svelte';
@@ -26,11 +40,15 @@
   type Mode = 'view' | 'edit';
 
   let title = $state('');
+  let updatedAt = $state<string | null>(null);
   let model = $state<Model | null>(null);
   let systemKind = $state<string | null>(null);
   let publishStatus = $state<PublishStatus>(null);
   let isOwner = $state(false);
   let isStaff = $state(false);
+  let dirty = $state(false);
+  /** True until first successful cloud INSERT/UPDATE for this local id. */
+  let cloudMissing = $state(false);
   let loading = $state(true);
   let saving = $state(false);
   let busy = $state(false);
@@ -39,6 +57,7 @@
   let msg = $state('');
   let err = $state('');
   let loadedId = $state('');
+  let ownerId = $state<string | null>(null);
 
   const templateId = $derived(page.params.id ?? '');
   const contentEditable = $derived(
@@ -54,6 +73,9 @@
   const headerDescription = $derived(
     pendingForStaff ? t('moderationReviewHint') : editing ? t('editTemplateTitle') : undefined,
   );
+  const headerMeta = $derived(formatSavedAt(updatedAt) ?? undefined);
+  /** Banner only after a failed save / explicit sync error — not on quiet localOnly open. */
+  const showSyncBanner = $derived(Boolean(err));
 
   $effect(() => {
     const id = templateId;
@@ -61,68 +83,215 @@
     void loadTemplate(id);
   });
 
-  async function loadTemplate(id: string) {
-    loading = true;
-    err = '';
-    msg = '';
-    model = null;
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user) {
-      void goto('/login');
-      return;
-    }
-    const role = auth.user.app_metadata?.role;
-    isStaff = role === 'admin' || role === 'mod';
-
-    const { data, error } = await supabase
-      .from('templates')
-      .select('id, title, model, owner_id, system_kind, publish_status')
-      .eq('id', id)
-      .is('deleted_at', null)
-      .single();
-    if (error || !data) {
-      err = error?.message ?? t('notFound');
-      loadedId = id;
-      loading = false;
-      return;
-    }
-
-    isOwner = data.owner_id === auth.user.id;
-    const kind = (data.system_kind as string | null) ?? null;
-    const status = (data.publish_status as PublishStatus) ?? null;
-    const canStaffReview = isStaff && status === 'pending' && kind == null;
-
-    if (!isOwner && !canStaffReview) {
-      err = t('notFound');
-      loadedId = id;
-      loading = false;
-      return;
-    }
-    if (isOwner && kind != null && kind !== 'public_repo') {
-      err = t('notFound');
-      loadedId = id;
-      loading = false;
-      return;
-    }
-
-    title = data.title as string;
-    model = cloneModel(data.model as Model);
-    systemKind = kind;
-    publishStatus = status;
-    loadedId = id;
-
+  function applyWantEdit(kind: string | null, status: PublishStatus) {
     const wantEdit =
       isOwner &&
       canEditTemplateContent({ system_kind: kind, publish_status: status }) &&
       page.url.searchParams.get('edit') === '1';
     mode = wantEdit ? 'edit' : 'view';
-    loading = false;
+  }
+
+  function applyCachedRow(
+    cached: {
+      title: string;
+      updated_at: string | null;
+      model: Model;
+      system_kind: string | null;
+      publish_status: PublishStatus;
+      dirty?: boolean;
+      localOnly?: boolean;
+    },
+    userId: string,
+  ) {
+    title = cached.title;
+    updatedAt = cached.updated_at;
+    model = cloneModel(cached.model);
+    systemKind = cached.system_kind;
+    publishStatus = cached.publish_status;
+    dirty = Boolean(cached.dirty);
+    cloudMissing = Boolean(cached.localOnly);
+    isOwner = true;
+    ownerId = userId;
+    // Restore banner only if a previous save attempt left dirty.
+    err = dirty ? t('templateSaveOffline') : '';
+    applyWantEdit(cached.system_kind, cached.publish_status);
+  }
+
+  async function writeLocalCache(nextDirty: boolean) {
+    const user = await getLocalUser();
+    if (!user || !model) return;
+    await upsertPersonalTemplateCache(user.id, {
+      id: templateId,
+      title,
+      model,
+      updated_at: updatedAt,
+      system_kind: systemKind,
+      publish_status: publishStatus,
+      dirty: nextDirty,
+      localOnly: cloudMissing,
+    });
+    dirty = nextDirty;
+  }
+
+  async function loadTemplate(id: string) {
+    msg = '';
+    const user = await getLocalUser();
+    if (!user) {
+      void goto('/login');
+      return;
+    }
+    ownerId = user.id;
+    const role = user.app_metadata?.role;
+    isStaff = role === 'admin' || role === 'mod';
+
+    // Fast path: paint IDB immediately; localOnly never waits on network.
+    const cached = await getPersonalTemplateCacheRow(user.id, id);
+    if (cached?.model) {
+      applyCachedRow(
+        {
+          title: cached.title,
+          updated_at: cached.updated_at,
+          model: cached.model,
+          system_kind: cached.system_kind,
+          publish_status: cached.publish_status,
+          dirty: cached.dirty,
+          localOnly: cached.localOnly,
+        },
+        user.id,
+      );
+      loadedId = id;
+      loading = false;
+      if (cached.localOnly) return;
+      if (!isOnline() || isAppOffline()) return;
+    } else {
+      loading = true;
+      err = '';
+      model = null;
+      dirty = false;
+      cloudMissing = false;
+    }
+
+    if (isOnline()) {
+      await refreshConnectivityProbe();
+    }
+
+    if (!isOnline() || isAppOffline()) {
+      if (!model) {
+        err = t('notFound');
+        loadedId = id;
+        loading = false;
+      }
+      return;
+    }
+
+    try {
+      const { data, error } = await withTimeout(
+        supabase
+          .from('templates')
+          .select('id, title, model, owner_id, system_kind, publish_status, updated_at')
+          .eq('id', id)
+          .is('deleted_at', null)
+          .maybeSingle(),
+        DEFAULT_NETWORK_TIMEOUT_MS,
+      );
+
+      if (error && isLikelyNetworkFailure(error)) {
+        if (!model) {
+          err = networkFailureMessage(error, t('templateSaveOffline'));
+          loadedId = id;
+          loading = false;
+        }
+        return;
+      }
+
+      if (!data) {
+        if (model && cloudMissing) {
+          // Local draft not in cloud yet — stay quiet until save.
+          loading = false;
+          loadedId = id;
+          return;
+        }
+        err = t('notFound');
+        model = null;
+        loadedId = id;
+        loading = false;
+        return;
+      }
+
+      isOwner = data.owner_id === user.id;
+      const kind = (data.system_kind as string | null) ?? null;
+      const status = (data.publish_status as PublishStatus) ?? null;
+      const canStaffReview = isStaff && status === 'pending' && kind == null;
+
+      if (!isOwner && !canStaffReview) {
+        err = t('notFound');
+        model = null;
+        loadedId = id;
+        loading = false;
+        return;
+      }
+      if (isOwner && kind != null && kind !== 'public_repo') {
+        err = t('notFound');
+        model = null;
+        loadedId = id;
+        loading = false;
+        return;
+      }
+
+      const latest = isOwner ? await getPersonalTemplateCacheRow(user.id, id) : null;
+      if (latest?.dirty && latest.model) {
+        applyCachedRow(
+          {
+            title: latest.title,
+            updated_at: latest.updated_at,
+            model: latest.model,
+            system_kind: kind,
+            publish_status: status,
+            dirty: true,
+            localOnly: latest.localOnly,
+          },
+          user.id,
+        );
+        cloudMissing = Boolean(latest.localOnly);
+      } else {
+        title = data.title as string;
+        updatedAt = (data.updated_at as string | null) ?? null;
+        model = cloneModel(data.model as Model);
+        systemKind = kind;
+        publishStatus = status;
+        dirty = false;
+        cloudMissing = false;
+        err = '';
+        if (isOwner) {
+          await upsertPersonalTemplateCache(user.id, {
+            id,
+            title,
+            model,
+            updated_at: updatedAt,
+            system_kind: kind,
+            publish_status: status,
+            dirty: false,
+            localOnly: false,
+          });
+        }
+        applyWantEdit(kind, status);
+      }
+
+      loadedId = id;
+      loading = false;
+    } catch (e) {
+      if (!model) {
+        err = networkFailureMessage(e, t('templateSaveOffline'));
+        loadedId = id;
+        loading = false;
+      }
+    }
   }
 
   function enterEdit() {
     if (!isOwner || !contentEditable) return;
     mode = 'edit';
-    err = '';
+    err = dirty ? t('templateSaveOffline') : '';
     msg = '';
     const url = new URL(page.url);
     url.searchParams.set('edit', '1');
@@ -135,7 +304,7 @@
 
   function enterView() {
     mode = 'view';
-    err = '';
+    err = dirty ? t('templateSaveOffline') : '';
     msg = '';
     const url = new URL(page.url);
     url.searchParams.delete('edit');
@@ -155,18 +324,89 @@
 
   /** Rename via PageHeader — same pattern as task page (title-only update). */
   async function renameTemplate(nextTitle: string) {
-    if (!isOwner || !templateId) return;
+    if (!isOwner || !templateId || !model) return;
     const next = nextTitle.trim();
     if (!next || next === title) return;
-    const { error: upErr } = await supabase
-      .from('templates')
-      .update({ title: next, updated_at: new Date().toISOString() })
-      .eq('id', templateId);
-    if (upErr) {
-      err = upErr.message || t('titleSaveFailed');
+    const stamp = new Date().toISOString();
+    title = next;
+    updatedAt = stamp;
+
+    if (isAppOffline() || cloudMissing) {
+      await writeLocalCache(true);
+      err = t('templateSaveOffline');
       return;
     }
-    title = next;
+
+    try {
+      const { error: upErr } = await withTimeout(
+        supabase.from('templates').update({ title: next, updated_at: stamp }).eq('id', templateId),
+        DEFAULT_NETWORK_TIMEOUT_MS,
+      );
+      if (upErr) {
+        if (isLikelyNetworkFailure(upErr)) {
+          await writeLocalCache(true);
+          err = networkFailureMessage(upErr, t('templateSaveOffline'));
+          return;
+        }
+        err = upErr.message || t('titleSaveFailed');
+        return;
+      }
+      await writeLocalCache(false);
+      err = '';
+    } catch (e) {
+      if (isLikelyNetworkFailure(e)) {
+        await writeLocalCache(true);
+        err = networkFailureMessage(e, t('templateSaveOffline'));
+        return;
+      }
+      err = networkFailureMessage(e, t('titleSaveFailed'));
+    }
+  }
+
+  async function persistToCloud(): Promise<boolean> {
+    if (!model || !ownerId) return false;
+    const stamp = updatedAt ?? new Date().toISOString();
+    if (cloudMissing) {
+      const { error: insErr } = await withTimeout(
+        supabase.from('templates').insert({
+          id: templateId,
+          owner_id: ownerId,
+          title,
+          system_kind: null,
+          model,
+          what_if: model.what_if_defaults ?? null,
+          updated_at: stamp,
+        }),
+        DEFAULT_NETWORK_TIMEOUT_MS,
+      );
+      if (insErr) {
+        err = networkFailureMessage(insErr, t('templateSaveOffline'));
+        await writeLocalCache(true);
+        return false;
+      }
+      cloudMissing = false;
+    } else {
+      const { error: upErr } = await withTimeout(
+        supabase
+          .from('templates')
+          .update({
+            title,
+            model,
+            what_if: model.what_if_defaults ?? null,
+            updated_at: stamp,
+          })
+          .eq('id', templateId),
+        DEFAULT_NETWORK_TIMEOUT_MS,
+      );
+      if (upErr) {
+        err = networkFailureMessage(upErr, t('templateSaveOffline'));
+        await writeLocalCache(true);
+        return false;
+      }
+    }
+    await writeLocalCache(false);
+    err = '';
+    return true;
   }
 
   async function save() {
@@ -174,23 +414,57 @@
     saving = true;
     err = '';
     msg = '';
-    const { error } = await supabase
-      .from('templates')
-      .update({
-        model,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', templateId);
-    if (error) {
-      err = error.message;
-    } else {
-      msg = t('templateSaved');
+    const stamp = new Date().toISOString();
+    updatedAt = stamp;
+
+    if (isAppOffline() || (!isOnline() && cloudMissing)) {
+      await writeLocalCache(true);
+      err = t('templateSaveOffline');
+      saving = false;
+      return;
+    }
+
+    if (isOnline()) {
+      await refreshConnectivityProbe();
+    }
+    if (isAppOffline()) {
+      await writeLocalCache(true);
+      err = t('templateSaveOffline');
+      saving = false;
+      return;
+    }
+
+    try {
+      const ok = await persistToCloud();
+      if (ok) msg = t('templateSaved');
+    } catch (e) {
+      await writeLocalCache(true);
+      err = networkFailureMessage(e, t('templateSaveOffline'));
     }
     saving = false;
   }
 
+  async function retrySync() {
+    if (busy || saving || !model) return;
+    if (isOnline()) await refreshConnectivityProbe();
+    if (isAppOffline()) {
+      err = t('templateSaveOffline');
+      return;
+    }
+    busy = true;
+    err = '';
+    try {
+      const ok = await persistToCloud();
+      if (ok) msg = t('templateSaved');
+    } catch (e) {
+      await writeLocalCache(true);
+      err = networkFailureMessage(e, t('templateSaveOffline'));
+    }
+    busy = false;
+  }
+
   async function onRequest() {
-    if (busy || !isOwner) return;
+    if (busy || !isOwner || dirty || isAppOffline()) return;
     busy = true;
     err = '';
     msg = '';
@@ -206,7 +480,7 @@
   }
 
   async function onWithdraw() {
-    if (busy || !isOwner) return;
+    if (busy || !isOwner || dirty || isAppOffline()) return;
     busy = true;
     err = '';
     msg = '';
@@ -220,7 +494,7 @@
   }
 
   async function onUnpublish() {
-    if (busy || !isOwner) return;
+    if (busy || !isOwner || dirty || isAppOffline()) return;
     busy = true;
     err = '';
     msg = '';
@@ -250,7 +524,7 @@
   async function useTemplate() {
     if (using || !templateId) return;
     using = true;
-    err = '';
+    err = dirty ? t('templateSaveOffline') : '';
     msg = '';
     const res = await useTemplateAndOpen(templateId);
     if (res) err = res.error || t('useFailed');
@@ -269,12 +543,15 @@
   {:else}
     <PageHeader
       {title}
+      meta={headerMeta}
       description={headerDescription}
       editable={isOwner}
       ontitlecommit={renameTemplate}
     >
       {#snippet actions()}
-        {#if isPublishPending({ publish_status: publishStatus })}
+        {#if dirty}
+          <Badge variant="warning">{t('taskUnsyncedBadge')}</Badge>
+        {:else if isPublishPending({ publish_status: publishStatus })}
           <Badge variant="warning">{t('publishStatusPending')}</Badge>
         {:else if isPublishedCatalog({ system_kind: systemKind, publish_status: publishStatus })}
           <Badge variant="success">{t('publishStatusPublic')}</Badge>
@@ -297,8 +574,15 @@
       {/snippet}
     </PageHeader>
 
-    {#if err}
-      <InlineAlert>{err}</InlineAlert>
+    {#if showSyncBanner}
+      <div class="flex flex-wrap items-center gap-3">
+        <InlineAlert class="min-w-0 flex-1">{err || t('templateSaveOffline')}</InlineAlert>
+        {#if dirty}
+          <Button variant="secondary" disabled={busy || saving} onclick={() => void retrySync()}>
+            {t('retry')}
+          </Button>
+        {/if}
+      </div>
     {/if}
     {#if msg}
       <p class="text-sm text-text-muted">{msg}</p>
@@ -317,24 +601,24 @@
       {/if}
     </Card>
 
-    {#if isOwner && !editing}
+    {#if isOwner && !editing && !dirty && !cloudMissing}
       <Card>
         <h2 class="mb-1 text-sm font-medium text-text">
           {t('publishSectionTitle')}
         </h2>
         {#if isPublishPending({ publish_status: publishStatus })}
           <p class="mb-4 text-sm text-text-muted">{t('publishPendingHint')}</p>
-          <Button variant="secondary" disabled={busy} onclick={onWithdraw}>
+          <Button variant="secondary" disabled={busy || isAppOffline()} onclick={onWithdraw}>
             {t('publishWithdraw')}
           </Button>
         {:else if isPublishedCatalog({ system_kind: systemKind, publish_status: publishStatus })}
           <p class="mb-4 text-sm text-text-muted">{t('publishPublicHint')}</p>
-          <Button variant="secondary" disabled={busy} onclick={onUnpublish}>
+          <Button variant="secondary" disabled={busy || isAppOffline()} onclick={onUnpublish}>
             {t('publishUnpublish')}
           </Button>
         {:else}
           <p class="mb-4 text-sm text-text-muted">{t('publishRequestHint')}</p>
-          <Button variant="primary" disabled={busy} onclick={onRequest}>
+          <Button variant="primary" disabled={busy || isAppOffline()} onclick={onRequest}>
             {t('publishRequest')}
           </Button>
         {/if}

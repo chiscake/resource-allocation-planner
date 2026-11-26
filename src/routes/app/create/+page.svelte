@@ -3,7 +3,16 @@
   import { page } from '$app/state';
   import { goto } from '$app/navigation';
   import { supabase } from '$lib/db/supabase';
+  import { getLocalUser } from '$lib/db/local-session';
   import { createSolveNode, modelFromTemplate } from '$lib/db/create-solve-node';
+  import {
+    DEFAULT_NETWORK_TIMEOUT_MS,
+    isLikelyNetworkFailure,
+    networkFailureMessage,
+    withTimeout,
+  } from '$lib/online';
+  import { isAppOffline } from '$lib/connectivity.svelte';
+  import { findCachedTemplateRow } from '$lib/db/offline-templates';
   import {
     blankTaskDraft,
     clearTaskDraft,
@@ -76,33 +85,67 @@
   }
 
   async function loadTemplateIntoDraft(templateId: string): Promise<boolean> {
-    const { data, error: qErr } = await supabase
-      .from('templates')
-      .select('id, title, model, what_if, system_kind')
-      .eq('id', templateId)
-      .is('deleted_at', null)
-      .single();
-    if (qErr || !data) {
-      session.error = qErr?.message ?? t('notFound');
-      return false;
+    try {
+      if (!isAppOffline()) {
+        const { data, error: qErr } = await withTimeout(
+          supabase
+            .from('templates')
+            .select('id, title, model, what_if, system_kind')
+            .eq('id', templateId)
+            .is('deleted_at', null)
+            .single(),
+          DEFAULT_NETWORK_TIMEOUT_MS,
+        );
+        if (!qErr && data) {
+          try {
+            await withTimeout(recordPublicTemplateUse(templateId), DEFAULT_NETWORK_TIMEOUT_MS);
+          } catch {
+            /* use tracking is best-effort offline */
+          }
+          applyDraft({
+            title: data.title,
+            model: modelFromTemplate(data),
+            templateId,
+            activeTab: 'plan',
+            includeSensitivity: false,
+            updated_at: new Date().toISOString(),
+          });
+          persistLocal();
+          return true;
+        }
+        if (qErr && !isLikelyNetworkFailure(qErr)) {
+          session.error = qErr.message;
+          return false;
+        }
+      }
+    } catch (e) {
+      if (!isLikelyNetworkFailure(e)) {
+        session.error = networkFailureMessage(e, t('templatesOfflineBody'));
+        return false;
+      }
     }
-    await recordPublicTemplateUse(templateId);
-    applyDraft({
-      title: data.title,
-      model: modelFromTemplate(data),
-      templateId,
-      activeTab: 'plan',
-      includeSensitivity: false,
-      updated_at: new Date().toISOString(),
-    });
-    persistLocal();
-    return true;
+    const user = await getLocalUser();
+    const cached = await findCachedTemplateRow(templateId, user?.id);
+    if (cached?.model) {
+      applyDraft({
+        title: cached.title,
+        model: modelFromTemplate({ model: cached.model, what_if: null }),
+        templateId,
+        activeTab: 'plan',
+        includeSensitivity: false,
+        updated_at: new Date().toISOString(),
+      });
+      persistLocal();
+      return true;
+    }
+    session.error = t('templatesCacheEmpty');
+    return false;
   }
 
   onMount(() => {
     void (async () => {
-      const { data: auth } = await supabase.auth.getUser();
-      if (!auth.user) {
+      const user = await getLocalUser();
+      if (!user) {
         await goto('/login');
         return;
       }

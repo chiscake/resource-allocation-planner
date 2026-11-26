@@ -7,6 +7,7 @@
   let {
     title,
     description,
+    meta,
     editable = false,
     /** On max-md, stack actions under the title; md+ stays title | actions. */
     actionsBelowMobile = false,
@@ -16,6 +17,8 @@
   }: {
     title: string;
     description?: string;
+    /** Small hint under the title (e.g. last saved). Shown before description. */
+    meta?: string;
     /** Double-click / Enter|F2 when focused → rename; ghost pen also starts edit. */
     editable?: boolean;
     /** Stack action buttons on their own row below md; desktop unchanged. */
@@ -112,6 +115,9 @@
       </div>
     {:else}
       <h1 class="text-3xl font-medium tracking-tight text-text">{title}</h1>
+    {/if}
+    {#if meta}
+      <p class="mt-1 text-xs text-text-soft">{meta}</p>
     {/if}
     {#if description}
       <p class="mt-1 text-sm text-text-muted">{description}</p>

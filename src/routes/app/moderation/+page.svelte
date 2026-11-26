@@ -16,6 +16,7 @@
     title: string;
     model: Model | null;
     owner_id: string | null;
+    updated_at: string | null;
   };
 
   let rows = $state<Row[]>([]);
@@ -27,7 +28,7 @@
   async function reload() {
     const { data, error } = await supabase
       .from('templates')
-      .select('id, title, model, owner_id')
+      .select('id, title, model, owner_id, updated_at')
       .eq('publish_status', 'pending')
       .is('deleted_at', null)
       .is('system_kind', null)
@@ -87,6 +88,7 @@
           <TemplatePreviewCard
             title={r.title}
             model={r.model}
+            updatedAt={r.updated_at}
             subtitle={t('publishStatusPending')}
             href="/app/templates/{r.id}"
           >

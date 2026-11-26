@@ -1,10 +1,11 @@
 <script lang="ts">
-  import { Menu, Bell, LogOut, LogIn, Settings } from '@lucide/svelte';
+  import { Menu, Bell, LogOut, LogIn, Settings, WifiOff } from '@lucide/svelte';
   import { page } from '$app/state';
   import { t } from '$lib/i18n';
   import Badge from '$lib/components/ui/Badge.svelte';
   import AppIcon from '$lib/components/ui/AppIcon.svelte';
   import { chrome, toggleNav, openNotifications } from '$lib/chrome/chrome.svelte';
+  import { isAppOffline } from '$lib/connectivity.svelte';
 
   let {
     userEmail = '',
@@ -84,6 +85,17 @@
   {/if}
 
   <div class="ml-auto flex items-center gap-1">
+    {#if isAppOffline()}
+      <span
+        class="inline-flex items-center gap-1 rounded-md px-2 text-xs font-medium text-warning-text"
+        style="height: var(--chrome-control-size)"
+        title={t('offlineChipTitle')}
+        role="status"
+      >
+        <WifiOff size={16} strokeWidth={1.75} aria-hidden="true" />
+        <span class="hidden sm:inline">{t('offlineChip')}</span>
+      </span>
+    {/if}
     <button
       id="chrome-notifications-trigger"
       type="button"

@@ -35,10 +35,25 @@
     type RunMutationsResponse,
     formatCompareIds,
   } from '$lib/domain';
+  import { formatSavedAt } from '$lib/display/formatDateTime';
   import { t } from '$lib/i18n';
-  import { isLikelyNetworkFailure, isOnline, networkFailureMessage } from '$lib/online';
+  import { isAppOffline, refreshConnectivityProbe } from '$lib/connectivity.svelte';
+  import {
+    DEFAULT_NETWORK_TIMEOUT_MS,
+    isLikelyNetworkFailure,
+    isOnline,
+    networkFailureMessage,
+    withTimeout,
+  } from '$lib/online';
+  import {
+    getCachedTask,
+    putCachedTask,
+    type CachedSolveNode,
+    type CachedTaskRecord,
+  } from '$lib/db/offline-tasks';
   import Button from '$lib/components/ui/Button.svelte';
   import Card from '$lib/components/ui/Card.svelte';
+  import ChoiceModal from '$lib/components/ui/ChoiceModal.svelte';
   import ConfirmModal from '$lib/components/ui/ConfirmModal.svelte';
   import PageHeader from '$lib/components/ui/PageHeader.svelte';
   import SolveWorkspace from '$lib/components/model/SolveWorkspace.svelte';
@@ -83,6 +98,8 @@
     is_favorite: boolean;
     owner_id: string;
     solver_meta?: SolverMeta | null;
+    updated_at?: string | null;
+    created_at?: string | null;
   };
 
   type OrgOption = { id: string; name: string };
@@ -101,6 +118,9 @@
   let error = $state('');
   /** Retry target after network/Supabase failure; keeps local session intact. */
   let pendingRetry = $state<'load' | 'save' | null>(null);
+  let conflictOpen = $state(false);
+  let pendingServerLoad = $state<{ root: NodeRow; kids: NodeRow[] } | null>(null);
+  let pendingConflictCache = $state<CachedTaskRecord | null>(null);
   let orgId = $state('');
   let makePublic = $state(false);
   let shareUrl = $state('');
@@ -130,6 +150,7 @@
   /** Soft-lock: any active share channel freezes content edits. */
   const isLocked = $derived(hasActiveShare);
   const isEditable = $derived(isOwner && !isLocked);
+  const headerMeta = $derived(formatSavedAt(node?.updated_at) ?? undefined);
   const solverLibrary = $derived(
     typeof node?.solver_meta?.library === 'string' ? node.solver_meta.library : null,
   );
@@ -256,29 +277,120 @@
       .filter((o): o is OrgOption => o != null);
   }
 
+  function toCachedNode(row: NodeRow): CachedSolveNode {
+    return {
+      id: row.id,
+      title: row.title,
+      kind: row.kind,
+      model: row.model,
+      result: row.result,
+      parent_id: row.parent_id,
+      what_if_generation: row.what_if_generation,
+      active_what_if_generation: row.active_what_if_generation,
+      deleted_at: row.deleted_at,
+      mutation: row.mutation,
+      org_id: row.org_id,
+      org_visibility: row.org_visibility,
+      is_favorite: row.is_favorite,
+      owner_id: row.owner_id,
+      solver_meta: row.solver_meta ?? null,
+      updated_at: row.updated_at ?? null,
+      created_at: row.created_at ?? null,
+    };
+  }
+
+  async function writeTaskCache(dirty: boolean) {
+    if (!node) return;
+    await putCachedTask({
+      id: node.id,
+      title: node.title,
+      root: toCachedNode(node),
+      children: children.map(toCachedNode),
+      dirty,
+    });
+  }
+
+  function applyLoadedTree(root: NodeRow, kids: NodeRow[], opts?: { preserveSession?: boolean }) {
+    node = root;
+    children = kids;
+    activeWhatIfGeneration = node.active_what_if_generation ?? null;
+    orgId = node.org_id ?? userOrgs[0]?.id ?? '';
+    makePublic = node.org_visibility === 'org';
+    const hasSensitivityPack =
+      children.some(isSensitivityChild) || node.active_what_if_generation != null;
+    if (!opts?.preserveSession) {
+      syncSessionFromNode({ includeSensitivity: hasSensitivityPack });
+      error = '';
+      pendingRetry = null;
+    }
+    genIndex = defaultPagerIndex(
+      buildPagerSlots(collectGenerations(children), activeWhatIfGeneration, {
+        includeEmptyCurrent: activeWhatIfGeneration == null && showEmptyCurrentSlot,
+      }),
+    );
+  }
+
+  function applyFromCacheRecord(rec: CachedTaskRecord, opts?: { preserveSession?: boolean }) {
+    applyLoadedTree(rec.root as NodeRow, rec.children as NodeRow[], opts);
+    if (rec.dirty && !opts?.preserveSession) {
+      pendingRetry = 'save';
+      error = t('taskSolveSaveOffline');
+    }
+  }
+
   async function load() {
     // Keep in-memory solve when a cloud save still needs retry.
     const preserveSession = pendingRetry === 'save' && session.model != null;
+    const cached = await getCachedTask(id);
     try {
-      if (!isOnline()) {
-        error = preserveSession ? t('taskSolveSaveOffline') : t('taskLoadOffline');
-        pendingRetry = preserveSession ? 'save' : 'load';
+      if (isOnline()) {
+        await refreshConnectivityProbe();
+      }
+      if (!isOnline() || isAppOffline()) {
+        if (preserveSession && node) {
+          await writeTaskCache(true);
+          error = t('taskSolveSaveOffline');
+          pendingRetry = 'save';
+          return;
+        }
+        if (cached) {
+          applyFromCacheRecord(cached);
+          viewerId = cached.root.owner_id;
+          shareUrl = '';
+          shareGrants = [];
+          hasActiveShare = false;
+          return;
+        }
+        error = t('taskLoadOffline');
+        pendingRetry = 'load';
         return;
       }
-      const { data: auth, error: authErr } = await supabase.auth.getUser();
+
+      const { data: auth, error: authErr } = await withTimeout(
+        supabase.auth.getUser(),
+        DEFAULT_NETWORK_TIMEOUT_MS,
+      );
       if (authErr && isLikelyNetworkFailure(authErr)) {
+        if (cached && !preserveSession) {
+          applyFromCacheRecord(cached);
+          viewerId = cached.root.owner_id;
+          return;
+        }
         error = preserveSession ? t('taskSolveSaveOffline') : t('taskLoadOffline');
         pendingRetry = preserveSession ? 'save' : 'load';
         return;
       }
       viewerId = auth.user?.id ?? null;
-      const { data: root, error: e1 } = await supabase
-        .from('solve_nodes')
-        .select('*')
-        .eq('id', id)
-        .maybeSingle();
+      const { data: root, error: e1 } = await withTimeout(
+        supabase.from('solve_nodes').select('*').eq('id', id).maybeSingle(),
+        DEFAULT_NETWORK_TIMEOUT_MS,
+      );
       if (e1 || !root) {
         if (e1 && isLikelyNetworkFailure(e1)) {
+          if (cached && !preserveSession) {
+            applyFromCacheRecord(cached);
+            return;
+          }
           error = preserveSession ? t('taskSolveSaveOffline') : t('taskLoadOffline');
           pendingRetry = preserveSession ? 'save' : 'load';
           return;
@@ -288,41 +400,47 @@
         node = null;
         return;
       }
-      node = root as NodeRow;
-      activeWhatIfGeneration = node.active_what_if_generation ?? null;
-      orgId = node.org_id ?? userOrgs[0]?.id ?? '';
-      makePublic = node.org_visibility === 'org';
-      const { data: kids, error: kidsErr } = await supabase
-        .from('solve_nodes')
-        .select('*')
-        .eq('parent_id', id)
-        .order('what_if_generation', { ascending: true });
+
+      const { data: kids, error: kidsErr } = await withTimeout(
+        supabase
+          .from('solve_nodes')
+          .select('*')
+          .eq('parent_id', id)
+          .order('what_if_generation', { ascending: true }),
+        DEFAULT_NETWORK_TIMEOUT_MS,
+      );
       if (kidsErr && isLikelyNetworkFailure(kidsErr)) {
+        if (cached && !preserveSession) {
+          applyFromCacheRecord(cached);
+          return;
+        }
         error = preserveSession ? t('taskSolveSaveOffline') : t('taskLoadOffline');
         pendingRetry = preserveSession ? 'save' : 'load';
-        if (!preserveSession && !session.model) {
-          syncSessionFromNode({
-            includeSensitivity:
-              children.some(isSensitivityChild) || node.active_what_if_generation != null,
-          });
-        }
         return;
       }
-      children = (kids ?? []) as NodeRow[];
-      const hasSensitivityPack =
-        children.some(isSensitivityChild) || node.active_what_if_generation != null;
-      if (!preserveSession) {
-        syncSessionFromNode({ includeSensitivity: hasSensitivityPack });
-        error = '';
-        pendingRetry = null;
-      }
-      genIndex = defaultPagerIndex(
-        buildPagerSlots(collectGenerations(children), activeWhatIfGeneration, {
-          includeEmptyCurrent: activeWhatIfGeneration == null && showEmptyCurrentSlot,
-        }),
-      );
 
-      if (viewerId && node.owner_id === viewerId) {
+      const rootRow = root as NodeRow;
+      const kidRows = (kids ?? []) as NodeRow[];
+
+      if (cached?.dirty && !preserveSession) {
+        pendingServerLoad = { root: rootRow, kids: kidRows };
+        pendingConflictCache = cached;
+        conflictOpen = true;
+        // Keep showing previous UI until the user chooses; hydrate cache if empty.
+        if (!node) applyFromCacheRecord(cached);
+        return;
+      }
+
+      if (preserveSession) {
+        node = rootRow;
+        children = kidRows;
+        activeWhatIfGeneration = node.active_what_if_generation ?? null;
+      } else {
+        applyLoadedTree(rootRow, kidRows);
+        await writeTaskCache(false);
+      }
+
+      if (viewerId && node && node.owner_id === viewerId) {
         await refreshShareState();
       } else {
         shareUrl = '';
@@ -330,11 +448,32 @@
         hasActiveShare = false;
       }
     } catch (e) {
+      if (cached && !preserveSession) {
+        applyFromCacheRecord(cached);
+        return;
+      }
       error = networkFailureMessage(
         e,
         preserveSession ? t('taskSolveSaveOffline') : t('taskLoadOffline'),
       );
       pendingRetry = preserveSession ? 'save' : 'load';
+    }
+  }
+
+  async function resolveConflictKeepLocal() {
+    if (pendingConflictCache) applyFromCacheRecord(pendingConflictCache);
+    pendingServerLoad = null;
+    pendingConflictCache = null;
+  }
+
+  async function resolveConflictTakeServer() {
+    if (!pendingServerLoad) return;
+    applyLoadedTree(pendingServerLoad.root, pendingServerLoad.kids);
+    await writeTaskCache(false);
+    pendingServerLoad = null;
+    pendingConflictCache = null;
+    if (viewerId && node && node.owner_id === viewerId) {
+      await refreshShareState();
     }
   }
 
@@ -350,32 +489,46 @@
     solverMeta: SolverMeta | null | undefined,
   ): Promise<boolean> {
     if (!node) return false;
-    const { error: upErr } = await supabase
-      .from('solve_nodes')
-      .update({
-        model,
-        result: result ?? null,
-        solver_meta: solverMeta ?? null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', node.id);
-    if (upErr) {
-      const msg = networkFailureMessage(upErr, t('taskSolveSaveOffline'));
-      error = msg;
-      session.error = msg;
-      pendingRetry = 'save';
-      return false;
-    }
+    const stamp = new Date().toISOString();
     node = {
       ...node,
       model,
       result: result ?? null,
       solver_meta: solverMeta ?? null,
+      updated_at: stamp,
     };
-    error = '';
-    session.error = '';
-    pendingRetry = null;
-    return true;
+    try {
+      const { error: upErr } = await withTimeout(
+        supabase
+          .from('solve_nodes')
+          .update({
+            model,
+            result: result ?? null,
+            solver_meta: solverMeta ?? null,
+            updated_at: stamp,
+          })
+          .eq('id', node.id),
+        DEFAULT_NETWORK_TIMEOUT_MS,
+      );
+      if (upErr) {
+        error = networkFailureMessage(upErr, t('taskSolveSaveOffline'));
+        session.error = '';
+        pendingRetry = 'save';
+        await writeTaskCache(true);
+        return false;
+      }
+      error = '';
+      session.error = '';
+      pendingRetry = null;
+      await writeTaskCache(false);
+      return true;
+    } catch (e) {
+      error = networkFailureMessage(e, t('taskSolveSaveOffline'));
+      session.error = '';
+      pendingRetry = 'save';
+      await writeTaskCache(true);
+      return false;
+    }
   }
 
   async function retryPending() {
@@ -538,15 +691,20 @@
     });
     if (!cycle) {
       if (session.error) {
-        error = networkFailureMessage(session.error, t('taskSaveOffline'));
-        if (isLikelyNetworkFailure(session.error) || !isOnline()) pendingRetry = 'save';
+        const fromSession = session.error;
+        error = networkFailureMessage(fromSession, t('taskSaveOffline'));
+        // Page banner owns network/save retry — avoid duplicate InlineAlert in SolveWorkspace.
+        if (isLikelyNetworkFailure(fromSession) || !isOnline()) {
+          session.error = '';
+          pendingRetry = 'save';
+        }
       }
       return;
     }
     // Persist failed: keep local session model/result; do not reload from cloud.
     if (!persisted) {
-      if (session.error) error = session.error;
-      else if (!error) error = t('taskSolveSaveOffline');
+      if (!error) error = session.error || t('taskSolveSaveOffline');
+      session.error = '';
       pendingRetry = 'save';
       return;
     }
@@ -1263,15 +1421,16 @@
     if (!node) return;
     const title = nextTitle.trim();
     if (!title || title === node.title) return;
+    const stamp = new Date().toISOString();
     const { error: upErr } = await supabase
       .from('solve_nodes')
-      .update({ title, updated_at: new Date().toISOString() })
+      .update({ title, updated_at: stamp })
       .eq('id', node.id);
     if (upErr) {
       error = networkFailureMessage(upErr, t('taskSaveOffline')) || t('titleSaveFailed');
       return;
     }
-    node = { ...node, title };
+    node = { ...node, title, updated_at: stamp };
   }
 </script>
 
@@ -1296,6 +1455,7 @@
   <section class="mx-auto flex w-full max-w-6xl flex-col gap-6">
     <PageHeader
       title={node.title}
+      meta={headerMeta}
       description={!isEditable && !isOwner ? t('sharedViewerHint') : undefined}
       editable={isEditable}
       ontitlecommit={renameNode}
@@ -1583,5 +1743,15 @@
     confirmLabel={t('clearDraft')}
     busy={session.busy}
     onconfirm={clearTaskSourceData}
+  />
+
+  <ChoiceModal
+    bind:open={conflictOpen}
+    title={t('taskConflictTitle')}
+    body={t('taskConflictBody')}
+    primaryLabel={t('taskConflictKeepLocal')}
+    secondaryLabel={t('taskConflictTakeServer')}
+    onprimary={resolveConflictKeepLocal}
+    onsecondary={resolveConflictTakeServer}
   />
 {/if}

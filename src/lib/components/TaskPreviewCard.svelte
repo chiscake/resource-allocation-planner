@@ -3,6 +3,7 @@
   import type { Model } from '$lib/domain';
   import MatrixThumb from '$lib/components/model/MatrixThumb.svelte';
   import CardIconButton from '$lib/components/ui/CardIconButton.svelte';
+  import { formatDateTimeRu } from '$lib/display/formatDateTime';
   import { t } from '$lib/i18n';
 
   let {
@@ -12,6 +13,7 @@
     createdAt,
     model,
     favorite = false,
+    unsynced = false,
     onDelete,
     class: className = '',
   }: {
@@ -21,22 +23,13 @@
     createdAt?: string | null;
     model?: Model | null;
     favorite?: boolean;
+    unsynced?: boolean;
     onDelete?: () => void;
     class?: string;
   } = $props();
 
   const when = $derived(updatedAt || createdAt || null);
-  const timeLabel = $derived(
-    when
-      ? new Date(when).toLocaleString('ru-RU', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-        })
-      : '—',
-  );
+  const timeLabel = $derived(formatDateTimeRu(when) ?? '—');
 </script>
 
 <div
@@ -61,9 +54,18 @@
           <span class="shrink-0 text-xs text-brand" title="Избранное">★</span>
         {/if}
       </div>
-      <time class="mt-1 block text-xs text-text-soft" datetime={when ?? undefined}>
-        {timeLabel}
-      </time>
+      <div class="mt-1 flex flex-wrap items-center gap-2">
+        <time class="block text-xs text-text-soft" datetime={when ?? undefined}>
+          {timeLabel}
+        </time>
+        {#if unsynced}
+          <span
+            class="rounded-md bg-warning-bg px-1.5 py-0.5 text-[10px] font-medium text-warning-text"
+          >
+            {t('taskUnsyncedBadge')}
+          </span>
+        {/if}
+      </div>
     </a>
     {#if onDelete}
       <CardIconButton

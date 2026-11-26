@@ -18,6 +18,16 @@
   import TaskPreviewCard from '$lib/components/TaskPreviewCard.svelte';
   import TemplatePreviewCard from '$lib/components/TemplatePreviewCard.svelte';
   import { createEmptySolveNodeAndOpen } from '$lib/db/create-solve-node';
+  import { listCachedTasks } from '$lib/db/offline-tasks';
+  import { getLocalUser } from '$lib/db/local-session';
+  import { isAppOffline, refreshConnectivityProbe } from '$lib/connectivity.svelte';
+  import {
+    DEFAULT_NETWORK_TIMEOUT_MS,
+    isLikelyNetworkFailure,
+    isOnline,
+    withTimeout,
+  } from '$lib/online';
+  import ListRefreshBar from '$lib/components/ui/ListRefreshBar.svelte';
 
   type Row = {
     id: string;
@@ -28,12 +38,14 @@
     org_id: string | null;
     org_visibility: string | null;
     model: Model | null;
+    dirty?: boolean;
   };
 
   type TemplatePreview = {
     id: string;
     title: string;
     model: Model | null;
+    updated_at: string;
     freshness: number;
     href: string;
     kind: 'personal' | 'public';
@@ -47,6 +59,9 @@
   let recentTemplates = $state<TemplatePreview[]>([]);
   let pendingGuestUpload = $state(false);
   let guestUploadBusy = $state(false);
+  let listsRefreshing = $state(false);
+  let listsMsg = $state('');
+  let recentFromCache = $state(false);
   let confirmOpen = $state(false);
   let pendingDelete = $state<Row | null>(null);
 
@@ -113,6 +128,7 @@
         id: trow.id,
         title: trow.title,
         model: trow.model as Model | null,
+        updated_at: trow.updated_at as string,
         freshness: Math.max(updated, used),
         href: `/app/templates/${trow.id}`,
         kind: 'personal',
@@ -127,6 +143,7 @@
         id: trow.id,
         title: trow.title,
         model: trow.model,
+        updated_at: trow.updated_at,
         freshness: Math.max(updated, used),
         href: `/app/create?template=${encodeURIComponent(trow.id)}`,
         kind: 'public',
@@ -136,25 +153,80 @@
     recentTemplates = mixed.sort((a, b) => b.freshness - a.freshness).slice(0, HOME_CARD_LIMIT * 2);
   }
 
+  async function loadRecentFromCache() {
+    const cached = await listCachedTasks();
+    if (!cached.length) return;
+    recent = cached.map((c) => ({
+      id: c.id,
+      title: c.title,
+      updated_at: c.updated_at,
+      created_at: c.created_at,
+      is_favorite: c.is_favorite,
+      org_id: c.org_id,
+      org_visibility: c.org_visibility,
+      model: c.model,
+      dirty: c.dirty,
+    }));
+    recentFromCache = true;
+  }
+
   async function loadCloudLists() {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      recent = [];
-      recentTemplates = [];
-      return;
+    listsMsg = '';
+    await loadRecentFromCache();
+    listsRefreshing = true;
+    try {
+      if (isOnline()) {
+        await refreshConnectivityProbe();
+      }
+      if (isAppOffline()) {
+        await loadRecentFromCache();
+        recentTemplates = [];
+        listsMsg = t('tasksOfflineCachedHint');
+        return;
+      }
+      const user = await getLocalUser();
+      if (!user) {
+        recent = [];
+        recentTemplates = [];
+        recentFromCache = false;
+        return;
+      }
+      const { data, error } = await withTimeout(
+        supabase
+          .from('solve_nodes')
+          .select(listSelect)
+          .eq('owner_id', user.id)
+          .is('parent_id', null)
+          .is('deleted_at', null)
+          .order('updated_at', { ascending: false })
+          .limit(40),
+        DEFAULT_NETWORK_TIMEOUT_MS,
+      );
+      if (error && isLikelyNetworkFailure(error)) {
+        await loadRecentFromCache();
+        recentTemplates = [];
+        listsMsg = t('tasksOfflineCachedHint');
+        return;
+      }
+      if (error) {
+        listsMsg = error.message;
+        return;
+      }
+      const cloud = (data ?? []) as Row[];
+      const dirtyMap = new Map((await listCachedTasks()).map((c) => [c.id, c.dirty]));
+      recent = cloud.map((r) => ({ ...r, dirty: dirtyMap.get(r.id) ?? false }));
+      recentFromCache = false;
+      listsMsg = '';
+      await loadRecentTemplates(user.id);
+    } catch (e) {
+      if (isLikelyNetworkFailure(e)) {
+        await loadRecentFromCache();
+        recentTemplates = [];
+        listsMsg = t('tasksOfflineCachedHint');
+      }
+    } finally {
+      listsRefreshing = false;
     }
-    const { data } = await supabase
-      .from('solve_nodes')
-      .select(listSelect)
-      .eq('owner_id', user.id)
-      .is('parent_id', null)
-      .is('deleted_at', null)
-      .order('updated_at', { ascending: false })
-      .limit(40);
-    recent = (data ?? []) as Row[];
-    await loadRecentTemplates(user.id);
   }
 
   async function retryGuestUpload() {
@@ -288,16 +360,26 @@
       </Button>
     </div>
 
+    <ListRefreshBar
+      refreshing={listsRefreshing}
+      message={listsMsg}
+      onretry={listsMsg ? () => void loadCloudLists() : undefined}
+    />
+
     <ScenarioCardGrid title={t('recent')} items={recent} limit={HOME_CARD_LIMIT} disableExpand>
       {#snippet headerActions()}
         <Button variant="ghost" href="/app/tasks">{t('showAll')}</Button>
       {/snippet}
       {#snippet empty()}
-        <EmptyState title={t('noScenarios')} description={t('noScenariosHint')}>
-          {#snippet action()}
-            <Button href="/app/create">{t('newTask')}</Button>
-          {/snippet}
-        </EmptyState>
+        {#if listsRefreshing}
+          <p class="text-sm text-text-muted">{t('listRefreshing')}</p>
+        {:else}
+          <EmptyState title={t('noScenarios')} description={t('noScenariosHint')}>
+            {#snippet action()}
+              <Button href="/app/create">{t('newTask')}</Button>
+            {/snippet}
+          </EmptyState>
+        {/if}
       {/snippet}
       {#snippet children(r)}
         <TaskPreviewCard
@@ -307,7 +389,8 @@
           createdAt={r.created_at}
           model={r.model}
           favorite={r.is_favorite}
-          onDelete={() => requestDelete(r)}
+          unsynced={Boolean(r.dirty)}
+          onDelete={recentFromCache || isAppOffline() ? undefined : () => requestDelete(r)}
         />
       {/snippet}
     </ScenarioCardGrid>
@@ -330,6 +413,7 @@
           href={tpl.href}
           title={tpl.title}
           model={tpl.model}
+          updatedAt={tpl.updated_at}
           subtitle={tpl.kind === 'public' ? t('publicTemplates') : t('templates')}
         />
       {/snippet}

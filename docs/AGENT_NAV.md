@@ -45,14 +45,17 @@ resource-allocation-planner/
 │   │   ├── solver/              # contract/registry/run + methods/{lp,ipm,ga,dln} × engine
 │   │   ├── display/             # roundPlan / roundPref (UI post-process, not solver)
 │   │   ├── api/solve.ts         # Edge or local transport (+ method + engine + local fallback)
-│   │   ├── db/                  # supabase, guest, upload-guest, audit, soft-delete, task-draft, template-uses
+│   │   ├── db/                  # supabase, local-session, guest, upload-guest, offline-*, audit, …
 │   │   ├── chrome/              # nav/drawer chrome state
 │   │   ├── components/          # chrome/ (AppShell, AppHeader, …) + model/
 │   │   ├── i18n/                # ru
 │   │   ├── io/                  # CSV model import/export, Excel/PDF result export, PDF fonts (OFL)
+│   │   ├── online.ts            # fetch timeout + network failure helpers
+│   │   ├── connectivity.svelte.ts # header offline chip (navigator + Supabase probe)
 │   │   ├── features.ts          # PUBLIC_* UI flags (DLN, orgs)
 │   │   ├── devQuickLogin.ts     # seed accounts for bottom quick-login bar
 │   │   └── platform.ts
+│   ├── service-worker.ts        # PWA shell precache (Kit 2 `$service-worker`; off under Tauri)
 │   └── routes/
 │       ├── +page.svelte         # marketing: Web версия + guest CTA
 │       ├── login/               # guest upload on success
@@ -185,7 +188,8 @@ Local (`supabase/config.toml`): `enable_signup = true`, `enable_confirmations = 
 | Public template uses                               | `src/lib/db/template-uses.ts`                                                                                                                                                                                                                       |
 | Template publish / moderation RPCs                 | `src/lib/db/template-publish.ts`                                                                                                                                                                                                                    |
 | Create / open solve node + blank personal template | `src/lib/db/create-solve-node.ts` (`createBlankPersonalTemplate`)                                                                                                                                                                                   |
-| UI kit (prefer these)                              | `src/lib/components/ui/` — Button, Card, Input, Select, Modal, Tabs, Badge, PageHeader, EmptyState, CardIconButton, `matrix/`                                                                                                                       |
+| Offline IDB caches                                 | `src/lib/db/offline-idb.ts`, `offline-templates.ts` (public + per-user personal), `offline-tasks.ts`; list UX via `ListRefreshBar`; open/create resolve via `findCachedTemplateRow`                                                                 |
+| UI kit (prefer these)                              | `src/lib/components/ui/` — Button, Card, Input, Select, Modal, Tabs, Badge, PageHeader, EmptyState, ListRefreshBar, CardIconButton, `matrix/`                                                                                                       |
 | Model solve controls                               | `src/lib/components/model/` — LpModelMatrix, PlanSolveControls, SolveResultPanel, SolveWorkspace, SectionNav (+ `section-nav.ts`), WhatIfPanel, WhatIfInteractivePanel, `solve-session.svelte.ts`, `interactive-preview.svelte.ts`                  |
 | Geometry / GA details                              | `src/lib/components/model/visualization/` (GeometryPanel, SceneCanvas, ViewGizmo, adapters); `GaStepsPanel`, `MethodComparisonPanel`                                                                                                                |
 | GA presets / compare                               | `src/lib/solver/methods/ga/presets.ts`, `src/lib/solver/compare.ts`, `src/lib/solver/regenerate.ts`                                                                                                                                                 |
