@@ -260,3 +260,7 @@ src-tauri/target/
 # Rust template ignores Cargo.lock; this is an application — keep it
 !src-tauri/Cargo.lock
 .vercel
+
+# Markdown review tool logs
+tools/md-review/.review-logs/
+tools/md-review/__pycache__/

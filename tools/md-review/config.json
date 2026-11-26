@@ -1,0 +1,11 @@
+{
+  "num_reviewers": 2,
+  "reviewer_models": [
+    "auto",
+    "auto"
+  ],
+  "aggregator_model": "auto",
+  "max_iterations": 1,
+  "checklist_path": "checklist.md",
+  "log_directory": ".review-logs"
+}
