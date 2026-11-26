@@ -36,6 +36,7 @@
     formatCompareIds,
   } from '$lib/domain';
   import { t } from '$lib/i18n';
+  import { isLikelyNetworkFailure, isOnline, networkFailureMessage } from '$lib/online';
   import Button from '$lib/components/ui/Button.svelte';
   import Card from '$lib/components/ui/Card.svelte';
   import PageHeader from '$lib/components/ui/PageHeader.svelte';
@@ -90,6 +91,8 @@
   let activeWhatIfGeneration = $state<number | null>(null);
   let genIndex = $state(0);
   let error = $state('');
+  /** Retry target after network/Supabase failure; keeps local session intact. */
+  let pendingRetry = $state<'load' | 'save' | null>(null);
   let orgId = $state('');
   let makePublic = $state(false);
   let shareUrl = $state('');
@@ -230,41 +233,82 @@
   }
 
   async function load() {
-    const { data: auth } = await supabase.auth.getUser();
-    viewerId = auth.user?.id ?? null;
-    const { data: root, error: e1 } = await supabase
-      .from('solve_nodes')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
-    if (e1 || !root) {
-      error = e1?.message ?? t('notFound');
-      node = null;
-      return;
-    }
-    node = root as NodeRow;
-    activeWhatIfGeneration = node.active_what_if_generation ?? null;
-    orgId = node.org_id ?? userOrgs[0]?.id ?? '';
-    makePublic = node.org_visibility === 'org';
-    const { data: kids } = await supabase
-      .from('solve_nodes')
-      .select('*')
-      .eq('parent_id', id)
-      .order('what_if_generation', { ascending: true });
-    children = (kids ?? []) as NodeRow[];
-    const hasSensitivityPack =
-      children.some(isSensitivityChild) || node.active_what_if_generation != null;
-    syncSessionFromNode({ includeSensitivity: hasSensitivityPack });
-    genIndex = defaultPagerIndex(
-      buildPagerSlots(collectGenerations(children), activeWhatIfGeneration),
-    );
+    // Keep in-memory solve when a cloud save still needs retry.
+    const preserveSession = pendingRetry === 'save' && session.model != null;
+    try {
+      if (!isOnline()) {
+        error = preserveSession ? t('taskSolveSaveOffline') : t('taskLoadOffline');
+        pendingRetry = preserveSession ? 'save' : 'load';
+        return;
+      }
+      const { data: auth, error: authErr } = await supabase.auth.getUser();
+      if (authErr && isLikelyNetworkFailure(authErr)) {
+        error = preserveSession ? t('taskSolveSaveOffline') : t('taskLoadOffline');
+        pendingRetry = preserveSession ? 'save' : 'load';
+        return;
+      }
+      viewerId = auth.user?.id ?? null;
+      const { data: root, error: e1 } = await supabase
+        .from('solve_nodes')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+      if (e1 || !root) {
+        if (e1 && isLikelyNetworkFailure(e1)) {
+          error = preserveSession ? t('taskSolveSaveOffline') : t('taskLoadOffline');
+          pendingRetry = preserveSession ? 'save' : 'load';
+          return;
+        }
+        error = e1?.message ?? t('notFound');
+        pendingRetry = null;
+        node = null;
+        return;
+      }
+      node = root as NodeRow;
+      activeWhatIfGeneration = node.active_what_if_generation ?? null;
+      orgId = node.org_id ?? userOrgs[0]?.id ?? '';
+      makePublic = node.org_visibility === 'org';
+      const { data: kids, error: kidsErr } = await supabase
+        .from('solve_nodes')
+        .select('*')
+        .eq('parent_id', id)
+        .order('what_if_generation', { ascending: true });
+      if (kidsErr && isLikelyNetworkFailure(kidsErr)) {
+        error = preserveSession ? t('taskSolveSaveOffline') : t('taskLoadOffline');
+        pendingRetry = preserveSession ? 'save' : 'load';
+        if (!preserveSession && !session.model) {
+          syncSessionFromNode({
+            includeSensitivity:
+              children.some(isSensitivityChild) || node.active_what_if_generation != null,
+          });
+        }
+        return;
+      }
+      children = (kids ?? []) as NodeRow[];
+      const hasSensitivityPack =
+        children.some(isSensitivityChild) || node.active_what_if_generation != null;
+      if (!preserveSession) {
+        syncSessionFromNode({ includeSensitivity: hasSensitivityPack });
+        error = '';
+        pendingRetry = null;
+      }
+      genIndex = defaultPagerIndex(
+        buildPagerSlots(collectGenerations(children), activeWhatIfGeneration),
+      );
 
-    if (viewerId && node.owner_id === viewerId) {
-      await refreshShareState();
-    } else {
-      shareUrl = '';
-      shareGrants = [];
-      hasActiveShare = false;
+      if (viewerId && node.owner_id === viewerId) {
+        await refreshShareState();
+      } else {
+        shareUrl = '';
+        shareGrants = [];
+        hasActiveShare = false;
+      }
+    } catch (e) {
+      error = networkFailureMessage(
+        e,
+        preserveSession ? t('taskSolveSaveOffline') : t('taskLoadOffline'),
+      );
+      pendingRetry = preserveSession ? 'save' : 'load';
     }
   }
 
@@ -273,20 +317,60 @@
     void loadUserOrgs().then(() => load());
   });
 
-  async function persistModel(model: Model) {
+  /** Persist current in-memory solve outcome without wiping session on failure. */
+  async function persistSolveOutcome(
+    model: Model,
+    result: SolveResult | null,
+    solverMeta: SolverMeta | null | undefined,
+  ): Promise<boolean> {
     if (!node) return false;
     const { error: upErr } = await supabase
       .from('solve_nodes')
-      .update({ model, updated_at: new Date().toISOString() })
+      .update({
+        model,
+        result: result ?? null,
+        solver_meta: solverMeta ?? null,
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', node.id);
     if (upErr) {
-      error = upErr.message;
-      session.error = upErr.message;
+      const msg = networkFailureMessage(upErr, t('taskSolveSaveOffline'));
+      error = msg;
+      session.error = msg;
+      pendingRetry = 'save';
       return false;
     }
-    node = { ...node, model };
-    session.replaceModel(model, { clearDerived: false });
+    node = {
+      ...node,
+      model,
+      result: result ?? null,
+      solver_meta: solverMeta ?? null,
+    };
+    error = '';
+    session.error = '';
+    pendingRetry = null;
     return true;
+  }
+
+  async function retryPending() {
+    if (pendingRetry === 'load') {
+      error = '';
+      await load();
+      return;
+    }
+    if (pendingRetry === 'save') {
+      if (!session.model) return;
+      error = '';
+      session.error = '';
+      const ok = await persistSolveOutcome(
+        session.model,
+        session.result,
+        session.lastResponse?.solver_meta ?? node?.solver_meta,
+      );
+      if (!ok) return;
+      // After a successful save retry, refresh kids/share if we can; keep session if reload fails.
+      await load();
+    }
   }
 
   /** Soft-delete live sensitivity + what_if_base kids. */
@@ -416,37 +500,28 @@
   async function doSolve(cloud = false) {
     if (!node || !session.model || !session.methodReady) return;
     error = '';
+    let persisted = false;
     const cycle = await session.runSolveCycle(taskTransport, {
       cloud,
       afterSolve: async ({ model, result, response }) => {
-        const ok = await persistModel(model);
-        if (!ok) return false;
-        const { error: upErr } = await supabase
-          .from('solve_nodes')
-          .update({
-            model,
-            result: result ?? null,
-            solver_meta: response.solver_meta,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', node!.id);
-        if (upErr) {
-          error = upErr.message;
-          session.error = upErr.message;
-          return false;
-        }
-        node = {
-          ...node!,
-          model,
-          result: result ?? null,
-          solver_meta: response.solver_meta,
-        };
-        return true;
+        const ok = await persistSolveOutcome(model, result ?? null, response.solver_meta);
+        persisted = ok;
+        return ok;
       },
       onVerify: onVerifyReport,
     });
     if (!cycle) {
+      if (session.error) {
+        error = networkFailureMessage(session.error, t('taskSaveOffline'));
+        if (isLikelyNetworkFailure(session.error) || !isOnline()) pendingRetry = 'save';
+      }
+      return;
+    }
+    // Persist failed: keep local session model/result; do not reload from cloud.
+    if (!persisted) {
       if (session.error) error = session.error;
+      else if (!error) error = t('taskSolveSaveOffline');
+      pendingRetry = 'save';
       return;
     }
 
@@ -1135,7 +1210,7 @@
       .update({ title, updated_at: new Date().toISOString() })
       .eq('id', node.id);
     if (upErr) {
-      error = upErr.message || t('titleSaveFailed');
+      error = networkFailureMessage(upErr, t('taskSaveOffline')) || t('titleSaveFailed');
       return;
     }
     node = { ...node, title };
@@ -1143,7 +1218,20 @@
 </script>
 
 {#if !node}
-  <p class="text-text-muted">{error || '…'}</p>
+  <section class="mx-auto flex w-full max-w-6xl flex-col gap-3">
+    {#if error}
+      <InlineAlert>{error}</InlineAlert>
+      {#if pendingRetry}
+        <div>
+          <Button variant="secondary" disabled={session.busy} onclick={() => void retryPending()}>
+            {t('retry')}
+          </Button>
+        </div>
+      {/if}
+    {:else}
+      <p class="text-text-muted">…</p>
+    {/if}
+  </section>
 {:else}
   <section class="mx-auto flex w-full max-w-6xl flex-col gap-6">
     <PageHeader
@@ -1214,7 +1302,14 @@
     </PageHeader>
 
     {#if error}
-      <InlineAlert>{error}</InlineAlert>
+      <div class="flex flex-wrap items-center gap-3">
+        <InlineAlert class="min-w-0 flex-1">{error}</InlineAlert>
+        {#if pendingRetry}
+          <Button variant="secondary" disabled={session.busy} onclick={() => void retryPending()}>
+            {t('retry')}
+          </Button>
+        {/if}
+      </div>
     {/if}
 
     {#if isEditable}

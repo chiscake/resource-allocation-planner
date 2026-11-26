@@ -11,7 +11,7 @@ const ru = {
   onboardingAccountTitle: 'С аккаунтом',
   onboardingGuestFeat1: 'Одна задача на этом устройстве',
   onboardingGuestFeat2: 'Модель, локальный расчёт и анализ чувствительности',
-  onboardingGuestFeat3: 'Публичные шаблоны',
+  onboardingGuestFeat3: 'Публичные шаблоны при наличии сети',
   onboardingGuestFeat4: 'CSV, Excel и PDF для этой задачи',
   onboardingAccountFeat1: 'Несколько задач и история расчётов',
   onboardingAccountFeat2: 'Личные шаблоны',
@@ -105,8 +105,18 @@ const ru = {
   templatesHint: 'Личные шаблоны — создавайте и используйте повторно.',
   myTemplates: 'Мои шаблоны',
   publicTemplates: 'Публичные шаблоны',
-  publicTemplatesHint: 'Готовые модели для быстрого старта новой задачи.',
+  publicTemplatesHint:
+    'Готовые модели для быстрого старта новой задачи. Список загружается из облака.',
   publicTemplatesManageHint: 'Можно убрать шаблон из каталога или сразу опубликовать свой личный.',
+  templatesOfflineTitle: 'Нет подключения',
+  templatesOfflineBody:
+    'Публичные шаблоны хранятся в облаке и без сети недоступны. Подключитесь и нажмите «Повторить».',
+  templatesLoadFailed: 'Не удалось загрузить каталог шаблонов',
+  retry: 'Повторить',
+  taskLoadOffline: 'Не удалось загрузить задачу. Проверьте подключение к сети.',
+  taskSaveOffline: 'Не удалось сохранить изменения. Проверьте подключение к сети.',
+  taskSolveSaveOffline:
+    'Расчёт выполнен, но сохранить в облако не удалось. Можно повторить сохранение.',
   newTemplate: 'Новый шаблон',
   createTemplate: 'Создать шаблон',
   creatingTemplate: 'Создание шаблона…',
