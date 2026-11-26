@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
+  import { tick } from 'svelte';
   import type { Model, Mutation, SolveMethod, SolveResult, WhatIfRowData } from '$lib/domain';
   import { regenerateTrace } from '$lib/solver';
   import { t } from '$lib/i18n';
@@ -11,6 +12,7 @@
   import WhatIfPanel from './WhatIfPanel.svelte';
   import MethodComparisonPanel from './MethodComparisonPanel.svelte';
   import ModelCsvActions from './ModelCsvActions.svelte';
+  import SectionNav from './SectionNav.svelte';
   import InlineAlert from '$lib/components/ui/InlineAlert.svelte';
   import type {
     SolveSession,
@@ -23,6 +25,13 @@
   import { resolveGaFromRunConfig } from '$lib/solver/methods/ga/presets';
   import { DEFAULT_DLN_HYPERPARAMS } from '$lib/solver/methods/dln';
   import { resolveDlnFromRunConfig } from '$lib/solver/methods/dln/presets';
+  import {
+    nextAnimationFrame,
+    scrollToSection,
+    type SectionNavId,
+    type SectionNavItem,
+    type SolveResultSectionApi,
+  } from './section-nav';
 
   let {
     session,
@@ -107,6 +116,36 @@
   const model = $derived(session.model);
   const rows = $derived(whatIfRows ?? session.whatIfItems);
 
+  let resultPanel = $state<SolveResultSectionApi | null>(null);
+
+  const showInteractiveChrome = $derived(
+    interactiveBaseModel != null && interactiveTransport != null,
+  );
+  const showWhatIfPanel = $derived(
+    rows.length > 0 ||
+      Boolean(whatIfEmptyMessage) ||
+      whatIfGenerationCount > 1 ||
+      showInteractiveChrome,
+  );
+  const displayWhatIfBase = $derived(whatIfBaseModel ?? interactiveBaseModel);
+
+  const sectionNavItems = $derived.by((): SectionNavItem[] => {
+    const items: SectionNavItem[] = [];
+    if (session.result && session.stepsAvailable && session.solveMethod === 'lp') {
+      items.push({ id: 'result-geometry', label: t('sectionNavGeometry') });
+    }
+    if (session.result && session.stepsAvailable) {
+      items.push({ id: 'result-steps', label: t('sectionNavSteps') });
+    }
+    if (showWhatIfPanel && displayWhatIfBase) {
+      items.push({ id: 'what-if-ranges', label: t('sectionNavRanges') });
+    }
+    if (showWhatIfPanel) {
+      items.push({ id: 'what-if', label: t('sectionNavWhatIf') });
+    }
+    return items;
+  });
+
   function onRequestSteps() {
     if (session.lastTrace || !session.model) return;
     const method = session.solveMethod;
@@ -119,6 +158,18 @@
       session.buildRunOptions(method),
     );
     session.lastTrace = trace;
+  }
+
+  async function onSectionNavigate(id: SectionNavId) {
+    if (id === 'result-geometry') {
+      await resultPanel?.expandGeometry();
+    } else if (id === 'result-steps') {
+      await resultPanel?.expandSteps();
+    }
+    await tick();
+    await nextAnimationFrame();
+    await nextAnimationFrame();
+    scrollToSection(document.getElementById(id));
   }
 
   const gaHyper = $derived(
@@ -142,6 +193,8 @@
 
 {#if model}
   <section class={['flex flex-col', compact ? 'gap-5' : 'gap-6']}>
+    <SectionNav items={sectionNavItems} onNavigate={onSectionNavigate} />
+
     {#if session.error}
       <InlineAlert>{session.error}</InlineAlert>
     {/if}
@@ -186,6 +239,7 @@
 
       {#key session.solveEpoch}
         <SolveResultPanel
+          bind:this={resultPanel}
           result={session.displayResult}
           {model}
           roundPlan={session.roundPlan}
