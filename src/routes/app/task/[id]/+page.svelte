@@ -47,6 +47,8 @@
   import InlineAlert from '$lib/components/ui/InlineAlert.svelte';
   import {
     createSolveSession,
+    preserveTraceForMeta,
+    responseFromSaved,
     solveMethodToTab,
     type SolveTransport,
     type WhatIfRow,
@@ -190,11 +192,18 @@
       return;
     }
     const loadedMethod = node.solver_meta?.method;
+    // Trace is never written to DB. After local solve → load(), keep the
+    // in-memory frames and rebuild lastResponse from saved solver_meta so
+    // «Подробнее» still has provenance (and does not flash empty).
+    const lastResponse = responseFromSaved(node.result, node.solver_meta ?? null);
+    const lastTrace = preserveTraceForMeta(session.lastTrace, node.solver_meta ?? null);
     session.hydrate({
       model: $state.snapshot(node.model),
       result: node.result,
       activeTab: isSolveMethod(loadedMethod) ? solveMethodToTab(loadedMethod) : session.activeTab,
       whatIfItems: [],
+      lastResponse,
+      lastTrace,
       lastWasCloud: node.solver_meta?.venue === 'cloud',
       // Keep the checkbox in sync with existing pack results on the saved task.
       includeSensitivity: opts?.includeSensitivity ?? session.includeSensitivity,
