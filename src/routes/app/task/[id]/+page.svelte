@@ -889,8 +889,14 @@
 
   async function softDelete() {
     if (!node) return;
-    await softDeleteSolveNode({ id: node.id, org_id: node.org_id });
-    await goto('/app/trash');
+    const { error: delErr } = await softDeleteSolveNode({ id: node.id, org_id: node.org_id });
+    if (delErr) {
+      error = delErr;
+      // Throw so ConfirmModal keeps open (it only closes after onconfirm resolves).
+      throw new Error(delErr);
+    }
+    trashConfirmOpen = false;
+    await goto('/app', { replaceState: true });
   }
 
   async function clearTaskSourceData() {

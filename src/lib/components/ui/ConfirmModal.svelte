@@ -36,6 +36,8 @@
     try {
       await onconfirm();
       open = false;
+    } catch {
+      // Keep open so the caller can surface an error and the user can retry/cancel.
     } finally {
       running = false;
     }
