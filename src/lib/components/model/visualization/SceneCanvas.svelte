@@ -326,6 +326,30 @@
     return boundingCenterScale(pool, 1);
   });
 
+  /** Stable 4D normalize fit from frame geometry (points + faces + edges). */
+  const fit4d = $derived.by(() => {
+    if (scene.mode !== 'project4d' || scene.dim < 4) return null;
+    const pool: number[][] = [];
+    if (frame) {
+      for (const p of frame.points) pool.push(p.coords.slice(0, 4));
+      for (const face of frame.faces ?? []) {
+        for (const pt of face.points) pool.push(pt.slice(0, 4));
+      }
+      for (const line of frame.lines) {
+        for (const pt of line.points) pool.push(pt.slice(0, 4));
+      }
+    }
+    if (pool.length === 0) {
+      const fallback = scene.bounds.min.slice(0, 4).map((mn, i) => {
+        const mx = scene.bounds.max[i] ?? mn + 1;
+        return (mn + mx) / 2;
+      });
+      while (fallback.length < 4) fallback.push(0);
+      return boundingCenterScale([fallback], 1);
+    }
+    return boundingCenterScale(pool, 1);
+  });
+
   const pca = $derived.by(() => {
     if (scene.mode !== 'pca') return null;
     const pool = scene.frames.flatMap((f) => f.points.map((p) => p.coords));
@@ -554,9 +578,10 @@
 
     let p3: number[];
     if (mode === 'project4d' && dim >= 4) {
-      const rawPts = frame?.points.map((p) => p.coords.slice(0, 4)) ?? [coords.slice(0, 4)];
-      const { center, scale } = boundingCenterScale(rawPts, 1);
-      const n = normalizePoint(coords.slice(0, 4), center, scale);
+      const p4 = coords.slice(0, 4);
+      while (p4.length < 4) p4.push(0);
+      const fit = fit4d ?? boundingCenterScale([p4], 1);
+      const n = normalizePoint(p4, fit.center, fit.scale);
       const r = mat4Apply(rot4, n);
       p3 = project4to3(r, 3.4);
     } else if (mode === 'exact3d' || mode === 'section3d' || mode === 'selectedAxes') {

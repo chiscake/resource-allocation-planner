@@ -1,6 +1,7 @@
 import type { Model, SolveTrace } from '$lib/domain';
 import {
   computeEdges,
+  computeFaces2Skeleton,
   computeFaces3d,
   computeSection3d,
   computeVertices,
@@ -162,6 +163,18 @@ export function buildLpScene(
         color: '#4fd1c5',
       });
     }
+    // Projected 2-faces of the 4D ОДР (filled polygons after 4→3→2).
+    const faces4 = computeFaces2Skeleton(verts, all, dim);
+    faces4.forEach((pts, i) => {
+      staticFaces.push({
+        id: `face-${i}`,
+        points: pts.map((p) => p.slice()),
+        kind: 'feasible',
+        label: 'ОДР',
+        color: '#2563eb',
+        opacity: 0.1,
+      });
+    });
   } else if (dim >= 3 && dim <= 4 && (mode === 'exact3d' || mode === 'selectedAxes')) {
     // ОДР on the three selected axes (non-selected products treated as 0 in A·x).
     const reducedCons = userCons.map((c) => ({

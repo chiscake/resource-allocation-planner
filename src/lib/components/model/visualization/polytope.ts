@@ -114,9 +114,92 @@ export function computeEdges(vertices: PolytopeVertex[], dim: number): [number, 
   return edges;
 }
 
+/** Order face vertices around their affine hull (works in 3D/4D ambient space). */
+function orderFacePolygon(faceVerts: PolytopeVertex[]): VecN[] {
+  if (faceVerts.length < 3) return [];
+  const dim = faceVerts[0].point.length;
+  const centroid = new Array(dim).fill(0);
+  for (const v of faceVerts) {
+    for (let k = 0; k < dim; k++) centroid[k] += v.point[k];
+  }
+  for (let k = 0; k < dim; k++) centroid[k] /= faceVerts.length;
+
+  let u: number[] | null = null;
+  let w: number[] | null = null;
+  for (let i = 0; i < faceVerts.length; i++) {
+    const d = faceVerts[i].point.map((x, k) => x - centroid[k]);
+    const n = Math.hypot(...d);
+    if (n < 1e-9) continue;
+    if (!u) {
+      u = d.map((x) => x / n);
+      continue;
+    }
+    const proj = d.reduce((s, x, k) => s + x * (u![k] ?? 0), 0);
+    const orth = d.map((x, k) => x - proj * (u![k] ?? 0));
+    const on = Math.hypot(...orth);
+    if (on > 1e-9) {
+      w = orth.map((x) => x / on);
+      break;
+    }
+  }
+  if (!u || !w) return faceVerts.map((fv) => fv.point.slice());
+
+  return [...faceVerts]
+    .sort((a, b) => {
+      const ax = a.point.map((x, k) => x - centroid[k]);
+      const bx = b.point.map((x, k) => x - centroid[k]);
+      const aAng = Math.atan2(
+        ax.reduce((s, x, k) => s + x * (w![k] ?? 0), 0),
+        ax.reduce((s, x, k) => s + x * (u![k] ?? 0), 0),
+      );
+      const bAng = Math.atan2(
+        bx.reduce((s, x, k) => s + x * (w![k] ?? 0), 0),
+        bx.reduce((s, x, k) => s + x * (u![k] ?? 0), 0),
+      );
+      return aAng - bAng;
+    })
+    .map((fv) => fv.point.slice());
+}
+
+/**
+ * Polygonal 2-faces of a 3D/4D polytope.
+ * A 2-face is the set of vertices tight on the same (dim − 2) constraints.
+ * For dim=3 this matches per-constraint faces; for dim=4 it yields projectable facets of the 2-skeleton.
+ */
+export function computeFaces2Skeleton(
+  vertices: PolytopeVertex[],
+  constraints: Halfspace[],
+  dim: number,
+): VecN[][] {
+  if (vertices.length < 3 || dim < 3 || dim > 4) return [];
+  const need = dim - 2;
+  const idxs = constraints.map((_, i) => i);
+  const combos = kCombinations(idxs, need);
+  const faces: VecN[][] = [];
+  const seen = new Set<string>();
+  for (const combo of combos) {
+    const faceVerts = vertices.filter((v) => combo.every((c) => v.active.includes(c)));
+    if (faceVerts.length < 3) continue;
+    const ordered = orderFacePolygon(faceVerts);
+    if (ordered.length < 3) continue;
+    const key = ordered
+      .map((p) => p.map((x) => x.toFixed(4)).join(','))
+      .sort()
+      .join('|');
+    if (seen.has(key)) continue;
+    seen.add(key);
+    faces.push(ordered);
+  }
+  return faces;
+}
+
 /** Ordered polygonal faces for a 3D polytope (one face per binding constraint). */
 export function computeFaces3d(vertices: PolytopeVertex[], constraints: Halfspace[]): VecN[][] {
   if (vertices.length < 3) return [];
+  // Prefer the shared 2-skeleton enumerator (dim=3 → one constraint per face).
+  const fromSkeleton = computeFaces2Skeleton(vertices, constraints, 3);
+  if (fromSkeleton.length > 0) return fromSkeleton;
+
   const faces: VecN[][] = [];
   for (let ci = 0; ci < constraints.length; ci++) {
     const faceVerts = vertices.filter((v) => v.active.includes(ci));

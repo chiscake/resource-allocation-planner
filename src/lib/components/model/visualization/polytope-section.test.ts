@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { createTask13Model } from '$lib/domain/task13';
-import { computeSection3d } from './polytope';
+import {
+  computeEdges,
+  computeFaces2Skeleton,
+  computeSection3d,
+  computeVertices,
+  getAllConstraints,
+} from './polytope';
+import { buildGaScene } from './ga-adapter';
 import { buildLpScene } from './lp-adapter';
 import { pointTooltipCoords, sceneDisplayAxes } from './scene-axes';
 
@@ -114,5 +121,33 @@ describe('pointTooltipCoords', () => {
       { name: 'C', value: 3, highlight: true },
       { name: 'D', value: 4, highlight: true },
     ]);
+  });
+});
+
+describe('project4d faces', () => {
+  it('enumerates 2-faces for Task 13 4D polytope', () => {
+    const model = createTask13Model();
+    const cons = model.resources.map((_, i) => ({ a: model.A[i], b: model.b[i] }));
+    const all = getAllConstraints(cons, 4);
+    const verts = computeVertices(all, 4);
+    const edges = computeEdges(verts, 4);
+    const faces = computeFaces2Skeleton(verts, all, 4);
+    expect(verts.length).toBeGreaterThan(0);
+    expect(edges.length).toBeGreaterThan(0);
+    expect(faces.length).toBeGreaterThan(0);
+    for (const face of faces) {
+      expect(face.length).toBeGreaterThanOrEqual(3);
+      expect(face[0]).toHaveLength(4);
+    }
+  });
+
+  it('LP and GA project4d scenes include ОДР faces', () => {
+    const model = createTask13Model();
+    const lp = buildLpScene(model, null, { mode: 'project4d' });
+    const ga = buildGaScene(model, null, { mode: 'project4d' });
+    expect((lp.frames[0]?.faces ?? []).length).toBeGreaterThan(0);
+    expect((lp.frames[0]?.lines ?? []).some((l) => l.kind === 'edge')).toBe(true);
+    expect((ga.frames[0]?.faces ?? []).length).toBeGreaterThan(0);
+    expect((ga.frames[0]?.lines ?? []).some((l) => l.kind === 'edge')).toBe(true);
   });
 });

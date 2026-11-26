@@ -11,6 +11,7 @@ import {
 } from './types';
 import {
   computeEdges,
+  computeFaces2Skeleton,
   computeFaces3d,
   computeSection3d,
   computeVertices,
@@ -104,7 +105,32 @@ export function buildGaScene(
   const staticEdgeLines: SceneFrame['lines'] = [];
   const axes: [number, number, number] = [axisX, axisY, axisZ ?? Math.min(2, dim - 1)];
 
-  if (mode === 'section3d' && dim >= 4 && sectionAxis != null) {
+  if (mode === 'project4d' && dim >= 4) {
+    // Full 4D ОДР wireframe + projected 2-faces (same as LP project4d).
+    const all = getAllConstraints(userCons, dim);
+    const verts = computeVertices(all, dim);
+    const modelVerts = verts.map((v) => v.point);
+    bounds = expandBounds(bounds, modelVerts);
+    const edges = computeEdges(verts, dim);
+    for (const [i, j] of edges) {
+      staticEdgeLines.push({
+        id: `e-${i}-${j}`,
+        points: [modelVerts[i], modelVerts[j]],
+        kind: 'edge',
+        color: '#4fd1c5',
+      });
+    }
+    computeFaces2Skeleton(verts, all, dim).forEach((pts, i) => {
+      staticFaces.push({
+        id: `face-${i}`,
+        points: pts.map((p) => p.slice()),
+        kind: 'feasible',
+        label: 'ОДР',
+        color: '#2563eb',
+        opacity: 0.1,
+      });
+    });
+  } else if (mode === 'section3d' && dim >= 4 && sectionAxis != null) {
     // Same slice semantics as LP: ОДР faces at sectionAxis = sectionValue.
     const section = computeSection3d(userCons, dim, axes, sectionAxis, sectionValue);
     bounds = expandBounds(bounds, section.modelVerts);
