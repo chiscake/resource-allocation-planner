@@ -18,7 +18,7 @@ Agent instructions for this project.
 
 Human product copy / UI strings: Russian (see [UI copy](#ui-copy-russian)). **Agent docs in this repo (`AGENTS.md`, `docs/AGENT_NAV.md`, `ROADMAP.md`, `COMMIT_WORKFLOW.md`): English only.**
 
-Canonical status / shipped scope: [`ROADMAP.md`](ROADMAP.md). Schema: [`docs/data-model.md`](docs/data-model.md). Navigation map: [`docs/AGENT_NAV.md`](docs/AGENT_NAV.md) — **update AGENT_NAV when the tree or entrypoints change**.
+Canonical status / shipped scope: [`ROADMAP.md`](ROADMAP.md). Schema: [`docs/data-model.md`](docs/data-model.md). Navigation map: [`docs/AGENT_NAV.md`](docs/AGENT_NAV.md) — **update AGENT_NAV when the tree or entrypoints change**. Open bugs / incomplete offline–sync edges: [`docs/KNOWN_ISSUES.md`](docs/KNOWN_ISSUES.md) (distinct from deferred backlog in [`docs/TODO-later.md`](docs/TODO-later.md)).
 
 **Commits / push / Vercel / Supabase cloud ship:** follow [`docs/COMMIT_WORKFLOW.md`](docs/COMMIT_WORKFLOW.md). Run `pnpm preflight` **after staging** before committing on `dev`; `pnpm preflight:main` before promote/`main`. Default work branch is `dev` (also current Vercel Production).
 

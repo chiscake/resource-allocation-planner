@@ -16,6 +16,7 @@ Purpose: fast orientation for coding agents. Prefer pointers over copying rules 
 | Design tokens / Cartesia UI                      | [`DESIGN.md`](DESIGN.md)                                     |
 | Shipped status / scope + tree                    | [`../ROADMAP.md`](../ROADMAP.md)                             |
 | Post-MVP / deferred backlog                      | [`TODO-later.md`](TODO-later.md)                             |
+| Known bugs / incomplete offline sync edges       | [`KNOWN_ISSUES.md`](KNOWN_ISSUES.md)                         |
 | UI copy tone (RU end-user)                       | [`../AGENTS.md`](../AGENTS.md) + `.cursor/rules/ui-copy.mdc` |
 | Task 13 text                                     | [`course/assignment.md`](course/assignment.md)               |
 | Course formal requirements                       | [`course/requirements.md`](course/requirements.md)           |
@@ -31,6 +32,7 @@ Scratch only (not canon): `.tmp/task13_*.py/json`, `LP4DVisualizer.jsx`. Design 
 resource-allocation-planner/
 ├── AGENTS.md
 ├── ROADMAP.md
+├── docs/KNOWN_ISSUES.md         # open bugs / incomplete sync UX (not TODO-later backlog)
 ├── package.json                 # pnpm: dev, check, format*, test, preflight*, seed:users, db:*, tauri:*
 ├── .prettierrc / .prettierignore / .editorconfig  # Prettier (2 spaces, singleQuote) + editor defaults
 ├── .vscode/settings.json        # format on save → Prettier (incl. *.svelte)

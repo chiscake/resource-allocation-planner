@@ -2,6 +2,8 @@
 
 **English.** Single backlog of work **not** in MVP. Prefer editing this file over scattering new “later” bullets across START / ROADMAP / data-model.
 
+**Not this file:** known bugs / incomplete sync UX that should be fixed in-product soon → [`KNOWN_ISSUES.md`](KNOWN_ISSUES.md).
+
 MVP still delivers: dual solver, what-if children, share/trash/audit, notifications **table + UI**, guest slot, compare, installer, admin create-user, LP tests, CSV import, Excel/PDF export, units. Organizations stay in schema/RLS but the UI is hidden behind `PUBLIC_SHOW_ORGS` (off by default).
 
 ---

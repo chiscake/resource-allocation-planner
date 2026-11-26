@@ -2,7 +2,7 @@
 
 Course project: client-server **Resource Allocation Planner** (UI: «Планировщик распределения ресурсов»).
 
-**Canon for shipped status / scope.** Schema: `docs/data-model.md`. Agent rules: `AGENTS.md`. Map: `docs/AGENT_NAV.md`. Backlog: `docs/TODO-later.md`.
+**Canon for shipped status / scope.** Schema: `docs/data-model.md`. Agent rules: `AGENTS.md`. Map: `docs/AGENT_NAV.md`. Backlog: `docs/TODO-later.md`. Open bugs: `docs/KNOWN_ISSUES.md`.
 
 **Ports:** Vite **5400**, HMR **5401** (block 5400–5409 reserved).
 
@@ -65,7 +65,7 @@ resource-allocation-planner/
 │   ├── functions/               # solve, run_mutations, admin-create-user, admin-users
 │   └── seed.sql                 # noop; users via seed:users
 ├── src-tauri/
-└── docs/                        # AGENT_NAV, data-model, DESIGN, COMMIT_WORKFLOW, TODO-later, course/, uml/
+└── docs/                        # AGENT_NAV, data-model, DESIGN, COMMIT_WORKFLOW, TODO-later, KNOWN_ISSUES, course/, uml/
 ```
 
 Local backend one-shot: **`pnpm db:reset`**.
@@ -98,6 +98,7 @@ Canon backlog: **[`docs/TODO-later.md`](docs/TODO-later.md)**. Edit that file, n
 | ----------------------------- | ------------------------------ |
 | `docs/data-model.md`          | Schema canon                   |
 | `docs/TODO-later.md`          | Post-MVP backlog               |
+| `docs/KNOWN_ISSUES.md`        | Open bugs / incomplete sync UX |
 | `docs/AGENT_NAV.md`           | Paths / entrypoints            |
 | `docs/COMMIT_WORKFLOW.md`     | Git / Vercel / Supabase ship   |
 | `docs/DESIGN.md`              | Cartesia visual tokens         |
