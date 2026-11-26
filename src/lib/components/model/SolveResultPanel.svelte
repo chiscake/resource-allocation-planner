@@ -43,7 +43,8 @@
     compareDeltas = null,
     /** Use decimal-stable formatting (compare page, both cards). */
     comparePrecision = false,
-    children,
+    /** Optional footer below geometry/steps (e.g. what-if extras). Border only when set. */
+    resultExtras,
   }: {
     result: SolveResult;
     model?: Model | null;
@@ -62,7 +63,7 @@
     whatIfRows?: WhatIfRowData[];
     compareDeltas?: PlanDeltas | null;
     comparePrecision?: boolean;
-    children?: Snippet;
+    resultExtras?: Snippet;
   } = $props();
 
   let stepsRequested = $state(false);
@@ -471,9 +472,9 @@
 
   <LibraryVerifyPanel report={verifyReport} />
 
-  {#if children}
+  {#if resultExtras}
     <div class="mt-6 border-t border-border pt-4">
-      {@render children()}
+      {@render resultExtras()}
     </div>
   {/if}
 </Card>

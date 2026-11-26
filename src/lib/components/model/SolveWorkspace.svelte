@@ -200,11 +200,8 @@
           {onRequestSteps}
           exportTitle={title || t('newTask')}
           whatIfRows={rows}
-        >
-          {#if resultExtras}
-            {@render resultExtras()}
-          {/if}
-        </SolveResultPanel>
+          {resultExtras}
+        />
       {/key}
 
       {#if !compact}
