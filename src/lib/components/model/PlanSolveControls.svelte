@@ -300,7 +300,7 @@
   <div class="mt-4 flex flex-wrap items-center justify-end gap-2">
     {#if useCloudSplit}
       <p class="mr-auto flex items-center gap-1.5 text-xs text-text-muted">
-        <Cloud size={14} strokeWidth={1.75} aria-hidden="true" />
+        <Cloud class="h-[1.5em] w-[1.5em] shrink-0" strokeWidth={1.75} aria-hidden="true" />
         {t('solveCloudHint')}
       </p>
     {/if}

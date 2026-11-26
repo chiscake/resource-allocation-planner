@@ -67,10 +67,11 @@
 
   <a
     href="/app"
-    class="inline-flex min-w-0 items-center gap-2 truncate rounded-md px-1.5 py-1.5 text-sm font-medium text-text hover:bg-surface"
+    class="inline-flex min-w-0 items-center gap-1 truncate rounded-md px-1 py-1.5 text-sm font-medium text-text hover:bg-surface md:gap-2 md:px-1.5"
+    aria-label={t('appTitle')}
   >
     <AppIcon size={28} />
-    <span class="min-w-0 truncate">{t('appTitle')}</span>
+    <span class="hidden min-w-0 truncate md:inline">{t('appTitle')}</span>
   </a>
 
   {#if listBack}

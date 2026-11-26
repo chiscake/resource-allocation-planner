@@ -14,6 +14,7 @@
     'aria-label': ariaLabel,
     'aria-expanded': ariaExpanded,
     'aria-controls': ariaControls,
+    'aria-haspopup': ariaHaspopup,
     children,
   }: {
     variant?: Variant;
@@ -26,6 +27,7 @@
     'aria-label'?: string;
     'aria-expanded'?: boolean | 'true' | 'false';
     'aria-controls'?: string;
+    'aria-haspopup'?: boolean | 'false' | 'true' | 'menu' | 'listbox' | 'tree' | 'grid' | 'dialog';
     children?: Snippet;
   } = $props();
 
@@ -54,6 +56,7 @@
     aria-label={ariaLabel}
     aria-expanded={ariaExpanded}
     aria-controls={ariaControls}
+    aria-haspopup={ariaHaspopup}
   >
     {@render children?.()}
   </a>
@@ -67,6 +70,7 @@
     aria-label={ariaLabel}
     aria-expanded={ariaExpanded}
     aria-controls={ariaControls}
+    aria-haspopup={ariaHaspopup}
   >
     {@render children?.()}
   </button>

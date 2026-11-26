@@ -57,7 +57,14 @@
   import type { InteractiveScenarioPayload } from '$lib/components/model/interactive-preview.svelte';
   import { resolveSolveMode } from '$lib/solver/mode';
   import type { VerifyReport } from '$lib/solver/verify';
-  import { Star, GitFork, Trash2, Eraser, GitCompareArrows } from '@lucide/svelte';
+  import {
+    Star,
+    GitFork,
+    Trash2,
+    Eraser,
+    GitCompareArrows,
+    EllipsisVertical,
+  } from '@lucide/svelte';
 
   type NodeRow = {
     id: string;
@@ -102,8 +109,13 @@
   let hasActiveShare = $state(false);
   let shareGrants = $state<ShareGrantRow[]>([]);
   let viewerId = $state<string | null>(null);
+  let actionsMenuOpen = $state(false);
   const session = createSolveSession();
   const showOrgs = isOrgsUiEnabled(env.PUBLIC_SHOW_ORGS);
+
+  function closeActionsMenu() {
+    actionsMenuOpen = false;
+  }
 
   const id = $derived(page.params.id!);
   const isOwner = $derived(Boolean(node && viewerId && node.owner_id === viewerId));
@@ -1217,6 +1229,8 @@
   }
 </script>
 
+<svelte:window onclick={closeActionsMenu} />
+
 {#if !node}
   <section class="mx-auto flex w-full max-w-6xl flex-col gap-3">
     {#if error}
@@ -1241,63 +1255,157 @@
       ontitlecommit={renameNode}
     >
       {#snippet actions()}
-        {#if isEditable}
+        <div class="hidden md:contents">
+          {#if isEditable}
+            <Button
+              variant="secondary"
+              class="px-2.5! py-2.5!"
+              disabled={session.busy}
+              aria-label={t('clearDraft')}
+              title={t('clearDraftHint')}
+              onclick={() => {
+                resetTaskDraftToBlank();
+                void goto('/app/create');
+              }}
+            >
+              <Eraser size={18} strokeWidth={1.75} aria-hidden="true" />
+            </Button>
+            {@const favoriteLabel = node!.is_favorite ? t('unfavorite') : t('favorite')}
+            <Button
+              variant="secondary"
+              class="px-2.5! py-2.5!"
+              disabled={session.busy}
+              aria-label={favoriteLabel}
+              title={favoriteLabel}
+              onclick={toggleFavorite}
+            >
+              <Star
+                size={18}
+                strokeWidth={1.75}
+                aria-hidden="true"
+                class={node!.is_favorite ? 'text-amber-400' : 'text-text-soft'}
+                fill={node!.is_favorite ? 'currentColor' : 'none'}
+              />
+            </Button>
+          {/if}
+          <Button
+            variant="secondary"
+            class={!isEditable ? '' : 'px-2.5! py-2.5!'}
+            disabled={session.busy}
+            aria-label={t('fork')}
+            title={t('fork')}
+            onclick={forkNode}
+          >
+            <GitFork size={18} strokeWidth={1.75} aria-hidden="true" />
+            {#if !isEditable}
+              {t('fork')}
+            {/if}
+          </Button>
+          {#if isOwner}
+            <Button
+              variant="danger"
+              class="px-2.5! py-2.5!"
+              disabled={session.busy}
+              aria-label={t('trashToBin')}
+              title={t('trashToBin')}
+              onclick={softDelete}
+            >
+              <Trash2 size={18} strokeWidth={1.75} aria-hidden="true" />
+            </Button>
+          {/if}
+        </div>
+
+        <div class="relative md:hidden">
           <Button
             variant="secondary"
             class="px-2.5! py-2.5!"
             disabled={session.busy}
-            aria-label={t('clearDraft')}
-            title={t('clearDraftHint')}
-            onclick={() => {
-              resetTaskDraftToBlank();
-              void goto('/app/create');
+            aria-label={t('taskMoreActions')}
+            title={t('taskMoreActions')}
+            aria-expanded={actionsMenuOpen}
+            aria-haspopup="menu"
+            onclick={(e) => {
+              e.stopPropagation();
+              actionsMenuOpen = !actionsMenuOpen;
             }}
           >
-            <Eraser size={18} strokeWidth={1.75} aria-hidden="true" />
+            <EllipsisVertical size={18} strokeWidth={1.75} aria-hidden="true" />
           </Button>
-          {@const favoriteLabel = node!.is_favorite ? t('unfavorite') : t('favorite')}
-          <Button
-            variant="secondary"
-            class="px-2.5! py-2.5!"
-            disabled={session.busy}
-            aria-label={favoriteLabel}
-            title={favoriteLabel}
-            onclick={toggleFavorite}
-          >
-            <Star
-              size={18}
-              strokeWidth={1.75}
-              aria-hidden="true"
-              class={node!.is_favorite ? 'text-amber-400' : 'text-text-soft'}
-              fill={node!.is_favorite ? 'currentColor' : 'none'}
-            />
-          </Button>
-        {/if}
-        <Button
-          variant="secondary"
-          class={!isEditable ? '' : 'px-2.5! py-2.5!'}
-          disabled={session.busy}
-          aria-label={t('fork')}
-          title={t('fork')}
-          onclick={forkNode}
-        >
-          <GitFork size={18} strokeWidth={1.75} aria-hidden="true" />
-          {#if !isEditable}
-            {t('fork')}
+          {#if actionsMenuOpen}
+            <div
+              role="menu"
+              tabindex="-1"
+              class="absolute right-0 z-20 mt-1 min-w-56 rounded-[8px] border border-border bg-bg py-1 shadow-lg"
+              onpointerdown={(e) => e.stopPropagation()}
+            >
+              {#if isEditable}
+                <button
+                  type="button"
+                  role="menuitem"
+                  class="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-sm text-text hover:bg-bg-soft disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={session.busy}
+                  title={t('clearDraftHint')}
+                  onclick={() => {
+                    closeActionsMenu();
+                    resetTaskDraftToBlank();
+                    void goto('/app/create');
+                  }}
+                >
+                  <Eraser size={16} strokeWidth={1.75} aria-hidden="true" />
+                  {t('clearDraft')}
+                </button>
+                {@const favoriteLabel = node!.is_favorite ? t('unfavorite') : t('favorite')}
+                <button
+                  type="button"
+                  role="menuitem"
+                  class="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-sm text-text hover:bg-bg-soft disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={session.busy}
+                  onclick={() => {
+                    closeActionsMenu();
+                    toggleFavorite();
+                  }}
+                >
+                  <Star
+                    size={16}
+                    strokeWidth={1.75}
+                    aria-hidden="true"
+                    class={node!.is_favorite ? 'text-amber-400' : 'text-text-soft'}
+                    fill={node!.is_favorite ? 'currentColor' : 'none'}
+                  />
+                  {favoriteLabel}
+                </button>
+              {/if}
+              <button
+                type="button"
+                role="menuitem"
+                class="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-sm text-text hover:bg-bg-soft disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={session.busy}
+                onclick={() => {
+                  closeActionsMenu();
+                  forkNode();
+                }}
+              >
+                <GitFork size={16} strokeWidth={1.75} aria-hidden="true" />
+                {t('fork')}
+              </button>
+              {#if isOwner}
+                <button
+                  type="button"
+                  role="menuitem"
+                  class="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-sm text-danger-text hover:bg-bg-soft disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={session.busy}
+                  onclick={() => {
+                    closeActionsMenu();
+                    softDelete();
+                  }}
+                >
+                  <Trash2 size={16} strokeWidth={1.75} aria-hidden="true" />
+                  {t('trashToBin')}
+                </button>
+              {/if}
+            </div>
           {/if}
-        </Button>
-        {#if isOwner}
-          <Button
-            variant="danger"
-            class="px-2.5! py-2.5!"
-            disabled={session.busy}
-            aria-label={t('trashToBin')}
-            title={t('trashToBin')}
-            onclick={softDelete}
-          >
-            <Trash2 size={18} strokeWidth={1.75} aria-hidden="true" />
-          </Button>
-        {/if}
+        </div>
       {/snippet}
     </PageHeader>
 

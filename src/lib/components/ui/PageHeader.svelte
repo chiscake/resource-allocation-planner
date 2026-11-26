@@ -8,6 +8,8 @@
     title,
     description,
     editable = false,
+    /** On max-md, stack actions under the title; md+ stays title | actions. */
+    actionsBelowMobile = false,
     class: className = '',
     actions,
     ontitlecommit,
@@ -16,6 +18,8 @@
     description?: string;
     /** Double-click / Enter|F2 when focused → rename; ghost pen also starts edit. */
     editable?: boolean;
+    /** Stack action buttons on their own row below md; desktop unchanged. */
+    actionsBelowMobile?: boolean;
     class?: string;
     actions?: Snippet;
     /** Persist new title (blur / Enter). Empty → cancel. */
@@ -68,8 +72,12 @@
   }
 </script>
 
-<header class="flex flex-wrap items-center justify-between gap-4 {className}">
-  <div class="min-w-0 flex-1">
+<header
+  class="flex flex-wrap gap-4 {actionsBelowMobile
+    ? 'max-md:flex-col max-md:items-stretch md:flex-row md:items-center md:justify-between'
+    : 'items-center justify-between'} {className}"
+>
+  <div class="min-w-0 flex-1 {actionsBelowMobile ? 'max-md:w-full max-md:flex-none' : ''}">
     {#if editing}
       <input
         bind:this={inputEl}
@@ -110,7 +118,11 @@
     {/if}
   </div>
   {#if actions}
-    <div class="flex shrink-0 flex-wrap items-center gap-2">
+    <div
+      class="flex shrink-0 flex-wrap items-center gap-2 {actionsBelowMobile
+        ? 'max-md:w-full max-md:justify-end'
+        : ''}"
+    >
       {@render actions()}
     </div>
   {/if}

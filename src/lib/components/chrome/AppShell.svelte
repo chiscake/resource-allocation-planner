@@ -70,12 +70,41 @@
   onMount(() => {
     initChromeNav();
     void loadAuth();
+
+    // App chrome owns scrolling via <main>. Lock the document so overscroll
+    // at the end of main cannot chain into body (header slides away while
+    // position:fixed SectionNav stays → empty gap ≈ header height).
+    const html = document.documentElement;
+    const body = document.body;
+    const prev = {
+      htmlOverflow: html.style.overflow,
+      bodyOverflow: body.style.overflow,
+      htmlHeight: html.style.height,
+      bodyHeight: body.style.height,
+      htmlOverscroll: html.style.overscrollBehavior,
+      bodyOverscroll: body.style.overscrollBehavior,
+    };
+    html.style.overflow = 'hidden';
+    body.style.overflow = 'hidden';
+    html.style.height = '100%';
+    body.style.height = '100%';
+    html.style.overscrollBehavior = 'none';
+    body.style.overscrollBehavior = 'none';
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       void applyUser(session?.user ?? null);
     });
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      html.style.overflow = prev.htmlOverflow;
+      body.style.overflow = prev.bodyOverflow;
+      html.style.height = prev.htmlHeight;
+      body.style.height = prev.bodyHeight;
+      html.style.overscrollBehavior = prev.htmlOverscroll;
+      body.style.overscrollBehavior = prev.bodyOverscroll;
+    };
   });
 
   afterNavigate(() => {
@@ -97,7 +126,7 @@
       ></button>
     {/if}
 
-    <main class="min-w-0 flex-1 overflow-y-auto p-6">
+    <main class="min-w-0 flex-1 overflow-y-auto overscroll-y-contain p-6">
       {@render children()}
     </main>
   </div>

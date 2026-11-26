@@ -83,6 +83,7 @@ const ru = {
   createTask: 'Создать задачу',
   clearDraft: 'Очистить',
   clearDraftHint: 'Сбросить черновик до пустой задачи 2×2',
+  taskMoreActions: 'Действия',
   allTasks: 'Все задачи',
   myTasks: 'Мои задачи',
   myTasksHint: 'Все ваши задачи — сначала недавно обновлённые.',

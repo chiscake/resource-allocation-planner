@@ -21,6 +21,6 @@
   };
 </script>
 
-<div class="rounded-[12px] {variants[variant]} {padding ? 'p-6' : ''} {className}">
+<div class="rounded-[12px] {variants[variant]} {padding ? 'p-5 md:p-6' : ''} {className}">
   {@render children?.()}
 </div>
