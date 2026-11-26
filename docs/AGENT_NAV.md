@@ -67,7 +67,7 @@ resource-allocation-planner/
 │           ├── compare/, trash/, org/, notifications/, admin/
 │           ├── test/            # scratch sandboxes (viz-3d, …); not product UX
 ├── supabase/
-│   ├── migrations/000…084       # …083_share_public_comments; 084_anon_templates_select
+│   ├── migrations/000…083       # …082_share_grant_access_lock; 083_share_public_comments
 │   ├── functions/               # solve, run_mutations, admin-create-user, admin-users
 │   │   └── _shared/solver/      # Edge mirror: registry + methods (keep ↔ src/lib/solver)
 │   └── seed.sql                 # noop; users via seed:users
