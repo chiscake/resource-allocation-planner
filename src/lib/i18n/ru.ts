@@ -673,6 +673,7 @@ const ru = {
   solveDetailsEmpty: 'Нет пошаговых кадров — нажмите «Рассчитать» ещё раз.',
   solveDetailsPhase: 'Фаза {phase}',
   libraryVerify: 'Сверка с библиотекой',
+  libraryVerifyHide: 'Свернуть сверку',
   libraryVerifyOk: 'Совпало с контрольным расчётом',
   libraryVerifyAlternate: 'Тот же оптимум Z, другой план выпуска',
   libraryVerifyFail: 'Расхождение с контрольным расчётом',
