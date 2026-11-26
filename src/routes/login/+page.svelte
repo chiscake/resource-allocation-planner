@@ -173,79 +173,83 @@
     </button>
   </header>
 
-  <main class="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-4 p-6">
-    {#if mode === 'checkEmail'}
-      <h1 class="text-2xl font-medium">{t('registerCheckEmailTitle')}</h1>
-      <p class="text-sm leading-relaxed text-text-muted">
-        {t('registerCheckEmail')}
-      </p>
-    {:else if mode === 'mfa'}
-      <h1 class="text-2xl font-medium">{t('mfaSectionTitle')}</h1>
-      <p class="text-sm leading-relaxed text-text-muted">{t('mfaLoginHint')}</p>
-      {#if error}
-        <InlineAlert>{error}</InlineAlert>
-      {/if}
-      <form class="flex flex-col gap-3" onsubmit={onSubmit}>
-        <label class="flex flex-col gap-1 text-sm">
-          <span>{t('mfaCode')}</span>
-          <Input
-            bind:value={mfaCode}
-            inputmode="numeric"
-            autocomplete="one-time-code"
-            placeholder="000000"
-          />
-        </label>
-        <Button type="submit" disabled={busy}>{t('mfaLoginSubmit')}</Button>
-      </form>
-    {:else}
-      <AppIcon size={72} class="self-center" />
-      <h1 class="text-2xl font-medium">
-        {mode === 'login' ? t('login') : t('register')}
-      </h1>
-      {#if hasGuest}
-        <InlineAlert tone="muted">{t('guestUpload')}</InlineAlert>
-      {/if}
-      {#if error}
-        <InlineAlert>{error}</InlineAlert>
-      {/if}
-      <form class="flex flex-col gap-3" onsubmit={onSubmit}>
-        {#if mode === 'register'}
-          <label class="flex flex-col gap-1 text-sm">
-            <span>{t('displayName')}</span>
-            <Input bind:value={displayName} autocomplete="nickname" />
-          </label>
+  <main class="mx-auto flex w-full max-w-sm flex-1 flex-col p-6">
+    <div class="hidden min-h-0 md:block md:flex-1" aria-hidden="true"></div>
+    <div class="flex flex-col gap-4">
+      {#if mode === 'checkEmail'}
+        <h1 class="text-2xl font-medium">{t('registerCheckEmailTitle')}</h1>
+        <p class="text-sm leading-relaxed text-text-muted">
+          {t('registerCheckEmail')}
+        </p>
+      {:else if mode === 'mfa'}
+        <h1 class="text-2xl font-medium">{t('mfaSectionTitle')}</h1>
+        <p class="text-sm leading-relaxed text-text-muted">{t('mfaLoginHint')}</p>
+        {#if error}
+          <InlineAlert>{error}</InlineAlert>
         {/if}
-        <label class="flex flex-col gap-1 text-sm">
-          <span>{t('email')}</span>
-          <Input bind:value={email} type="email" autocomplete="username" />
-        </label>
-        <label class="flex flex-col gap-1 text-sm">
-          <span>{t('password')}</span>
-          <Input
-            bind:value={password}
-            type="password"
-            autocomplete={mode === 'login' ? 'current-password' : 'new-password'}
-          />
-        </label>
-        {#if mode === 'register'}
+        <form class="flex flex-col gap-3" onsubmit={onSubmit}>
           <label class="flex flex-col gap-1 text-sm">
-            <span>{t('passwordConfirm')}</span>
-            <Input bind:value={passwordConfirm} type="password" autocomplete="new-password" />
+            <span>{t('mfaCode')}</span>
+            <Input
+              bind:value={mfaCode}
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              placeholder="000000"
+            />
           </label>
-        {/if}
-        <Button type="submit" disabled={busy}>
-          {mode === 'login' ? t('login') : t('register')}
-        </Button>
-      </form>
-      {#if mode === 'login'}
-        <Button variant="ghost" type="button" onclick={() => setMode('register')}>
-          {t('switchToRegister')}
-        </Button>
+          <Button type="submit" disabled={busy}>{t('mfaLoginSubmit')}</Button>
+        </form>
       {:else}
-        <Button variant="ghost" type="button" onclick={() => setMode('login')}>
-          {t('switchToLogin')}
-        </Button>
+        <AppIcon size={72} class="self-center" />
+        <h1 class="text-2xl font-medium">
+          {mode === 'login' ? t('login') : t('register')}
+        </h1>
+        {#if hasGuest}
+          <InlineAlert tone="muted">{t('guestUpload')}</InlineAlert>
+        {/if}
+        {#if error}
+          <InlineAlert>{error}</InlineAlert>
+        {/if}
+        <form class="flex flex-col gap-3" onsubmit={onSubmit}>
+          {#if mode === 'register'}
+            <label class="flex flex-col gap-1 text-sm">
+              <span>{t('displayName')}</span>
+              <Input bind:value={displayName} autocomplete="nickname" />
+            </label>
+          {/if}
+          <label class="flex flex-col gap-1 text-sm">
+            <span>{t('email')}</span>
+            <Input bind:value={email} type="email" autocomplete="username" />
+          </label>
+          <label class="flex flex-col gap-1 text-sm">
+            <span>{t('password')}</span>
+            <Input
+              bind:value={password}
+              type="password"
+              autocomplete={mode === 'login' ? 'current-password' : 'new-password'}
+            />
+          </label>
+          {#if mode === 'register'}
+            <label class="flex flex-col gap-1 text-sm">
+              <span>{t('passwordConfirm')}</span>
+              <Input bind:value={passwordConfirm} type="password" autocomplete="new-password" />
+            </label>
+          {/if}
+          <Button type="submit" disabled={busy}>
+            {mode === 'login' ? t('login') : t('register')}
+          </Button>
+        </form>
+        {#if mode === 'login'}
+          <Button variant="ghost" type="button" onclick={() => setMode('register')}>
+            {t('switchToRegister')}
+          </Button>
+        {:else}
+          <Button variant="ghost" type="button" onclick={() => setMode('login')}>
+            {t('switchToLogin')}
+          </Button>
+        {/if}
       {/if}
-    {/if}
+    </div>
+    <div class="min-h-0 flex-[2]" aria-hidden="true"></div>
   </main>
 </div>
