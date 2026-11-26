@@ -89,7 +89,6 @@
     rows.length > 0 || Boolean(emptyMessage) || showPager || showInteractiveChrome,
   );
   const interactiveEnabled = $derived(badge !== 'past');
-  const showPackHint = $derived(tab === 'pack' || tab === 'both');
   const showInteractivePane = $derived(
     (tab === 'interactive' || tab === 'both') && showInteractiveChrome,
   );
@@ -126,161 +125,179 @@
   function tabClass(id: WhatIfTab): string {
     return tab === id ? 'bg-brand-soft! text-brand!' : 'text-text-muted! hover:bg-surface!';
   }
+
+  /** Section nav: open mutations (pack + interactive) pane. */
+  export function showMutations() {
+    if (showInteractiveChrome) tab = 'both';
+  }
 </script>
 
 {#if showPanel}
-  <Card>
-    <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-      <div class="flex flex-wrap items-center gap-2">
-        <h2 class="text-lg font-medium">{t('whatIf')}</h2>
-        {#if badgeLabel}
-          <span
-            class={[
-              'rounded-md px-2 py-0.5 text-xs font-medium',
-              badge === 'current' ? 'bg-brand-faint text-brand' : 'bg-bg-soft text-text-muted',
-            ]}
-          >
-            {badgeLabel}
-          </span>
+  <div id="what-if" class="scroll-mt-[var(--section-nav-scroll-mt,3.5rem)]">
+    <Card>
+      <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex flex-wrap items-center gap-2">
+          <h2 class="text-lg font-medium">{t('whatIf')}</h2>
+          {#if badgeLabel}
+            <span
+              class={[
+                'rounded-md px-2 py-0.5 text-xs font-medium',
+                badge === 'current' ? 'bg-brand-faint text-brand' : 'bg-bg-soft text-text-muted',
+              ]}
+            >
+              {badgeLabel}
+            </span>
+          {/if}
+        </div>
+        {#if showPager && onGenerationChange}
+          <div class="flex flex-wrap items-center gap-2">
+            {#if showGoToCurrent && currentGenerationIndex != null}
+              <Button
+                variant="secondary"
+                class="px-2.5! py-1! text-xs"
+                onclick={() => onGenerationChange(currentGenerationIndex)}
+              >
+                {t('whatIfGoToCurrent')}
+              </Button>
+            {/if}
+            <div class="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                class="px-2! py-1!"
+                disabled={generationIndex <= 0}
+                onclick={() => onGenerationChange(generationIndex - 1)}
+              >
+                ←
+              </Button>
+              <span class="font-mono text-sm">{generationIndex + 1}/{generationCount}</span>
+              <Button
+                variant="ghost"
+                class="px-2! py-1!"
+                disabled={generationIndex >= generationCount - 1}
+                onclick={() => onGenerationChange(generationIndex + 1)}
+              >
+                →
+              </Button>
+            </div>
+          </div>
         {/if}
       </div>
-      {#if showPager && onGenerationChange}
-        <div class="flex flex-wrap items-center gap-2">
-          {#if showGoToCurrent && currentGenerationIndex != null}
-            <Button
-              variant="secondary"
-              class="px-2.5! py-1! text-xs"
-              onclick={() => onGenerationChange(currentGenerationIndex)}
-            >
-              {t('whatIfGoToCurrent')}
-            </Button>
-          {/if}
-          <div class="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              class="px-2! py-1!"
-              disabled={generationIndex <= 0}
-              onclick={() => onGenerationChange(generationIndex - 1)}
-            >
-              ←
-            </Button>
-            <span class="font-mono text-sm">{generationIndex + 1}/{generationCount}</span>
-            <Button
-              variant="ghost"
-              class="px-2! py-1!"
-              disabled={generationIndex >= generationCount - 1}
-              onclick={() => onGenerationChange(generationIndex + 1)}
-            >
-              →
-            </Button>
+
+      {#if displayBaseModel}
+        <div class="mb-6">
+          <div class="mb-2 flex flex-wrap items-center gap-3">
+            <p class="text-sm font-medium text-text-muted">
+              {t('whatIfBaseMatrix')}
+            </p>
+            {#if showRestore && onRestore}
+              <Button variant="secondary" class="px-3! py-1.5! text-sm" onclick={onRestore}>
+                {t('whatIfRestoreBase')}
+              </Button>
+            {/if}
           </div>
-        </div>
-      {/if}
-    </div>
-
-    {#if displayBaseModel}
-      <div class="mb-6">
-        <div class="mb-2 flex flex-wrap items-center gap-3">
-          <p class="text-sm font-medium text-text-muted">
-            {t('whatIfBaseMatrix')}
-          </p>
-          {#if showRestore && onRestore}
-            <Button variant="secondary" class="px-3! py-1.5! text-sm" onclick={onRestore}>
-              {t('whatIfRestoreBase')}
-            </Button>
-          {/if}
-        </div>
-        {#key rowsFingerprint}
-          <LpModelMatrix model={displayBaseModel} readonly />
-        {/key}
-      </div>
-
-      <div class="mb-6 border-t border-border pt-5">
-        {#key rowsFingerprint}
-          <SensitivityRangesTables model={displayBaseModel} />
-        {/key}
-      </div>
-
-      <div class="mb-6 border-t border-border pt-5">
-        {#key `${rowsFingerprint}|param`}
-          <ResourceParametricChart model={displayBaseModel} />
-        {/key}
-      </div>
-    {/if}
-
-    {#if showInteractiveChrome}
-      <div class="mb-4 flex flex-wrap items-center gap-1">
-        <Button
-          variant="ghost"
-          class="px-2.5! py-1! text-xs {tabClass('both')}"
-          onclick={() => (tab = 'both')}
-        >
-          {t('tabWhatIfBoth')}
-        </Button>
-        <Button
-          variant="ghost"
-          class="px-2.5! py-1! text-xs {tabClass('interactive')}"
-          disabled={!interactiveEnabled && tab !== 'interactive'}
-          title={!interactiveEnabled ? t('whatIfPastInteractiveHint') : undefined}
-          onclick={() => (tab = 'interactive')}
-        >
-          {t('tabSensitivity')}
-        </Button>
-        <Button
-          variant="ghost"
-          class="px-2.5! py-1! text-xs {tabClass('pack')}"
-          onclick={() => (tab = 'pack')}
-        >
-          {t('tabWhatIfPack')}
-        </Button>
-      </div>
-    {/if}
-
-    {#if hint && showPackHint}
-      <p class="mb-3 text-xs text-text-soft">{hint}</p>
-    {/if}
-
-    {#if showInteractivePane && interactiveBaseModel && interactiveTransport}
-      {#if tab === 'both'}
-        <h3 class="mb-3 text-sm font-medium text-text-muted">
-          {t('tabSensitivity')}
-        </h3>
-      {/if}
-      <WhatIfInteractivePanel
-        baseModel={interactiveBaseModel}
-        baseResult={interactiveBaseResult}
-        method={interactiveMethod}
-        transport={interactiveTransport}
-        transportOpts={interactiveTransportOpts}
-        existingMutations={interactiveExistingMutations}
-        {interactiveEnabled}
-        canCreateTask={canCreateTaskFromInteractive}
-        {createTaskDisabledReason}
-        busyExternal={interactiveBusy}
-        onAddToTable={onAddInteractiveToTable}
-        onCreateTask={onCreateTaskFromScenario}
-      />
-    {/if}
-
-    {#if showPackPane}
-      {#if showInteractivePane}
-        <div class="my-5 border-t border-border"></div>
-        <h3 class="mb-3 text-sm font-medium text-text-muted">
-          {t('tabWhatIfPack')}
-        </h3>
-      {/if}
-      {#if emptyMessage}
-        <p class="text-sm text-text-muted">{emptyMessage}</p>
-      {:else if rows.length}
-        {#key rowsFingerprint}
-          <WhatIfTableBody {rows} {onCreateTaskFromScenario} {onCompareScenario} />
-        {/key}
-        <div class="mt-5 border-t border-border pt-5">
           {#key rowsFingerprint}
-            <WhatIfDeltaZChart {rows} />
+            <LpModelMatrix model={displayBaseModel} readonly />
+          {/key}
+        </div>
+
+        <div
+          id="what-if-ranges"
+          class="mb-6 scroll-mt-[var(--section-nav-scroll-mt,3.5rem)] border-t border-border pt-5"
+        >
+          {#key rowsFingerprint}
+            <SensitivityRangesTables model={displayBaseModel} />
+          {/key}
+        </div>
+
+        <div class="mb-6 border-t border-border pt-5">
+          {#key `${rowsFingerprint}|param`}
+            <ResourceParametricChart model={displayBaseModel} />
           {/key}
         </div>
       {/if}
-    {/if}
-  </Card>
+
+      <div
+        id="what-if-mutations"
+        class="scroll-mt-[var(--section-nav-scroll-mt,3.5rem)] border-t border-border pt-5"
+      >
+        <h3 class={['text-sm font-medium text-text', hint ? 'mb-1' : 'mb-3']}>
+          {t('sensitivityMutationsTitle')}
+        </h3>
+        {#if hint}
+          <p class="mb-3 text-xs text-text-soft">{hint}</p>
+        {/if}
+
+        {#if showInteractiveChrome}
+          <div class="mb-4 flex flex-wrap items-center gap-1">
+            <Button
+              variant="ghost"
+              class="px-2.5! py-1! text-xs {tabClass('both')}"
+              onclick={() => (tab = 'both')}
+            >
+              {t('tabWhatIfBoth')}
+            </Button>
+            <Button
+              variant="ghost"
+              class="px-2.5! py-1! text-xs {tabClass('interactive')}"
+              disabled={!interactiveEnabled && tab !== 'interactive'}
+              title={!interactiveEnabled ? t('whatIfPastInteractiveHint') : undefined}
+              onclick={() => (tab = 'interactive')}
+            >
+              {t('tabSensitivity')}
+            </Button>
+            <Button
+              variant="ghost"
+              class="px-2.5! py-1! text-xs {tabClass('pack')}"
+              onclick={() => (tab = 'pack')}
+            >
+              {t('tabWhatIfPack')}
+            </Button>
+          </div>
+        {/if}
+
+        {#if showInteractivePane && interactiveBaseModel && interactiveTransport}
+          {#if tab === 'both'}
+            <h3 class="mb-3 text-sm font-medium text-text-muted">
+              {t('tabSensitivity')}
+            </h3>
+          {/if}
+          <WhatIfInteractivePanel
+            baseModel={interactiveBaseModel}
+            baseResult={interactiveBaseResult}
+            method={interactiveMethod}
+            transport={interactiveTransport}
+            transportOpts={interactiveTransportOpts}
+            existingMutations={interactiveExistingMutations}
+            {interactiveEnabled}
+            canCreateTask={canCreateTaskFromInteractive}
+            {createTaskDisabledReason}
+            busyExternal={interactiveBusy}
+            onAddToTable={onAddInteractiveToTable}
+            onCreateTask={onCreateTaskFromScenario}
+          />
+        {/if}
+
+        {#if showPackPane}
+          {#if showInteractivePane}
+            <div class="my-5 border-t border-border"></div>
+            <h3 class="mb-3 text-sm font-medium text-text-muted">
+              {t('tabWhatIfPack')}
+            </h3>
+          {/if}
+          {#if emptyMessage}
+            <p class="text-sm text-text-muted">{emptyMessage}</p>
+          {:else if rows.length}
+            {#key rowsFingerprint}
+              <WhatIfTableBody {rows} {onCreateTaskFromScenario} {onCompareScenario} />
+            {/key}
+            <div class="mt-5 border-t border-border pt-5">
+              {#key rowsFingerprint}
+                <WhatIfDeltaZChart {rows} />
+              {/key}
+            </div>
+          {/if}
+        {/if}
+      </div>
+    </Card>
+  </div>
 {/if}

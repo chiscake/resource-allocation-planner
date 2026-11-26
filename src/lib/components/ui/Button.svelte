@@ -13,6 +13,7 @@
     title,
     'aria-label': ariaLabel,
     'aria-expanded': ariaExpanded,
+    'aria-controls': ariaControls,
     children,
   }: {
     variant?: Variant;
@@ -24,6 +25,7 @@
     title?: string;
     'aria-label'?: string;
     'aria-expanded'?: boolean | 'true' | 'false';
+    'aria-controls'?: string;
     children?: Snippet;
   } = $props();
 
@@ -44,7 +46,15 @@
 </script>
 
 {#if href}
-  <a {href} class={classes} {onclick} {title} aria-label={ariaLabel} aria-expanded={ariaExpanded}>
+  <a
+    {href}
+    class={classes}
+    {onclick}
+    {title}
+    aria-label={ariaLabel}
+    aria-expanded={ariaExpanded}
+    aria-controls={ariaControls}
+  >
     {@render children?.()}
   </a>
 {:else}
@@ -56,6 +66,7 @@
     {title}
     aria-label={ariaLabel}
     aria-expanded={ariaExpanded}
+    aria-controls={ariaControls}
   >
     {@render children?.()}
   </button>

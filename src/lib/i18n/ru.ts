@@ -645,6 +645,8 @@ const ru = {
   sensitivityRangesTitle: 'Интервалы устойчивости',
   sensitivityRangesHint:
     'Диапазоны, в которых оптимальный базис не меняется. Считаются по оптимальному симплекс-базису.',
+  /** Mutations subsection (pack + interactive) inside the sensitivity card. */
+  sensitivityMutationsTitle: 'Мутации',
   sensitivityRhsTable: 'По запасам ресурсов (bᵢ)',
   sensitivityObjTable: 'По ценам изделий (cⱼ)',
   sensitivityColCurrent: 'Текущее',
@@ -701,6 +703,18 @@ const ru = {
   collapseNav: 'Свернуть меню',
   openNav: 'Открыть меню',
   closeNav: 'Закрыть меню',
+  /** Sticky section jump list under the app header (task / create / guest). */
+  sectionNavLabel: 'Разделы',
+  sectionNavExpand: 'Список',
+  sectionNavCollapse: 'Свернуть',
+  sectionNavInput: 'Ввод задачи',
+  sectionNavResult: 'Результат',
+  sectionNavGeometry: 'Геометрия решения',
+  sectionNavSteps: 'Пошаговый разбор',
+  sectionNavCompare: 'Сравнение методов',
+  sectionNavWhatIf: 'Анализ чувствительности',
+  sectionNavRanges: 'Интервалы устойчивости',
+  sectionNavMutations: 'Мутации',
   comments: 'Комментарии',
   commentsEmpty: 'Пока нет комментариев',
   commentsPlaceholder: 'Написать комментарий…',
