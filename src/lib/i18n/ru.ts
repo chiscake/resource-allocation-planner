@@ -646,6 +646,8 @@ const ru = {
   sensitivityRangesTitle: 'Интервалы устойчивости',
   sensitivityRangesHint:
     'Диапазоны, в которых оптимальный базис не меняется. Считаются по оптимальному симплекс-базису.',
+  /** Mutations subsection (pack + interactive) inside the sensitivity card. */
+  sensitivityMutationsTitle: 'Мутации',
   sensitivityRhsTable: 'По запасам ресурсов (bᵢ)',
   sensitivityObjTable: 'По ценам изделий (cⱼ)',
   sensitivityColCurrent: 'Текущее',

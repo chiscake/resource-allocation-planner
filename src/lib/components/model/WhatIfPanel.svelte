@@ -89,7 +89,6 @@
     rows.length > 0 || Boolean(emptyMessage) || showPager || showInteractiveChrome,
   );
   const interactiveEnabled = $derived(badge !== 'past');
-  const showPackHint = $derived(tab === 'pack' || tab === 'both');
   const showInteractivePane = $derived(
     (tab === 'interactive' || tab === 'both') && showInteractiveChrome,
   );
@@ -217,7 +216,17 @@
         </div>
       {/if}
 
-      <div id="what-if-mutations" class="scroll-mt-[var(--section-nav-scroll-mt,3.5rem)]">
+      <div
+        id="what-if-mutations"
+        class="scroll-mt-[var(--section-nav-scroll-mt,3.5rem)] border-t border-border pt-5"
+      >
+        <h3 class={['text-sm font-medium text-text', hint ? 'mb-1' : 'mb-3']}>
+          {t('sensitivityMutationsTitle')}
+        </h3>
+        {#if hint}
+          <p class="mb-3 text-xs text-text-soft">{hint}</p>
+        {/if}
+
         {#if showInteractiveChrome}
           <div class="mb-4 flex flex-wrap items-center gap-1">
             <Button
@@ -244,10 +253,6 @@
               {t('tabWhatIfPack')}
             </Button>
           </div>
-        {/if}
-
-        {#if hint && showPackHint}
-          <p class="mb-3 text-xs text-text-soft">{hint}</p>
         {/if}
 
         {#if showInteractivePane && interactiveBaseModel && interactiveTransport}

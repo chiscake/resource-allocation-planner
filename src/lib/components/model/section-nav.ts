@@ -1,3 +1,5 @@
+import { CHROME_MD } from '$lib/chrome/chrome.svelte';
+
 /** Stable section anchors for sticky workspace nav (no hash / scroll-spy in v1). */
 export const SECTION_NAV_IDS = [
   'model',
@@ -28,24 +30,50 @@ export type WhatIfSectionApi = {
   showMutations: () => void;
 };
 
+/** Island header row height (h-10). */
+export const SECTION_NAV_BAR_HEIGHT = '2.5rem';
+/** Gap under chrome / main inset (p-6). */
+export const SECTION_NAV_GAP = '1.5rem';
+
+const SECTION_NAV_GAP_PX = 24;
+
 function prefersReducedMotion(): boolean {
   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-/** Leading padding on a wrapped Card (ignore target’s own pad — e.g. ranges `pt-5`). */
-function scrollPaddingTop(el: HTMLElement): number {
-  const child = el.firstElementChild;
-  if (child instanceof HTMLElement) {
-    return parseFloat(getComputedStyle(child).paddingTop) || 0;
-  }
-  return 0;
+function isDesktopViewport(): boolean {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+  return window.matchMedia(`(min-width: ${CHROME_MD}px)`).matches;
 }
 
 /**
- * Smooth scroll so the section's content (ignoring leading padding on the
- * target or its first child, e.g. Card `p-6`) lines up with scroll-margin /
- * the floating island.
+ * Section title for scroll alignment: only the top title row of the anchor
+ * (not deep headings inside expanded panels, e.g. SimplexStepsPanel).
+ * Skips Card padding and border-t / pt-* separators on the anchor itself.
+ */
+function resolveSectionHeading(el: HTMLElement): HTMLElement {
+  const child = el.firstElementChild;
+  if (!(child instanceof HTMLElement)) return el;
+
+  // Padded Card: title lives in the first content row inside the card.
+  const padTop = parseFloat(getComputedStyle(child).paddingTop) || 0;
+  const titleRoot =
+    padTop > 0 && child.firstElementChild instanceof HTMLElement ? child.firstElementChild : child;
+
+  if (/^H[1-6]$/.test(titleRoot.tagName)) return titleRoot;
+
+  // Heading in the title row / first block only — do not scan nested panels.
+  const heading = titleRoot.querySelector('h1, h2, h3, h4, h5, h6');
+  if (heading instanceof HTMLElement) return heading;
+
+  return titleRoot;
+}
+
+/**
+ * Smooth scroll into the workspace `main`:
+ * - Mobile: section title top sits ~p-6 below the sticky nav bar.
+ * - Desktop: vertical center of the section title matches the island header center.
  */
 export function scrollToSection(el: Element | null): void {
   if (!(el instanceof HTMLElement)) return;
@@ -58,12 +86,36 @@ export function scrollToSection(el: Element | null): void {
     return;
   }
 
-  const scrollMargin = parseFloat(getComputedStyle(el).scrollMarginTop) || 0;
-  const pad = scrollPaddingTop(el);
   const mainRect = main.getBoundingClientRect();
-  const elRect = el.getBoundingClientRect();
-  const nextTop = main.scrollTop + (elRect.top - mainRect.top) - scrollMargin + pad;
+  const heading = resolveSectionHeading(el);
+  const headingRect = heading.getBoundingClientRect();
 
+  if (isDesktopViewport()) {
+    const headingCenter = headingRect.top + headingRect.height / 2;
+
+    const islandHeader = document.querySelector<HTMLElement>('[data-section-nav-header]');
+    let alignCenter: number;
+    if (islandHeader) {
+      const ir = islandHeader.getBoundingClientRect();
+      alignCenter = ir.top + ir.height / 2;
+    } else {
+      const inset = parseFloat(getComputedStyle(main).paddingTop) || SECTION_NAV_GAP_PX;
+      const barH = parseFloat(SECTION_NAV_BAR_HEIGHT) * 16 || 40;
+      alignCenter = mainRect.top + inset + barH / 2;
+    }
+
+    const nextTop = main.scrollTop + (headingCenter - alignCenter);
+    main.scrollTo({ top: Math.max(0, nextTop), behavior });
+    return;
+  }
+
+  // Header only — list may still be open during navigate; ignore expanded panel height.
+  const mobileHeader = document.querySelector<HTMLElement>('[data-section-nav-header]');
+  const alignTop = mobileHeader
+    ? mobileHeader.getBoundingClientRect().bottom + SECTION_NAV_GAP_PX
+    : mainRect.top + (parseFloat(getComputedStyle(el).scrollMarginTop) || 40);
+
+  const nextTop = main.scrollTop + (headingRect.top - alignTop);
   main.scrollTo({ top: Math.max(0, nextTop), behavior });
 }
 

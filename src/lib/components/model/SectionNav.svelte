@@ -4,7 +4,13 @@
   import { prefersReducedMotion } from 'svelte/motion';
   import { t } from '$lib/i18n';
   import { CHROME_MD } from '$lib/chrome/chrome.svelte';
-  import { flattenSectionNavItems, type SectionNavId, type SectionNavItem } from './section-nav';
+  import {
+    flattenSectionNavItems,
+    SECTION_NAV_BAR_HEIGHT,
+    SECTION_NAV_GAP,
+    type SectionNavId,
+    type SectionNavItem,
+  } from './section-nav';
 
   let {
     items,
@@ -25,14 +31,6 @@
   const reduceMotion = $derived(prefersReducedMotion.current);
   const panelDuration = $derived(reduceMotion ? 0 : 220);
   const flatItems = $derived(flattenSectionNavItems(items));
-
-  /**
-   * Header row matches primary/secondary Button height: py-2.5 + text-sm ≈ 40px → h-10.
-   * Also reserved on PageHeader so actions clear the island.
-   */
-  const BAR_HEIGHT = '2.5rem';
-  /** Desktop island top inset inside main (matches main p-6). */
-  const DESKTOP_INSET = '1.5rem';
 
   $effect(() => {
     const main = rootEl?.closest('main') ?? document.querySelector('main');
@@ -55,17 +53,27 @@
     }
 
     if (desktop.current) {
-      main?.style.setProperty('--section-nav-scroll-mt', DESKTOP_INSET);
+      // Approximate top stop; click scroll uses center-to-center in scrollToSection.
+      main?.style.setProperty('--section-nav-scroll-mt', SECTION_NAV_GAP);
     } else {
-      main?.style.setProperty('--section-nav-scroll-mt', BAR_HEIGHT);
+      // Nav bar height + p-6 breathing room under the sticky island.
+      main?.style.setProperty(
+        '--section-nav-scroll-mt',
+        `calc(${SECTION_NAV_BAR_HEIGHT} + ${SECTION_NAV_GAP})`,
+      );
     }
+
+    // Clearance under the island: bar height; desktop also +p-6 so title/actions sit lower.
+    const headerPad = desktop.current
+      ? `calc(${SECTION_NAV_BAR_HEIGHT} + ${SECTION_NAV_GAP})`
+      : SECTION_NAV_BAR_HEIGHT;
 
     // Prefer PageHeader; fall back to page section (e.g. guest without title chrome).
     if (pageHeader instanceof HTMLElement) {
-      pageHeader.style.setProperty('padding-top', BAR_HEIGHT);
+      pageHeader.style.setProperty('padding-top', headerPad);
       if (pageSection instanceof HTMLElement) pageSection.style.removeProperty('padding-top');
     } else if (pageSection instanceof HTMLElement) {
-      pageSection.style.setProperty('padding-top', BAR_HEIGHT);
+      pageSection.style.setProperty('padding-top', headerPad);
     }
 
     return clear;
@@ -90,6 +98,7 @@
 {#snippet headerRow(controlsId: string)}
   <button
     type="button"
+    data-section-nav-header
     class="flex h-10 w-full cursor-pointer items-center justify-between gap-2 pr-2 pl-3 text-left text-sm font-medium transition-colors duration-200 hover:bg-bg-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
     aria-expanded={open}
     aria-controls={controlsId}
