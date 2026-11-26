@@ -4,9 +4,10 @@
   import { ArrowLeft } from '@lucide/svelte';
   import { t } from '$lib/i18n';
   import { supabase } from '$lib/db/supabase';
+  import { toast } from 'svelte-sonner';
   import { clearGuest, isGuestWorthUploading, loadGuest } from '$lib/db/guest';
+  import { uploadGuestIfAny } from '$lib/db/upload-guest';
   import { mfaErrorMessage } from '$lib/db/mfa-errors';
-  import { createBlankModel } from '$lib/domain';
   import Button from '$lib/components/ui/Button.svelte';
   import Input from '$lib/components/ui/Input.svelte';
   import InlineAlert from '$lib/components/ui/InlineAlert.svelte';
@@ -38,25 +39,11 @@
     error = '';
   }
 
-  async function uploadGuestIfAny(userId: string) {
-    const guest = loadGuest();
-    if (!guest) return;
-    if (!isGuestWorthUploading(guest)) {
-      clearGuest();
-      return;
-    }
-    await supabase.from('solve_nodes').insert({
-      owner_id: userId,
-      title: guest.title || t('guestScenarioTitle'),
-      kind: 'root',
-      model: guest.model ?? createBlankModel(),
-      result: guest.result ?? null,
-    });
-    clearGuest();
-  }
-
   async function finishSignedIn(userId: string) {
-    await uploadGuestIfAny(userId);
+    const uploaded = await uploadGuestIfAny(userId);
+    if (!uploaded.ok) {
+      toast.error(uploaded.error);
+    }
     void goto('/app');
   }
 

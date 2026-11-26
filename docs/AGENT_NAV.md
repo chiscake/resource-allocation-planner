@@ -45,7 +45,7 @@ resource-allocation-planner/
 │   │   ├── solver/              # contract/registry/run + methods/{lp,ipm,ga,dln} × engine
 │   │   ├── display/             # roundPlan / roundPref (UI post-process, not solver)
 │   │   ├── api/solve.ts         # Edge or local transport (+ method + engine + local fallback)
-│   │   ├── db/                  # supabase, guest, audit, soft-delete, task-draft, template-uses
+│   │   ├── db/                  # supabase, guest, upload-guest, audit, soft-delete, task-draft, template-uses
 │   │   ├── chrome/              # nav/drawer chrome state
 │   │   ├── components/          # chrome/ (AppShell, AppHeader, …) + model/
 │   │   ├── i18n/                # ru
