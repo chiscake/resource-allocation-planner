@@ -16,9 +16,8 @@
 
   const desktop = new MediaQuery(`(min-width: ${CHROME_MD}px)`);
 
-  /** null → default (desktop open, mobile collapsed); set by user toggle / mobile jump. */
-  let manualOpen = $state<boolean | null>(null);
-  const open = $derived(manualOpen ?? desktop.current);
+  /** Always starts collapsed (desktop + mobile). */
+  let open = $state(false);
 
   let busy = $state(false);
   let rootEl: HTMLElement | null = $state(null);
@@ -27,8 +26,11 @@
   const panelDuration = $derived(reduceMotion ? 0 : 220);
   const flatItems = $derived(flattenSectionNavItems(items));
 
-  /** Collapsed bar / island height — reserved on PageHeader so actions clear the island. */
-  const BAR_HEIGHT = '2.75rem';
+  /**
+   * Header row matches primary/secondary Button height: py-2.5 + text-sm ≈ 40px → h-10.
+   * Also reserved on PageHeader so actions clear the island.
+   */
+  const BAR_HEIGHT = '2.5rem';
   /** Desktop island top inset inside main (matches main p-6). */
   const DESKTOP_INSET = '1.5rem';
 
@@ -74,21 +76,21 @@
     busy = true;
     try {
       await onNavigate(id);
-      if (!desktop.current) manualOpen = false;
+      open = false;
     } finally {
       busy = false;
     }
   }
 
   function toggle() {
-    manualOpen = !open;
+    open = !open;
   }
 </script>
 
 {#snippet headerRow(controlsId: string)}
   <button
     type="button"
-    class="flex w-full cursor-pointer items-center justify-between gap-2 py-1.5 pr-2 pl-3 text-left transition-colors duration-200 hover:bg-bg-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
+    class="flex h-10 w-full cursor-pointer items-center justify-between gap-2 pr-2 pl-3 text-left text-sm font-medium transition-colors duration-200 hover:bg-bg-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
     aria-expanded={open}
     aria-controls={controlsId}
     disabled={busy}
@@ -96,9 +98,9 @@
   >
     <span class="flex min-w-0 items-center gap-2">
       <List class="size-4 shrink-0 text-text-muted" strokeWidth={1.75} aria-hidden="true" />
-      <span class="truncate text-xs font-medium text-text-muted">{t('sectionNavLabel')}</span>
+      <span class="truncate text-text-muted">{t('sectionNavLabel')}</span>
     </span>
-    <span class="flex shrink-0 items-center gap-1 text-xs font-medium text-text-muted">
+    <span class="flex shrink-0 items-center gap-1 text-text-muted">
       {open ? t('sectionNavCollapse') : t('sectionNavExpand')}
       <ChevronDown
         class={[
@@ -113,16 +115,15 @@
   </button>
 {/snippet}
 
-{#snippet links(vertical: boolean)}
-  <ul class={['flex gap-0.5 p-2', vertical ? 'flex-col' : 'flex-wrap']} role="list">
+{#snippet links()}
+  <ul class="flex flex-col gap-0.5 p-2" role="list">
     {#each flatItems as item (item.id)}
-      <li class={item.depth > 0 ? (vertical ? 'pl-3' : '') : ''}>
+      <li class={item.depth > 0 ? 'pl-3' : ''}>
         <button
           type="button"
           class={[
-            'inline-flex cursor-pointer items-center rounded-md px-2.5 py-1.5 text-left text-xs font-medium transition-colors duration-200 hover:bg-surface hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+            'inline-flex w-full cursor-pointer items-center rounded-md px-2.5 py-1.5 text-left text-xs font-medium transition-colors duration-200 hover:bg-surface hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
             item.depth > 0 ? 'text-text-soft' : 'text-text-muted',
-            vertical && 'w-full',
           ]}
           disabled={busy}
           onclick={() => void handleNavigate(item.id)}
@@ -134,7 +135,7 @@
   </ul>
 {/snippet}
 
-{#snippet collapsiblePanel(controlsId: string, vertical: boolean)}
+{#snippet collapsiblePanel(controlsId: string)}
   <div
     id={controlsId}
     class={[
@@ -146,7 +147,7 @@
   >
     <div class="min-h-0 overflow-hidden">
       <div class="border-t border-border-soft">
-        {@render links(vertical)}
+        {@render links()}
       </div>
     </div>
   </div>
@@ -167,17 +168,17 @@
     >
       <div class="pointer-events-auto rounded-[12px] border border-border bg-bg shadow-sm">
         {@render headerRow('section-nav-list')}
-        {@render collapsiblePanel('section-nav-list', true)}
+        {@render collapsiblePanel('section-nav-list')}
       </div>
     </nav>
   {:else}
-    <!-- Mobile: classic navbar flush under AppHeader. -->
+    <!-- Mobile: classic navbar flush under AppHeader; list same vertical tree as desktop. -->
     <nav
       class="fixed top-14 right-0 left-0 z-20 border-b border-border bg-bg shadow-sm"
       aria-label={t('sectionNavLabel')}
     >
       {@render headerRow('section-nav-list')}
-      {@render collapsiblePanel('section-nav-list', false)}
+      {@render collapsiblePanel('section-nav-list')}
     </nav>
   {/if}
 {/if}
