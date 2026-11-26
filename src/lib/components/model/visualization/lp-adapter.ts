@@ -1,9 +1,12 @@
 import type { Model, SolveTrace } from '$lib/domain';
 import {
   computeEdges,
+  computeFaces2Skeleton,
   computeFaces3d,
+  computeSection3d,
   computeVertices,
   constraintSegment2d,
+  embedAxesPoint,
   feasiblePolygon2d,
   getAllConstraints,
 } from './polytope';
@@ -32,6 +35,15 @@ function constraintsFromModel(model: Model) {
   }));
 }
 
+function displayAxesTriple(
+  axisX: number,
+  axisY: number,
+  axisZ: number | undefined,
+  dim: number,
+): [number, number, number] {
+  return [axisX, axisY, axisZ ?? Math.min(2, dim - 1)];
+}
+
 export function buildLpScene(
   model: Model,
   trace: Extract<SolveTrace, { method: 'lp' }> | null,
@@ -51,6 +63,7 @@ export function buildLpScene(
   const axisZ = opts?.axisZ ?? (dim >= 3 ? 2 : undefined);
   const sectionAxis = opts?.sectionAxis ?? (dim >= 4 ? dim - 1 : undefined);
   const sectionValue = opts?.sectionValue ?? 0;
+  const axes = displayAxesTriple(axisX, axisY, axisZ, dim);
 
   const frames: SceneFrame[] = [];
   const primal = trace?.frames ?? [];
@@ -60,6 +73,7 @@ export function buildLpScene(
   const staticLines: SceneLine[] = [];
   const staticRegions: SceneFrame['regions'] = [];
   const staticFaces: SceneFace[] = [];
+  let sectionModelVerts: number[][] = [];
 
   if (dim === 2 && (mode === 'exact2d' || mode === 'selectedAxes')) {
     const poly = feasiblePolygon2d(userCons);
@@ -108,12 +122,32 @@ export function buildLpScene(
     });
   }
 
-  // Low-dim polytope edges/faces for 3D/4D
-  if (
-    dim >= 3 &&
-    dim <= 4 &&
-    (mode === 'exact3d' || mode === 'project4d' || mode === 'section3d' || mode === 'selectedAxes')
-  ) {
+  if (mode === 'section3d' && dim >= 4 && sectionAxis != null) {
+    // Slice x[sectionAxis] = sectionValue onto the three selected display axes.
+    const section = computeSection3d(userCons, dim, axes, sectionAxis, sectionValue);
+    sectionModelVerts = section.modelVerts;
+    bounds = expandBounds(bounds, section.modelVerts);
+    for (const [i, j] of section.edges) {
+      staticLines.push({
+        id: `e-${i}-${j}`,
+        points: [section.modelVerts[i], section.modelVerts[j]],
+        kind: 'edge',
+        color: '#4fd1c5',
+      });
+    }
+    section.faces.forEach((pts, i) => {
+      staticFaces.push({
+        id: `face-${i}`,
+        points: pts.map((pt) =>
+          embedAxesPoint(pt, dim, axes, { axis: sectionAxis, value: sectionValue }),
+        ),
+        kind: 'feasible',
+        label: 'ОДР',
+        color: '#2563eb',
+        opacity: 0.14,
+      });
+    });
+  } else if (mode === 'project4d' && dim >= 4) {
     const all = getAllConstraints(userCons, dim);
     const verts = computeVertices(all, dim);
     const edges = computeEdges(verts, dim);
@@ -129,48 +163,78 @@ export function buildLpScene(
         color: '#4fd1c5',
       });
     }
-    if (mode === 'exact3d' || mode === 'selectedAxes') {
-      const axes = [axisX, axisY, axisZ ?? Math.min(2, dim - 1)];
-      const reducedCons = userCons.map((c) => ({
-        a: axes.map((ai) => c.a[ai] ?? 0),
-        b: c.b,
-      }));
-      const reducedAll = getAllConstraints(reducedCons, 3);
-      const reducedVerts = computeVertices(reducedAll, 3);
-      const faces = computeFaces3d(reducedVerts, reducedAll);
-      faces.forEach((pts, i) => {
-        staticFaces.push({
-          id: `face-${i}`,
-          points: pts.map((pt) => {
-            const full = new Array(dim).fill(0);
-            axes.forEach((ai, j) => {
-              full[ai] = pt[j] ?? 0;
-            });
-            return full;
-          }),
-          kind: 'feasible',
-          label: 'ОДР',
-          color: '#2563eb',
-          opacity: 0.14,
-        });
+    // Projected 2-faces of the 4D ОДР (filled polygons after 4→3→2).
+    const faces4 = computeFaces2Skeleton(verts, all, dim);
+    faces4.forEach((pts, i) => {
+      staticFaces.push({
+        id: `face-${i}`,
+        points: pts.map((p) => p.slice()),
+        kind: 'feasible',
+        label: 'ОДР',
+        color: '#2563eb',
+        opacity: 0.1,
+      });
+    });
+  } else if (dim >= 3 && dim <= 4 && (mode === 'exact3d' || mode === 'selectedAxes')) {
+    // ОДР on the three selected axes (non-selected products treated as 0 in A·x).
+    const reducedCons = userCons.map((c) => ({
+      a: axes.map((ai) => c.a[ai] ?? 0),
+      b: c.b,
+    }));
+    const reducedAll = getAllConstraints(reducedCons, 3);
+    const reducedVerts = computeVertices(reducedAll, 3);
+    const modelVerts = reducedVerts.map((v) => embedAxesPoint(v.point, dim, axes));
+    bounds = expandBounds(bounds, modelVerts);
+    const edges = computeEdges(reducedVerts, 3);
+    for (const [i, j] of edges) {
+      staticLines.push({
+        id: `e-${i}-${j}`,
+        points: [modelVerts[i], modelVerts[j]],
+        kind: 'edge',
+        color: '#4fd1c5',
       });
     }
+    const faces = computeFaces3d(reducedVerts, reducedAll);
+    faces.forEach((pts, i) => {
+      staticFaces.push({
+        id: `face-${i}`,
+        points: pts.map((pt) => embedAxesPoint(pt, dim, axes)),
+        kind: 'feasible',
+        label: 'ОДР',
+        color: '#2563eb',
+        opacity: 0.14,
+      });
+    });
   }
 
   const trajPts: number[][] = [];
   const steps = primal.length > 0 ? primal : [{ Z: 0, x: model.products.map(() => 0), note: '—' }];
 
+  const sectionEps =
+    sectionAxis != null
+      ? Math.max(0.05, ((bounds.max[sectionAxis] ?? 1) - (bounds.min[sectionAxis] ?? 0)) * 0.08)
+      : 0;
+
   steps.forEach((frame, idx) => {
-    const x = frame.x ?? model.products.map((p) => 0);
+    const x = frame.x ?? model.products.map(() => 0);
     trajPts.push(x);
     bounds = expandBounds(bounds, [x]);
 
     const points: ScenePoint[] = [];
-    // trajectory so far
     trajPts.forEach((pt, ti) => {
+      const nearSection =
+        mode !== 'section3d' ||
+        sectionAxis == null ||
+        Math.abs((pt[sectionAxis] ?? 0) - sectionValue) <= sectionEps;
+      if (!nearSection && ti !== trajPts.length - 1) return;
+      // Current marker: pin section coord onto the slice plane.
+      const coords =
+        mode === 'section3d' && sectionAxis != null && ti === trajPts.length - 1
+          ? pt.map((v, i) => (i === sectionAxis ? sectionValue : v))
+          : pt;
       points.push({
         id: `traj-${ti}`,
-        coords: pt,
+        coords,
         kind: ti === trajPts.length - 1 ? 'best' : 'trajectory',
         label: ti === trajPts.length - 1 ? 'Текущая' : undefined,
         size: ti === trajPts.length - 1 ? 7 : 3.5,
@@ -178,8 +242,17 @@ export function buildLpScene(
       });
     });
 
-    // polytope vertices when available
-    if (dim >= 3 && dim <= 4) {
+    if (mode === 'section3d' && sectionModelVerts.length > 0) {
+      sectionModelVerts.forEach((pt, vi) => {
+        points.push({
+          id: `v-${vi}`,
+          coords: pt,
+          kind: 'vertex',
+          size: 2.5,
+          color: '#8b93a7',
+        });
+      });
+    } else if (dim >= 3 && dim <= 4 && mode !== 'section3d') {
       const all = getAllConstraints(userCons, dim);
       const verts = computeVertices(all, dim);
       verts.forEach((v, vi) => {
@@ -197,7 +270,11 @@ export function buildLpScene(
       trajPts.length >= 2
         ? {
             id: 'traj-line',
-            points: trajPts.map((p) => p.slice()),
+            points: trajPts.map((p) =>
+              mode === 'section3d' && sectionAxis != null
+                ? p.map((v, i) => (i === sectionAxis ? sectionValue : v))
+                : p.slice(),
+            ),
             kind: 'trajectory',
             color: '#f2679c',
           }

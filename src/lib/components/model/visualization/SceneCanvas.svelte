@@ -33,6 +33,7 @@
     type Quat,
   } from './math';
   import { computePcaBasis, meanVec } from './ga-adapter';
+  import { pointTooltipCoords, sceneDisplayAxes } from './scene-axes';
   import {
     getVizRotationMode,
     setVizRotationMode,
@@ -128,7 +129,7 @@
   type CoordinateTooltip = {
     screenX: number;
     screenY: number;
-    values: { name: string; value: number }[];
+    values: { name: string; value: number; highlight?: boolean }[];
     label?: string;
   };
   let coordinateTooltip = $state<CoordinateTooltip | null>(null);
@@ -296,12 +297,8 @@
     if (mode !== 'exact3d' && mode !== 'section3d' && mode !== 'selectedAxes') {
       return null;
     }
-    const axes =
-      mode === 'selectedAxes' || mode === 'section3d'
-        ? [scene.axisX, scene.axisY, scene.axisZ ?? scene.axisX].filter(
-            (v): v is number => v != null,
-          )
-        : [0, 1, 2];
+    // Must match adapter faces (axisX/Y/Z) — never hard-code [0,1,2] for exact3d.
+    const axes = sceneDisplayAxes(scene);
     const toSel = (coords: number[]) => {
       const s = selectAxes(coords, axes);
       while (s.length < 3) s.push(0);
@@ -324,6 +321,30 @@
         return (mn + mx) / 2;
       });
       while (fallback.length < 3) fallback.push(0);
+      return boundingCenterScale([fallback], 1);
+    }
+    return boundingCenterScale(pool, 1);
+  });
+
+  /** Stable 4D normalize fit from frame geometry (points + faces + edges). */
+  const fit4d = $derived.by(() => {
+    if (scene.mode !== 'project4d' || scene.dim < 4) return null;
+    const pool: number[][] = [];
+    if (frame) {
+      for (const p of frame.points) pool.push(p.coords.slice(0, 4));
+      for (const face of frame.faces ?? []) {
+        for (const pt of face.points) pool.push(pt.slice(0, 4));
+      }
+      for (const line of frame.lines) {
+        for (const pt of line.points) pool.push(pt.slice(0, 4));
+      }
+    }
+    if (pool.length === 0) {
+      const fallback = scene.bounds.min.slice(0, 4).map((mn, i) => {
+        const mx = scene.bounds.max[i] ?? mn + 1;
+        return (mn + mx) / 2;
+      });
+      while (fallback.length < 4) fallback.push(0);
       return boundingCenterScale([fallback], 1);
     }
     return boundingCenterScale(pool, 1);
@@ -495,12 +516,7 @@
   });
 
   function selectedAxesIndices(): number[] {
-    if (scene.mode === 'selectedAxes' || scene.mode === 'section3d') {
-      return [scene.axisX, scene.axisY, scene.axisZ ?? scene.axisX].filter(
-        (v): v is number => v != null,
-      );
-    }
-    return [0, 1, 2];
+    return sceneDisplayAxes(scene);
   }
 
   function applyViewRotation(p3: number[]): number[] {
@@ -562,9 +578,10 @@
 
     let p3: number[];
     if (mode === 'project4d' && dim >= 4) {
-      const rawPts = frame?.points.map((p) => p.coords.slice(0, 4)) ?? [coords.slice(0, 4)];
-      const { center, scale } = boundingCenterScale(rawPts, 1);
-      const n = normalizePoint(coords.slice(0, 4), center, scale);
+      const p4 = coords.slice(0, 4);
+      while (p4.length < 4) p4.push(0);
+      const fit = fit4d ?? boundingCenterScale([p4], 1);
+      const n = normalizePoint(p4, fit.center, fit.scale);
       const r = mat4Apply(rot4, n);
       p3 = project4to3(r, 3.4);
     } else if (mode === 'exact3d' || mode === 'section3d' || mode === 'selectedAxes') {
@@ -934,9 +951,6 @@
       return;
     }
 
-    const axisNames = (indices: number[]) =>
-      indices.map((ai) => scene.productNames[ai] ?? `x${ai + 1}`);
-
     if (scene.mode === 'exact2d') {
       const point =
         hit?.type === 'point' ? frame.points.find((item) => item.id === hit.id) : undefined;
@@ -944,16 +958,7 @@
         coordinateTooltip = {
           screenX: local.x,
           screenY: local.y,
-          values: [
-            {
-              name: axisNames([scene.axisX])[0],
-              value: point.coords[scene.axisX] ?? 0,
-            },
-            {
-              name: axisNames([scene.axisY])[0],
-              value: point.coords[scene.axisY] ?? 0,
-            },
-          ],
+          values: pointTooltipCoords(point.coords, scene.productNames, [scene.axisX, scene.axisY]),
           label: point.label ?? pointKindLabel(point.kind),
         };
         return;
@@ -969,17 +974,20 @@
       const maxX = scene.bounds.max[scene.axisX] ?? minX + 1;
       const minY = scene.bounds.min[scene.axisY] ?? 0;
       const maxY = scene.bounds.max[scene.axisY] ?? minY + 1;
+      const names = scene.productNames;
       coordinateTooltip = {
         screenX: local.x,
         screenY: local.y,
         values: [
           {
-            name: axisNames([scene.axisX])[0],
+            name: names[scene.axisX] ?? `x${scene.axisX + 1}`,
             value: minX + tx * (maxX - minX),
+            highlight: true,
           },
           {
-            name: axisNames([scene.axisY])[0],
+            name: names[scene.axisY] ?? `x${scene.axisY + 1}`,
             value: minY + ty * (maxY - minY),
+            highlight: true,
           },
         ],
       };
@@ -998,16 +1006,13 @@
       coordinateTooltip = {
         screenX: local.x,
         screenY: local.y,
-        values: axes.map((ai, i) => ({
-          name: axisNames(axes)[i],
-          value: point.coords[ai] ?? 0,
-        })),
+        values: pointTooltipCoords(point.coords, scene.productNames, axes),
         label: point.label ?? pointKindLabel(point.kind),
       };
       return;
     }
 
-    // Empty-space: intersect view Z=0 plane through scene center.
+    // Empty-space: intersect view Z=0 plane through scene center (display axes only).
     const cx = cssW / 2 + panX;
     const cy = cssH / 2 + panY;
     const scale2d = Math.min(cssW, cssH) * 0.5 * zoom;
@@ -1024,13 +1029,26 @@
         return boundingCenterScale([c], 1);
       })();
     const modelSelected = modelN.map((v, i) => v / fit.scale + (fit.center[i] ?? 0));
+    const values: CoordinateTooltip['values'] = axes.map((ai, i) => ({
+      name: scene.productNames[ai] ?? `x${ai + 1}`,
+      value: modelSelected[i] ?? 0,
+      highlight: true,
+    }));
+    if (
+      scene.mode === 'section3d' &&
+      scene.sectionAxis != null &&
+      !axes.includes(scene.sectionAxis)
+    ) {
+      values.push({
+        name: scene.productNames[scene.sectionAxis] ?? `x${scene.sectionAxis + 1}`,
+        value: scene.sectionValue ?? 0,
+        highlight: false,
+      });
+    }
     coordinateTooltip = {
       screenX: local.x,
       screenY: local.y,
-      values: axes.map((ai, i) => ({
-        name: axisNames(axes)[i],
-        value: modelSelected[i] ?? 0,
-      })),
+      values,
     };
   }
 
@@ -1338,10 +1356,17 @@
         {#if coordinateTooltip.label}
           <p class="mb-1 font-medium text-text">{coordinateTooltip.label}</p>
         {/if}
-        <p class="whitespace-nowrap font-mono text-text-muted">
-          {coordinateTooltip.values
-            .map((item) => `${item.name}=${formatValue(item.value)}`)
-            .join(' · ')}
+        <p
+          class="flex max-w-[min(100vw-2rem,22rem)] flex-wrap items-baseline gap-x-1.5 gap-y-0.5 font-mono"
+        >
+          {#each coordinateTooltip.values as item, i (item.name)}
+            {#if i > 0}
+              <span class="text-text-muted">·</span>
+            {/if}
+            <span class={item.highlight ? 'font-medium text-text' : 'text-text-muted'}>
+              {item.name}={formatValue(item.value)}
+            </span>
+          {/each}
         </p>
       </div>
     {/if}
