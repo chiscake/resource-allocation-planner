@@ -12,7 +12,9 @@ import {
 import {
   computeEdges,
   computeFaces3d,
+  computeSection3d,
   computeVertices,
+  embedAxesPoint,
   feasiblePolygon2d,
   getAllConstraints,
 } from './polytope';
@@ -100,21 +102,40 @@ export function buildGaScene(
 
   const staticFaces: SceneFace[] = [];
   const staticEdgeLines: SceneFrame['lines'] = [];
-  if (dim >= 3 && (mode === 'exact3d' || mode === 'selectedAxes')) {
-    const axes = [axisX, axisY, axisZ ?? Math.min(2, dim - 1)];
+  const axes: [number, number, number] = [axisX, axisY, axisZ ?? Math.min(2, dim - 1)];
+
+  if (mode === 'section3d' && dim >= 4 && sectionAxis != null) {
+    // Same slice semantics as LP: ОДР faces at sectionAxis = sectionValue.
+    const section = computeSection3d(userCons, dim, axes, sectionAxis, sectionValue);
+    bounds = expandBounds(bounds, section.modelVerts);
+    for (const [i, j] of section.edges) {
+      staticEdgeLines.push({
+        id: `e-${i}-${j}`,
+        points: [section.modelVerts[i], section.modelVerts[j]],
+        kind: 'edge',
+        color: '#4fd1c5',
+      });
+    }
+    section.faces.forEach((pts, i) => {
+      staticFaces.push({
+        id: `face-${i}`,
+        points: pts.map((pt) =>
+          embedAxesPoint(pt, dim, axes, { axis: sectionAxis, value: sectionValue }),
+        ),
+        kind: 'feasible',
+        label: 'ОДР',
+        color: '#2563eb',
+        opacity: 0.14,
+      });
+    });
+  } else if (dim >= 3 && (mode === 'exact3d' || mode === 'selectedAxes')) {
     const reducedCons = userCons.map((c) => ({
       a: axes.map((ai) => c.a[ai] ?? 0),
       b: c.b,
     }));
     const all = getAllConstraints(reducedCons, 3);
     const verts = computeVertices(all, 3);
-    const modelVerts = verts.map((v) => {
-      const full = new Array(dim).fill(0);
-      axes.forEach((ai, i) => {
-        full[ai] = v.point[i] ?? 0;
-      });
-      return full;
-    });
+    const modelVerts = verts.map((v) => embedAxesPoint(v.point, dim, axes));
     bounds = expandBounds(bounds, modelVerts);
     const edges = computeEdges(verts, 3);
     for (const [i, j] of edges) {
@@ -129,13 +150,7 @@ export function buildGaScene(
     faces.forEach((pts, i) => {
       staticFaces.push({
         id: `face-${i}`,
-        points: pts.map((pt) => {
-          const full = new Array(dim).fill(0);
-          axes.forEach((ai, j) => {
-            full[ai] = pt[j] ?? 0;
-          });
-          return full;
-        }),
+        points: pts.map((pt) => embedAxesPoint(pt, dim, axes)),
         kind: 'feasible',
         label: 'ОДР',
         color: '#2563eb',

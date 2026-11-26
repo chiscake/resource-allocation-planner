@@ -171,6 +171,80 @@ export function feasiblePolygon2d(constraints: { a: number[]; b: number }[]): [n
   return sorted.map((v) => [v.point[0], v.point[1]] as [number, number]);
 }
 
+/**
+ * 3D cross-section of an nD polytope at `x[sectionAxis] = sectionValue`,
+ * expressed in the three `displayAxes` coordinates.
+ * Same construction as `.tmp/LP4DVisualizer` (generalized beyond hard-coded x₄).
+ */
+export function computeSection3d(
+  userConstraints: { a: number[]; b: number }[],
+  dim: number,
+  displayAxes: [number, number, number],
+  sectionAxis: number,
+  sectionValue: number,
+): {
+  feasible: boolean;
+  vertices: PolytopeVertex[];
+  edges: [number, number][];
+  faces: VecN[][];
+  /** Full-dim embeddings of section vertices (display + fixed section). */
+  modelVerts: VecN[];
+} {
+  const empty = {
+    feasible: false,
+    vertices: [] as PolytopeVertex[],
+    edges: [] as [number, number][],
+    faces: [] as VecN[][],
+    modelVerts: [] as VecN[],
+  };
+  if (dim < 4 || sectionValue < -EPS) return empty;
+  if (new Set(displayAxes).size !== 3) return empty;
+  if (displayAxes.some((ai) => ai === sectionAxis || ai < 0 || ai >= dim)) return empty;
+  if (sectionAxis < 0 || sectionAxis >= dim) return empty;
+
+  const reduced: { a: number[]; b: number }[] = [];
+  let feasibleK = true;
+  for (const con of userConstraints) {
+    const a3 = displayAxes.map((ai) => con.a[ai] ?? 0);
+    const rhs = con.b - (con.a[sectionAxis] ?? 0) * sectionValue;
+    if (Math.hypot(a3[0], a3[1], a3[2]) < 1e-9) {
+      if (rhs < -1e-6) feasibleK = false;
+      continue;
+    }
+    reduced.push({ a: a3, b: rhs });
+  }
+  if (!feasibleK) return empty;
+
+  const all = getAllConstraints(reduced, 3);
+  const vertices = computeVertices(all, 3);
+  const edges = computeEdges(vertices, 3);
+  const faces = computeFaces3d(vertices, all);
+  const modelVerts = vertices.map((v) => {
+    const full = new Array(dim).fill(0);
+    displayAxes.forEach((ai, j) => {
+      full[ai] = v.point[j] ?? 0;
+    });
+    full[sectionAxis] = sectionValue;
+    return full;
+  });
+  return { feasible: true, vertices, edges, faces, modelVerts };
+}
+
+/** Embed a 3D point on selected product axes into full model space. */
+export function embedAxesPoint(
+  pt3: VecN,
+  dim: number,
+  axes: number[],
+  fixed?: { axis: number; value: number },
+): VecN {
+  const full = new Array(dim).fill(0);
+  axes.forEach((ai, j) => {
+    full[ai] = pt3[j] ?? 0;
+  });
+  if (fixed) full[fixed.axis] = fixed.value;
+  return full;
+}
+
 export function constraintSegment2d(
   a: number[],
   b: number,
