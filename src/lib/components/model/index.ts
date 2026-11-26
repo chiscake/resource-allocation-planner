@@ -7,10 +7,12 @@ export { default as SectionNav } from './SectionNav.svelte';
 export { default as WhatIfPanel } from './WhatIfPanel.svelte';
 export {
   scrollToSection,
+  flattenSectionNavItems,
   SECTION_NAV_IDS,
   type SectionNavId,
   type SectionNavItem,
   type SolveResultSectionApi,
+  type WhatIfSectionApi,
 } from './section-nav';
 export { default as SimplexStepsPanel } from './SimplexStepsPanel.svelte';
 export { default as LibraryVerifyPanel } from './LibraryVerifyPanel.svelte';

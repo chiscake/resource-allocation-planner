@@ -4,7 +4,7 @@
   import { prefersReducedMotion } from 'svelte/motion';
   import { t } from '$lib/i18n';
   import { CHROME_MD } from '$lib/chrome/chrome.svelte';
-  import type { SectionNavId, SectionNavItem } from './section-nav';
+  import { flattenSectionNavItems, type SectionNavId, type SectionNavItem } from './section-nav';
 
   let {
     items,
@@ -25,36 +25,48 @@
 
   const reduceMotion = $derived(prefersReducedMotion.current);
   const panelDuration = $derived(reduceMotion ? 0 : 220);
+  const flatItems = $derived(flattenSectionNavItems(items));
 
-  /** Collapsed bar / island height — also used as page top padding so chrome clears the island. */
+  /** Collapsed bar / island height — reserved on PageHeader so actions clear the island. */
   const BAR_HEIGHT = '2.75rem';
   /** Desktop island top inset inside main (matches main p-6). */
   const DESKTOP_INSET = '1.5rem';
 
   $effect(() => {
     const main = rootEl?.closest('main') ?? document.querySelector('main');
-    const section = rootEl?.closest('section');
-    if (!items.length) {
+    // Page shell section (not the inner SolveWorkspace <section>).
+    const pageSection =
+      rootEl?.closest('main > section') ??
+      (main instanceof HTMLElement ? main.querySelector(':scope > section') : null);
+    const pageHeader =
+      pageSection instanceof HTMLElement ? pageSection.querySelector(':scope > header') : null;
+
+    const clear = () => {
       main?.style.removeProperty('--section-nav-scroll-mt');
-      section?.style.removeProperty('padding-top');
+      if (pageHeader instanceof HTMLElement) pageHeader.style.removeProperty('padding-top');
+      if (pageSection instanceof HTMLElement) pageSection.style.removeProperty('padding-top');
+    };
+
+    if (!items.length) {
+      clear();
       return;
     }
 
     if (desktop.current) {
-      // Align jumped sections with the floating island top (same level).
       main?.style.setProperty('--section-nav-scroll-mt', DESKTOP_INSET);
-      // Reserve top space so title/actions sit below the collapsed island.
-      section?.style.setProperty('padding-top', BAR_HEIGHT);
     } else {
-      // Mobile navbar height under AppHeader.
       main?.style.setProperty('--section-nav-scroll-mt', BAR_HEIGHT);
-      section?.style.setProperty('padding-top', BAR_HEIGHT);
     }
 
-    return () => {
-      main?.style.removeProperty('--section-nav-scroll-mt');
-      section?.style.removeProperty('padding-top');
-    };
+    // Prefer PageHeader; fall back to page section (e.g. guest without title chrome).
+    if (pageHeader instanceof HTMLElement) {
+      pageHeader.style.setProperty('padding-top', BAR_HEIGHT);
+      if (pageSection instanceof HTMLElement) pageSection.style.removeProperty('padding-top');
+    } else if (pageSection instanceof HTMLElement) {
+      pageSection.style.setProperty('padding-top', BAR_HEIGHT);
+    }
+
+    return clear;
   });
 
   async function handleNavigate(id: SectionNavId) {
@@ -102,19 +114,14 @@
 {/snippet}
 
 {#snippet links(vertical: boolean)}
-  <ul
-    class={[
-      vertical ? 'flex flex-col gap-0.5 px-1.5 pb-2' : 'flex flex-wrap gap-1 px-3 pb-2',
-      'pt-0.5',
-    ]}
-    role="list"
-  >
-    {#each items as item (item.id)}
-      <li>
+  <ul class={['flex gap-0.5 p-2', vertical ? 'flex-col' : 'flex-wrap']} role="list">
+    {#each flatItems as item (item.id)}
+      <li class={item.depth > 0 ? (vertical ? 'pl-3' : '') : ''}>
         <button
           type="button"
           class={[
-            'inline-flex cursor-pointer items-center rounded-md px-2.5 py-1.5 text-left text-xs font-medium text-text-muted transition-colors duration-200 hover:bg-surface hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+            'inline-flex cursor-pointer items-center rounded-md px-2.5 py-1.5 text-left text-xs font-medium transition-colors duration-200 hover:bg-surface hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+            item.depth > 0 ? 'text-text-soft' : 'text-text-muted',
             vertical && 'w-full',
           ]}
           disabled={busy}
@@ -155,7 +162,7 @@
   {#if desktop.current}
     <!-- Desktop: fixed-width floating aside; top inset matches main padding. -->
     <nav
-      class="pointer-events-none fixed top-[calc(3.5rem+1.5rem)] right-5 z-30 w-56"
+      class="pointer-events-none fixed top-[calc(3.5rem+1.5rem)] right-5 z-30 w-64"
       aria-label={t('sectionNavLabel')}
     >
       <div class="pointer-events-auto rounded-[12px] border border-border bg-bg shadow-sm">

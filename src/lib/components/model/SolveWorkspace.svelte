@@ -31,6 +31,7 @@
     type SectionNavId,
     type SectionNavItem,
     type SolveResultSectionApi,
+    type WhatIfSectionApi,
   } from './section-nav';
 
   let {
@@ -117,6 +118,7 @@
   const rows = $derived(whatIfRows ?? session.whatIfItems);
 
   let resultPanel = $state<SolveResultSectionApi | null>(null);
+  let whatIfPanel = $state<WhatIfSectionApi | null>(null);
 
   const showInteractiveChrome = $derived(
     interactiveBaseModel != null && interactiveTransport != null,
@@ -128,21 +130,43 @@
       showInteractiveChrome,
   );
   const displayWhatIfBase = $derived(whatIfBaseModel ?? interactiveBaseModel);
+  const showMethodCompare = $derived(Boolean(session.result && !compact));
 
   const sectionNavItems = $derived.by((): SectionNavItem[] => {
-    const items: SectionNavItem[] = [];
-    if (session.result && session.stepsAvailable && session.solveMethod === 'lp') {
-      items.push({ id: 'result-geometry', label: t('sectionNavGeometry') });
+    const items: SectionNavItem[] = [{ id: 'model', label: t('sectionNavInput') }];
+
+    if (session.result) {
+      const resultChildren: SectionNavItem[] = [];
+      if (session.stepsAvailable && session.solveMethod === 'lp') {
+        resultChildren.push({ id: 'result-geometry', label: t('sectionNavGeometry') });
+      }
+      if (session.stepsAvailable) {
+        resultChildren.push({ id: 'result-steps', label: t('sectionNavSteps') });
+      }
+      items.push({
+        id: 'result',
+        label: t('sectionNavResult'),
+        children: resultChildren.length ? resultChildren : undefined,
+      });
     }
-    if (session.result && session.stepsAvailable) {
-      items.push({ id: 'result-steps', label: t('sectionNavSteps') });
+
+    if (showMethodCompare) {
+      items.push({ id: 'method-compare', label: t('sectionNavCompare') });
     }
-    if (showWhatIfPanel && displayWhatIfBase) {
-      items.push({ id: 'what-if-ranges', label: t('sectionNavRanges') });
-    }
+
     if (showWhatIfPanel) {
-      items.push({ id: 'what-if', label: t('sectionNavWhatIf') });
+      const whatIfChildren: SectionNavItem[] = [];
+      if (displayWhatIfBase) {
+        whatIfChildren.push({ id: 'what-if-ranges', label: t('sectionNavRanges') });
+      }
+      whatIfChildren.push({ id: 'what-if-mutations', label: t('sectionNavMutations') });
+      items.push({
+        id: 'what-if',
+        label: t('sectionNavWhatIf'),
+        children: whatIfChildren,
+      });
     }
+
     return items;
   });
 
@@ -165,6 +189,8 @@
       await resultPanel?.expandGeometry();
     } else if (id === 'result-steps') {
       await resultPanel?.expandSteps();
+    } else if (id === 'what-if-mutations') {
+      whatIfPanel?.showMutations();
     }
     await tick();
     await nextAnimationFrame();
@@ -199,77 +225,84 @@
       <InlineAlert>{session.error}</InlineAlert>
     {/if}
 
-    <Card>
-      <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <p class="text-sm font-medium">{t('modelMatrix')}</p>
-        <ModelCsvActions {model} {title} disabled={session.busy} onimport={onModelChange} />
-      </div>
-      <LpModelMatrix {model} onchange={onModelChange} />
-      <div class="mt-4">
-        <PlanSolveControls
-          {model}
-          bind:activeTab={() => session.activeTab, (v) => (session.activeTab = v)}
-          bind:includeSensitivity={
-            () => session.includeSensitivity, (v) => (session.includeSensitivity = v)
-          }
-          bind:gaPreset={() => session.gaPreset, (v) => (session.gaPreset = v)}
-          bind:gaConfig={() => session.gaConfig, (v) => (session.gaConfig = v)}
-          bind:dlnPreset={() => session.dlnPreset, (v) => (session.dlnPreset = v)}
-          bind:dlnConfig={() => session.dlnConfig, (v) => (session.dlnConfig = v)}
-          busy={session.busy}
-          {showLoginCta}
-          {showCloudSplit}
-          {onWhatIfChange}
-          {onSolve}
-          {onSolveCloud}
-        />
-      </div>
-      {#if matrixFooter}
-        {@render matrixFooter()}
-      {/if}
-      {#if planExtras}
-        <div class="mt-6 border-t border-border pt-4">
-          {@render planExtras()}
+    <div id="model" class="scroll-mt-[var(--section-nav-scroll-mt,3.5rem)]">
+      <Card>
+        <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <p class="text-sm font-medium">{t('modelMatrix')}</p>
+          <ModelCsvActions {model} {title} disabled={session.busy} onimport={onModelChange} />
         </div>
-      {/if}
-    </Card>
+        <LpModelMatrix {model} onchange={onModelChange} />
+        <div class="mt-4">
+          <PlanSolveControls
+            {model}
+            bind:activeTab={() => session.activeTab, (v) => (session.activeTab = v)}
+            bind:includeSensitivity={
+              () => session.includeSensitivity, (v) => (session.includeSensitivity = v)
+            }
+            bind:gaPreset={() => session.gaPreset, (v) => (session.gaPreset = v)}
+            bind:gaConfig={() => session.gaConfig, (v) => (session.gaConfig = v)}
+            bind:dlnPreset={() => session.dlnPreset, (v) => (session.dlnPreset = v)}
+            bind:dlnConfig={() => session.dlnConfig, (v) => (session.dlnConfig = v)}
+            busy={session.busy}
+            {showLoginCta}
+            {showCloudSplit}
+            {onWhatIfChange}
+            {onSolve}
+            {onSolveCloud}
+          />
+        </div>
+        {#if matrixFooter}
+          {@render matrixFooter()}
+        {/if}
+        {#if planExtras}
+          <div class="mt-6 border-t border-border pt-4">
+            {@render planExtras()}
+          </div>
+        {/if}
+      </Card>
+    </div>
 
     {#if session.result && session.displayResult}
       <RoundPlanToggle bind:roundPlan={() => session.roundPlan, (v) => (session.roundPlan = v)} />
 
-      {#key session.solveEpoch}
-        <SolveResultPanel
-          bind:this={resultPanel}
-          result={session.displayResult}
-          {model}
-          roundPlan={session.roundPlan}
-          productOrder={model.products}
-          resourceOrder={model.resources}
-          {solverLibrary}
-          trace={session.lastTrace}
-          stepsAvailable={session.stepsAvailable}
-          verifyReport={session.verifyReport}
-          solveMethod={session.solveMethod}
-          gapVsLp={session.lastResponse?.solver_meta.gap_vs_lp ?? null}
-          {onRequestSteps}
-          exportTitle={title || t('newTask')}
-          whatIfRows={rows}
-          {resultExtras}
-        />
-      {/key}
+      <div id="result" class="scroll-mt-[var(--section-nav-scroll-mt,3.5rem)]">
+        {#key session.solveEpoch}
+          <SolveResultPanel
+            bind:this={resultPanel}
+            result={session.displayResult}
+            {model}
+            roundPlan={session.roundPlan}
+            productOrder={model.products}
+            resourceOrder={model.resources}
+            {solverLibrary}
+            trace={session.lastTrace}
+            stepsAvailable={session.stepsAvailable}
+            verifyReport={session.verifyReport}
+            solveMethod={session.solveMethod}
+            gapVsLp={session.lastResponse?.solver_meta.gap_vs_lp ?? null}
+            {onRequestSteps}
+            exportTitle={title || t('newTask')}
+            whatIfRows={rows}
+            {resultExtras}
+          />
+        {/key}
+      </div>
 
       {#if !compact}
-        <MethodComparisonPanel
-          {model}
-          {gaHyper}
-          gaPreset={session.gaPreset}
-          {dlnHyper}
-          dlnPreset={session.dlnPreset}
-        />
+        <div id="method-compare" class="scroll-mt-[var(--section-nav-scroll-mt,3.5rem)]">
+          <MethodComparisonPanel
+            {model}
+            {gaHyper}
+            gaPreset={session.gaPreset}
+            {dlnHyper}
+            dlnPreset={session.dlnPreset}
+          />
+        </div>
       {/if}
     {/if}
 
     <WhatIfPanel
+      bind:this={whatIfPanel}
       {rows}
       generationIndex={whatIfGenerationIndex}
       generationCount={whatIfGenerationCount}
