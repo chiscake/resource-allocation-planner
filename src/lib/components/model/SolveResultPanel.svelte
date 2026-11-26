@@ -392,7 +392,7 @@
   {/if}
 
   {#if model && solveMethod === 'lp' && stepsAvailable}
-    <div id="result-geometry" class="mt-6 scroll-mt-14">
+    <div id="result-geometry" class="mt-6 scroll-mt-[var(--section-nav-scroll-mt,3.5rem)]">
       <div class="flex items-center gap-3">
         <span class="h-px min-w-4 flex-1 bg-border" aria-hidden="true"></span>
         <button
@@ -434,7 +434,7 @@
   {/if}
 
   {#if stepsAvailable}
-    <div id="result-steps" class="mt-6 scroll-mt-14">
+    <div id="result-steps" class="mt-6 scroll-mt-[var(--section-nav-scroll-mt,3.5rem)]">
       <div class="flex items-center gap-3">
         <span class="h-px min-w-4 flex-1 bg-border" aria-hidden="true"></span>
         <button

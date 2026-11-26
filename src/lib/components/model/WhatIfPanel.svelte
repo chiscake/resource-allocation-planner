@@ -129,7 +129,7 @@
 </script>
 
 {#if showPanel}
-  <div id="what-if" class="scroll-mt-14">
+  <div id="what-if" class="scroll-mt-[var(--section-nav-scroll-mt,3.5rem)]">
     <Card>
       <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div class="flex flex-wrap items-center gap-2">
@@ -196,7 +196,10 @@
           {/key}
         </div>
 
-        <div id="what-if-ranges" class="mb-6 scroll-mt-14 border-t border-border pt-5">
+        <div
+          id="what-if-ranges"
+          class="mb-6 scroll-mt-[var(--section-nav-scroll-mt,3.5rem)] border-t border-border pt-5"
+        >
           {#key rowsFingerprint}
             <SensitivityRangesTables model={displayBaseModel} />
           {/key}
